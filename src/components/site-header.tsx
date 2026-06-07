@@ -1,0 +1,90 @@
+import { Separator } from "@/components/ui/separator"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+
+const breadcrumbLabels: Record<string, string> = {
+  dashboard: "Dashboard",
+  products: "Products",
+  transaction: "Transaction",
+  "qr-statistics": "Qr Statistics",
+  "qr-analytics": "Qr Analytics",
+  images: "Images",
+  invoice: "Invoice",
+  reports: "Reports",
+  client: "Clients",
+  "ai-agent": "AI Agent",
+  tax: "Tax",
+  branches: "Branches",
+  settings: "Settings",
+  add: "Add",
+}
+
+function getBreadcrumbs(activeUrl: string) {
+  const pathname = activeUrl === "/" ? "/dashboard" : activeUrl
+  const segments = pathname.split("/").filter(Boolean)
+
+  return segments.map((segment, index) => {
+    const url = `/${segments.slice(0, index + 1).join("/")}`
+    const label =
+      breadcrumbLabels[segment] ??
+      segment
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ")
+
+    return { label, url }
+  })
+}
+
+export function SiteHeader({
+  activeUrl = "/dashboard",
+  onNavigate,
+}: {
+  activeUrl?: string
+  onNavigate?: (url: string, title: string) => void
+}) {
+  const breadcrumbs = getBreadcrumbs(activeUrl)
+
+  return (
+    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+        <SidebarTrigger className="-ml-1" />
+        <Separator
+          orientation="vertical"
+          className="mx-2 data-[orientation=vertical]:h-4"
+        />
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm">
+          {breadcrumbs.map((breadcrumb, index) => {
+            const isLast = index === breadcrumbs.length - 1
+
+            return (
+              <div key={breadcrumb.url} className="flex items-center gap-1">
+                {index > 0 ? (
+                  <span className="text-muted-foreground/60">/</span>
+                ) : null}
+                {isLast ? (
+                  <span
+                    className={
+                      index === 0
+                        ? "font-semibold text-foreground"
+                        : "font-medium text-muted-foreground"
+                    }
+                  >
+                    {breadcrumb.label}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="font-semibold text-foreground transition-colors hover:text-primary"
+                    onClick={() => onNavigate?.(breadcrumb.url, breadcrumb.label)}
+                  >
+                    {breadcrumb.label}
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </nav>
+      </div>
+    </header>
+  )
+}
