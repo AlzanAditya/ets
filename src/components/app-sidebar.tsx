@@ -13,203 +13,51 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { CameraIcon, FileTextIcon, FileChartColumnIcon, ScanQrCodeIcon, PackageIcon, Wallet2Icon, ImageIcon, SettingsIcon, ReceiptIcon, SparklesIcon, LayoutGridIcon, UsersIcon, LandmarkIcon, Building2Icon } from "lucide-react"
+import type {
+  BrandIdentity,
+  NavigationItem,
+  PlanNavigationSection,
+  QuickActionItem,
+  UserProfile,
+} from "@/types/navigation"
 
-type Plan = "free" | "pro" | "max"
+const placeholderBrand = {
+  title: "Sample App",
+  href: "/dashboard",
+  tagline: ["Sample Workspace", "Development Preview"],
+} satisfies BrandIdentity
 
-const plan = {
-  free: "free",
-  pro: "pro",
-  max: "max",
-} satisfies Record<Plan, Plan>
+const placeholderUser = {
+  name: "Preview User",
+  email: "preview@example.test",
+  fallback: "PU",
+} satisfies UserProfile
 
-const data = {
-  user: {
-    name: "Berkah Maju Elektrik",
-    email: "admin@bme.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      plan: plan.free,
-      icon: (
-        <LayoutGridIcon
-        />
-      ),
-    },
-    {
-      title: "Products",
-      url: "/products",
-      plan: plan.free,
-      icon: (
-        <PackageIcon
-        />
-      ),
-    },
-    {
-      title: "QR Statistics",
-      url: "/qr-statistics",
-      plan: plan.free,
-      icon: (
-        <ScanQrCodeIcon
-        />
-      ),
-    },
-    {
-      title: "Transaction",
-      url: "/transaction",
-      plan: plan.free,
-      icon: (
-        <Wallet2Icon
-        />
-      ),
-    },
-    {
-      title: "Images",
-      url: "/images",
-      plan: plan.free,
-      icon: (
-        <ImageIcon
-        />
-      ),
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: (
-        <CameraIcon
-        />
-      ),
-      isActive: true,
-      url: "/capture",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "/proposal",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "/prompts",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: (
-        <SettingsIcon
-        />
-      ),
-    },
-  ],
-  commingSoon: [
-    {
-      name: "Invoice",
-      url: "/invoice",
-      plan: plan.pro,
-      icon: (
-        <ReceiptIcon
-        />
-      ),
-    },
-    {
-      name: "Reports",
-      url: "/reports",
-      plan: plan.pro,
-      icon: (
-        <FileChartColumnIcon
-        />
-      ),
-    },
-    {
-      name: "Clients",
-      url: "/client",
-      plan: plan.pro,
-      icon: (
-        <UsersIcon
-        />
-      ),
-    },
-  ],
-  locked: [
-    {
-      name: "AI Agent",
-      url: "/ai-agent",
-      plan: plan.max,
-      icon: (
-        <SparklesIcon
-        />
-      ),
-    },
-    {
-      name: "Tax",
-      url: "/tax",
-      plan: plan.pro,
-      icon: (
-        <LandmarkIcon
-        />
-      ),
-    },
-    {
-      name: "Branches",
-      url: "/branches",
-      plan: plan.max,
-      icon: (
-        <Building2Icon
-        />
-      ),
-    },
-  ],
-}
-
+/**
+ * Purpose: render the application sidebar shell.
+ * Responsibilities: compose brand, primary nav, plan sections, secondary nav, and user menu.
+ * Expected props: navigation config supplied by a page, layout, or feature.
+ * Usage notes: generic placeholders allow isolated rendering during development.
+ */
 export function AppSidebar({
   activeUrl,
+  brand = placeholderBrand,
+  mainItems = [],
   onNavigate,
+  planSections = [],
+  quickActions = [],
+  secondaryItems = [],
+  user = placeholderUser,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   activeUrl?: string
+  brand?: BrandIdentity
+  mainItems?: NavigationItem[]
   onNavigate?: (url: string, title: string) => void
+  planSections?: PlanNavigationSection[]
+  quickActions?: QuickActionItem[]
+  secondaryItems?: NavigationItem[]
+  user?: UserProfile
 }) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -221,21 +69,24 @@ export function AppSidebar({
               className="h-[45px] data-[slot=sidebar-menu-button]:p-1!"
             >
               <a
-                href="/dashboard"
+                href={brand.href}
                 className="items-center"
                 onClick={(event) => {
                   event.preventDefault()
-                  onNavigate?.("/dashboard", "Dashboard")
+                  onNavigate?.(brand.href, brand.title)
                 }}
               >
-                <img
-                  src="/ets-logo.png"
-                  alt="ETS"
-                  className="h-16 w-16 shrink-0 object-contain brightness-0 invert"
-                />
+                {brand.logoSrc ? (
+                  <img
+                    src={brand.logoSrc}
+                    alt={brand.logoAlt ?? brand.title}
+                    className="h-16 w-16 shrink-0 object-contain brightness-0 invert"
+                  />
+                ) : null}
                 <span className="flex flex-col text-[0.6rem] font-medium uppercase leading-tight tracking-[0.05em] text-white/40">
-                  <span>Protecting &amp; Improving</span>
-                  <span>Electricity</span>
+                  {(brand.tagline ?? [brand.title]).map((line) => (
+                    <span key={line}>{line}</span>
+                  ))}
                 </span>
               </a>
             </SidebarMenuButton>
@@ -245,30 +96,28 @@ export function AppSidebar({
       <SidebarContent>
         <NavMain
           activeUrl={activeUrl}
-          items={data.navMain}
+          items={mainItems}
+          quickActions={quickActions}
           onNavigate={onNavigate}
         />
-        <NavPlanSection
-          activeUrl={activeUrl}
-          items={data.commingSoon}
-          label="Coming soon (jika berlangganan)"
-          onNavigate={onNavigate}
-        />
-        <NavPlanSection
-          activeUrl={activeUrl}
-          items={data.locked}
-          label="Tingkatkan plan anda"
-          onNavigate={onNavigate}
-        />
+        {planSections.map((section) => (
+          <NavPlanSection
+            key={section.label}
+            activeUrl={activeUrl}
+            items={section.items}
+            label={section.label}
+            onNavigate={onNavigate}
+          />
+        ))}
         <NavSecondary
           activeUrl={activeUrl}
-          items={data.navSecondary}
+          items={secondaryItems}
           onNavigate={onNavigate}
           className="mt-auto"
         />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   )

@@ -1,31 +1,18 @@
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
-const breadcrumbLabels: Record<string, string> = {
-  dashboard: "Dashboard",
-  products: "Products",
-  transaction: "Transaction",
-  "qr-statistics": "Qr Statistics",
-  "qr-analytics": "Qr Analytics",
-  images: "Images",
-  invoice: "Invoice",
-  reports: "Reports",
-  client: "Clients",
-  "ai-agent": "AI Agent",
-  tax: "Tax",
-  branches: "Branches",
-  settings: "Settings",
-  add: "Add",
-}
-
-function getBreadcrumbs(activeUrl: string) {
-  const pathname = activeUrl === "/" ? "/dashboard" : activeUrl
+function getBreadcrumbs(
+  activeUrl: string,
+  labels: Record<string, string>,
+  defaultUrl: string
+) {
+  const pathname = activeUrl === "/" ? defaultUrl : activeUrl
   const segments = pathname.split("/").filter(Boolean)
 
   return segments.map((segment, index) => {
     const url = `/${segments.slice(0, index + 1).join("/")}`
     const label =
-      breadcrumbLabels[segment] ??
+      labels[segment] ??
       segment
         .split("-")
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -35,14 +22,24 @@ function getBreadcrumbs(activeUrl: string) {
   })
 }
 
+/**
+ * Purpose: render the page header with sidebar trigger and breadcrumbs.
+ * Responsibilities: derive breadcrumb items from the active URL and labels.
+ * Expected props: active URL, optional label map, and navigation callback.
+ * Usage notes: generic fallback labels allow standalone development rendering.
+ */
 export function SiteHeader({
   activeUrl = "/dashboard",
+  breadcrumbLabels = { dashboard: "Dashboard" },
+  defaultUrl = "/dashboard",
   onNavigate,
 }: {
   activeUrl?: string
+  breadcrumbLabels?: Record<string, string>
+  defaultUrl?: string
   onNavigate?: (url: string, title: string) => void
 }) {
-  const breadcrumbs = getBreadcrumbs(activeUrl)
+  const breadcrumbs = getBreadcrumbs(activeUrl, breadcrumbLabels, defaultUrl)
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">

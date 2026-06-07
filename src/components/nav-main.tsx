@@ -1,5 +1,3 @@
-import type { ReactNode } from "react"
-
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -8,8 +6,14 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { PlusIcon } from "lucide-react"
+import type { NavigationItem, Plan, QuickActionItem } from "@/types/navigation"
 
-type Plan = "free" | "pro" | "max"
+const placeholderItems = [
+  {
+    title: "Sample Page",
+    url: "/dashboard",
+  },
+] satisfies NavigationItem[]
 
 function isMenuActive(activeUrl: string | undefined, itemUrl: string) {
   if (!activeUrl) {
@@ -31,59 +35,55 @@ function PlanBadge({ plan }: { plan?: Plan }) {
   )
 }
 
+/**
+ * Purpose: render primary sidebar navigation and optional quick actions.
+ * Responsibilities: handle active state, plan badges, and delegated navigation.
+ * Expected props: nav items and actions supplied by a page or layout.
+ * Usage notes: uses generic placeholder items when rendered without data.
+ */
 export function NavMain({
-  items,
+  items = placeholderItems,
   activeUrl,
   onNavigate,
+  quickActions = [],
 }: {
-  items: {
-    title: string
-    url: string
-    plan?: Plan
-    icon?: ReactNode
-  }[]
+  items?: NavigationItem[]
   activeUrl?: string
   onNavigate?: (url: string, title: string) => void
+  quickActions?: QuickActionItem[]
 }) {
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
-        <SidebarMenu>
-          <SidebarMenuItem className="grid grid-cols-2 gap-2 group-data-[collapsible=icon]:grid-cols-1">
-            <SidebarMenuButton
-              asChild
-              tooltip="Add Product"
-              className="min-w-8 border border-primary/80 bg-transparent text-white duration-200 ease-linear hover:bg-primary hover:text-primary-foreground active:bg-transparent active:text-white"
-            >
-              <a
-                href="/products/add"
-                onClick={(event) => {
-                  event.preventDefault()
-                  onNavigate?.("/products/add", "Add Product")
-                }}
-              >
-                <PlusIcon />
-                <span>Product</span>
-              </a>
-            </SidebarMenuButton>
-            <SidebarMenuButton
-              asChild
-              tooltip="Add Transaction"
-              className="min-w-8 border border-sidebar-border bg-white/5 text-white duration-200 ease-linear hover:bg-white/10 hover:text-white active:bg-white/10 active:text-white"
-            >
-              <a
-                href="/transaction/add"
-                onClick={(event) => {
-                  event.preventDefault()
-                  onNavigate?.("/transaction/add", "Add Transaction")
-                }}
-              >
-                <PlusIcon />
-                <span>Transaction</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {quickActions.length ? (
+          <SidebarMenu>
+            <SidebarMenuItem className="grid grid-cols-2 gap-2 group-data-[collapsible=icon]:grid-cols-1">
+              {quickActions.map((action) => (
+                <SidebarMenuButton
+                  asChild
+                  key={action.url}
+                  tooltip={action.title}
+                  className={
+                    action.variant === "primary"
+                      ? "min-w-8 border border-primary/80 bg-transparent text-white duration-200 ease-linear hover:bg-primary hover:text-primary-foreground active:bg-transparent active:text-white"
+                      : "min-w-8 border border-sidebar-border bg-white/5 text-white duration-200 ease-linear hover:bg-white/10 hover:text-white active:bg-white/10 active:text-white"
+                  }
+                >
+                  <a
+                    href={action.url}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      onNavigate?.(action.url, action.title)
+                    }}
+                  >
+                    {action.icon ?? <PlusIcon />}
+                    <span>{action.label}</span>
+                  </a>
+                </SidebarMenuButton>
+              ))}
+            </SidebarMenuItem>
+          </SidebarMenu>
+        ) : null}
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>

@@ -21,15 +21,23 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { LanguagesIcon, MoonIcon, SunIcon } from "lucide-react"
+import type { NavigationItem } from "@/types/navigation"
 
 type Theme = "light" | "dark"
 
-function getInitialTheme(): Theme {
+const placeholderItems = [
+  {
+    title: "Settings",
+    url: "/settings",
+  },
+] satisfies NavigationItem[]
+
+function getInitialTheme(storageKey: string): Theme {
   if (typeof window === "undefined") {
     return "light"
   }
 
-  const savedTheme = window.localStorage.getItem("dashboard-theme")
+  const savedTheme = window.localStorage.getItem(storageKey)
   if (savedTheme === "dark" || savedTheme === "light") {
     return savedTheme
   }
@@ -39,29 +47,35 @@ function getInitialTheme(): Theme {
     : "light"
 }
 
+/**
+ * Purpose: render secondary sidebar navigation and lightweight preferences.
+ * Responsibilities: show secondary links and manage local theme selection.
+ * Expected props: secondary nav items and optional storage key.
+ * Usage notes: generic settings item is used when no items are supplied.
+ */
 export function NavSecondary({
-  items,
+  items = placeholderItems,
   activeUrl,
   onNavigate,
+  themeStorageKey = "app-theme",
   ...props
 }: {
-  items: {
-    title: string
-    url: string
-    icon: React.ReactNode
-  }[]
+  items?: NavigationItem[]
   activeUrl?: string
   onNavigate?: (url: string, title: string) => void
+  themeStorageKey?: string
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   const { isMobile } = useSidebar()
-  const [theme, setTheme] = React.useState<Theme>(getInitialTheme)
+  const [theme, setTheme] = React.useState<Theme>(() =>
+    getInitialTheme(themeStorageKey)
+  )
 
   React.useEffect(() => {
     const root = document.documentElement
 
     root.classList.toggle("dark", theme === "dark")
-    window.localStorage.setItem("dashboard-theme", theme)
-  }, [theme])
+    window.localStorage.setItem(themeStorageKey, theme)
+  }, [theme, themeStorageKey])
 
   return (
     <SidebarGroup {...props}>

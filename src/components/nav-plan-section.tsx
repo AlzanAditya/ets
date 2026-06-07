@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useState } from "react"
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -7,8 +7,16 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
+import type { Plan, PlanNavigationItem } from "@/types/navigation"
 
-type Plan = "free" | "pro" | "max"
+const placeholderItems = [
+  {
+    name: "Sample Locked Item",
+    url: "/sample",
+    plan: "pro",
+    icon: null,
+  },
+] satisfies PlanNavigationItem[]
 
 function PlanBadge({ plan }: { plan?: Plan }) {
   if (!plan || plan === "free") {
@@ -22,20 +30,21 @@ function PlanBadge({ plan }: { plan?: Plan }) {
   )
 }
 
+/**
+ * Purpose: render a grouped navigation section for plan-gated items.
+ * Responsibilities: show item links, plan badges, and compact expand/collapse behavior.
+ * Expected props: section label and items supplied by a feature or layout.
+ * Usage notes: includes generic placeholder content for isolated development previews.
+ */
 export function NavPlanSection({
-  items,
+  items = placeholderItems,
   activeUrl,
-  label,
+  label = "Sample Section",
   onNavigate,
 }: {
-  items: {
-    name: string
-    url: string
-    plan?: Plan
-    icon: ReactNode
-  }[]
+  items?: PlanNavigationItem[]
   activeUrl?: string
-  label: string
+  label?: string
   onNavigate?: (url: string, title: string) => void
 }) {
   const [showAll, setShowAll] = useState(false)
