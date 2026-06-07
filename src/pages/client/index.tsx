@@ -9,8 +9,9 @@ import type { MetricCardItem } from "@/types/metrics"
 
 interface ClientPreviewRow extends DataTableRow {
   name: string
-  segment: string
+  gmail: string
   status: string
+  product: string
 }
 
 const metrics = [
@@ -26,14 +27,15 @@ const metrics = [
 ] satisfies MetricCardItem[]
 
 const rows = [
-  { id: 1, name: "Sample account", segment: "Sample segment", status: "Active" },
-  { id: 2, name: "Preview account", segment: "Sample segment", status: "Review" },
-  { id: 3, name: "Development account", segment: "Sample group", status: "Draft" },
+  { id: 1, name: "zanxa", gmail: "zanxastudio@gmail.com", status: "Active", product: "UPS 19KVA" },
+  { id: 2, name: "alzan", gmail: "alzanadytia.j@gmail.com", status: "Review", product: "UPS 120KVA" },
+  { id: 3, name: "Development account", gmail: "[EMAIL_ADDRESS]", status: "Draft", product: "UPS 60KVA" },
 ] satisfies ClientPreviewRow[]
 
 const columns: ColumnDef<ClientPreviewRow>[] = [
-  { accessorKey: "name", header: "Account" },
-  { accessorKey: "segment", header: "Segment" },
+  { accessorKey: "name", header: "Clients" },
+  { accessorKey: "product", header: "Product" },
+  { accessorKey: "gmail", header: "Gmail" },
   {
     accessorKey: "status",
     header: "Status",
@@ -48,8 +50,8 @@ export default function ClientPage() {
       eyebrow="Relationships"
       title="Client"
     >
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-        <MetricCards items={metrics} />
+      <MetricCards items={metrics} />
+      <div className="grid grid-cols-1 gap-4">
         <DataTable
           addButtonLabel="Prepare Client"
           columns={columns}
@@ -57,7 +59,7 @@ export default function ClientPage() {
           defaultTab="accounts"
           tabs={[
             { value: "accounts", label: "Accounts" },
-            { value: "segments", label: "Segments" },
+            { value: "gmail", label: "Gmail" },
           ]}
         />
       </div>

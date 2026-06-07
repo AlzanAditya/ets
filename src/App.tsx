@@ -20,6 +20,11 @@ import ProductsPage from "@/pages/products"
 import ReportsPage from "@/pages/reports"
 import SettingsPage from "@/pages/settings"
 import TransactionPage from "@/pages/transaction"
+import TaxPage from "@/pages/tax"
+import AIAgentPage from "@/pages/ai-agent"
+import BranchesPage from "@/pages/branches"
+import ImagesPage from "@/pages/images"
+import QrStatisticsPage from "@/pages/qr-statistics"
 
 function AppLayout() {
   const location = useLocation()
@@ -73,6 +78,11 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="tax" element={<TaxPage />} />
+          <Route path="ai-agent" element={<AIAgentPage />} />
+          <Route path="branches" element={<BranchesPage />} />
+          <Route path="images" element={<ImagesPage />} />
+          <Route path="qr-statistics" element={<QrStatisticsPage />} />
           <Route path="transaction" element={<TransactionPage />} />
           <Route path="invoice" element={<InvoicePage />} />
           <Route path="client" element={<ClientPage />} />

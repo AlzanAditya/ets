@@ -43,5 +43,32 @@
     "target": "2",
     "limit": "16",
     "reviewer": "Jamik Tashpulatov"
+  },
+  {
+    "id": 6,
+    "header": "Executive summary",
+    "type": "Narrative",
+    "status": "Done",
+    "target": "10",
+    "limit": "13",
+    "reviewer": "Eddie Lake"
+  },
+  {
+    "id": 7,
+    "header": "Technical approach",
+    "type": "Narrative",
+    "status": "Done",
+    "target": "27",
+    "limit": "23",
+    "reviewer": "Jamik Tashpulatov"
+  },
+  {
+    "id": 8,
+    "header": "Design",
+    "type": "Narrative",
+    "status": "In Process",
+    "target": "2",
+    "limit": "16",
+    "reviewer": "Jamik Tashpulatov"
   }
 ]

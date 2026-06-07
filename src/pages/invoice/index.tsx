@@ -24,6 +24,24 @@ const metrics = [
     description: "Generic records for development",
     icon: ReceiptIcon,
   },
+  {
+    label: "Invoice Preview",
+    value: "2",
+    delta: "+0%",
+    trend: "up",
+    summary: "Sample billing view",
+    description: "Generic records for development",
+    icon: ReceiptIcon,
+  },
+  {
+    label: "Invoice Preview",
+    value: "2",
+    delta: "+0%",
+    trend: "up",
+    summary: "Sample billing view",
+    description: "Generic records for development",
+    icon: ReceiptIcon,
+  },
 ] satisfies MetricCardItem[]
 
 const rows = [
@@ -66,8 +84,8 @@ export default function InvoicePage() {
             data={rows}
             defaultTab="drafts"
             tabs={[
-              { value: "drafts", label: "Drafts" },
-              { value: "issued", label: "Issued" },
+              { value: "drafts", label: "Drafts", badge: 2 },
+              { value: "issued", label: "Issued", badge: 1 },
             ]}
           />
         </div>
