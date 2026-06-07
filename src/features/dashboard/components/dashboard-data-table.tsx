@@ -46,8 +46,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import type { DashboardTableRow } from "@/features/dashboard/types"
 import { useIsMobile } from "@/hooks/use-mobile"
-import type { DashboardTableRow } from "@/types/dashboard"
 
 export const dashboardTableSchema = z.object({
   id: z.number(),

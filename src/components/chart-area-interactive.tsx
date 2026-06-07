@@ -26,7 +26,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
-import type { InteractiveAreaChartConfig } from "@/types/dashboard"
+import type { InteractiveAreaChartConfig } from "@/types/charts"
 
 export const description = "A reusable interactive area chart"
 

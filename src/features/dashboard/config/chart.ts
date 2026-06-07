@@ -1,4 +1,4 @@
-import type { InteractiveAreaChartConfig } from "@/types/dashboard"
+import type { InteractiveAreaChartConfig } from "@/types/charts"
 
 const dashboardChartData = [
   { date: "2024-04-01", desktop: 222, mobile: 150 },

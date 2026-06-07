@@ -1,6 +1,6 @@
 import { TrendingDownIcon, TrendingUpIcon } from "lucide-react"
 
-import type { MetricCardItem } from "@/types/dashboard"
+import type { MetricCardItem } from "@/types/metrics"
 
 export const dashboardMetrics = [
   {

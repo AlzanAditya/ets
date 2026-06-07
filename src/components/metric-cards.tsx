@@ -7,8 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import type { MetricCardItem } from "@/types/dashboard"
-import { TrendingUpIcon, TrendingDownIcon } from "lucide-react"
+import type { MetricCardItem } from "@/types/metrics"
+import { TrendingDownIcon, TrendingUpIcon } from "lucide-react"
 
 const placeholderCards = [
   {
@@ -23,12 +23,12 @@ const placeholderCards = [
 ] satisfies MetricCardItem[]
 
 /**
- * Purpose: render a responsive row of KPI summary cards.
+ * Purpose: render a responsive row of metric summary cards.
  * Responsibilities: display labels, values, trend badges, and short summaries.
  * Expected props: metric card items supplied by a page or feature.
  * Usage notes: falls back to generic placeholder data for isolated previews.
  */
-export function SectionCards({ items = placeholderCards }: { items?: MetricCardItem[] }) {
+export function MetricCards({ items = placeholderCards }: { items?: MetricCardItem[] }) {
   return (
     <div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
       {items.map((item) => {

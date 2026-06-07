@@ -1,15 +1,4 @@
 import type { ChartConfig } from "@/components/ui/chart"
-import type { LucideIcon } from "lucide-react"
-
-export interface MetricCardItem {
-  label: string
-  value: string
-  delta: string
-  trend: "up" | "down"
-  summary: string
-  description: string
-  icon?: LucideIcon
-}
 
 export interface AreaChartDatum {
   date: string
@@ -33,14 +22,4 @@ export interface InteractiveAreaChartConfig {
   defaultRange: string
   mobileRange: string
   referenceDate: string
-}
-
-export interface DashboardTableRow {
-  id: number
-  header: string
-  type: string
-  status: string
-  target: string
-  limit: string
-  reviewer: string
 }
