@@ -40,8 +40,10 @@ import {
   ChevronsLeftIcon,
   ChevronsRightIcon,
   Columns3Icon,
+  DownloadIcon,
   GripVerticalIcon,
   PlusIcon,
+  SearchIcon,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -53,6 +55,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -96,6 +99,9 @@ export interface DataTableProps<TData extends DataTableRow> {
   emptyLabel?: string
   pageSizeOptions?: number[]
   tabs?: DataTableTab[]
+  searchPlaceholder?: string
+  csvFilename?: string
+  onAddClick?: () => void
 }
 
 const placeholderData = [
@@ -217,6 +223,9 @@ export function DataTable<TData extends DataTableRow>({
   emptyLabel = "No results.",
   pageSizeOptions = [10, 20, 30, 40, 50],
   tabs = placeholderTabs,
+  searchPlaceholder = "Cari...",
+  csvFilename = "export",
+  onAddClick,
 }: DataTableProps<TData>) {
   const resolvedColumns = React.useMemo<ColumnDef<TData>[]>(
     () => [
@@ -234,6 +243,7 @@ export function DataTable<TData extends DataTableRow>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
+  const [globalFilter, setGlobalFilter] = React.useState("")
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
@@ -263,6 +273,7 @@ export function DataTable<TData extends DataTableRow>({
       columnVisibility,
       rowSelection,
       columnFilters,
+      globalFilter,
       pagination,
     },
     getRowId: (row) => String(row.id),
@@ -270,6 +281,7 @@ export function DataTable<TData extends DataTableRow>({
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
@@ -291,42 +303,90 @@ export function DataTable<TData extends DataTableRow>({
     }
   }
 
+  function handleExportCsv() {
+    const filteredRows = table.getFilteredRowModel().rows
+    if (!filteredRows.length) return
+
+    // Collect visible accessor columns (skip drag/select)
+    const visibleCols = table
+      .getAllColumns()
+      .filter((col) => col.getIsVisible() && typeof col.accessorFn !== "undefined")
+
+    const headers = visibleCols.map((col) => col.id)
+    const rows = filteredRows.map((row) =>
+      visibleCols.map((col) => {
+        const val = row.getValue(col.id)
+        const str = val === null || val === undefined ? "" : String(val)
+        // Escape double quotes and wrap in quotes if needed
+        return str.includes(",") || str.includes('"') || str.includes("\n")
+          ? `"${str.replace(/"/g, '""')}"`
+          : str
+      })
+    )
+
+    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n")
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement("a")
+    a.href     = url
+    a.download = `${csvFilename}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <Tabs
       defaultValue={resolvedDefaultTab}
       className="w-full flex-col justify-start gap-6"
     >
       <div className="flex items-center justify-between px-4 lg:px-6">
-        <Label htmlFor="view-selector" className="sr-only">
-          View
-        </Label>
-        <Select defaultValue={resolvedDefaultTab}>
-          <SelectTrigger
-            className="flex w-fit @4xl/main:hidden"
-            size="sm"
-            id="view-selector"
-          >
-            <SelectValue placeholder="Select a view" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {tabs.map((tab) => (
-                <SelectItem key={tab.value} value={tab.value}>
-                  {tab.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <TabsList className="hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 @4xl/main:flex">
-          {tabs.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
-              {tab.label}
-              {tab.badge ? <Badge variant="secondary">{tab.badge}</Badge> : null}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        {/* Left: tabs (desktop) + view selector (mobile) */}
+        <div className="flex items-center gap-3">
+          <Label htmlFor="view-selector" className="sr-only">
+            View
+          </Label>
+          <Select defaultValue={resolvedDefaultTab}>
+            <SelectTrigger
+              className="flex w-fit @4xl/main:hidden"
+              size="sm"
+              id="view-selector"
+            >
+              <SelectValue placeholder="Select a view" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {tabs.map((tab) => (
+                  <SelectItem key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <TabsList className="hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 @4xl/main:flex">
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                {tab.label}
+                {tab.badge ? <Badge variant="secondary">{tab.badge}</Badge> : null}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+
+        {/* Right: search + column toggle + export + add */}
         <div className="flex items-center gap-2">
+          {/* Global search */}
+          <div className="relative hidden sm:block">
+            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="data-table-search"
+              placeholder={searchPlaceholder}
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="h-8 w-44 pl-8 text-sm lg:w-56"
+            />
+          </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
@@ -359,7 +419,25 @@ export function DataTable<TData extends DataTableRow>({
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline" size="sm">
+
+          <Button
+            id="data-table-export-csv"
+            variant="outline"
+            size="sm"
+            onClick={handleExportCsv}
+            disabled={table.getFilteredRowModel().rows.length === 0}
+            title="Ekspor CSV"
+          >
+            <DownloadIcon />
+            <span className="hidden lg:inline">Ekspor CSV</span>
+          </Button>
+
+          <Button
+            id="data-table-add"
+            variant="outline"
+            size="sm"
+            onClick={onAddClick}
+          >
             <PlusIcon />
             <span className="hidden lg:inline">{addButtonLabel}</span>
           </Button>

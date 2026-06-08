@@ -11,8 +11,10 @@ import {
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
+import { NotificationBell } from "@/components/notification-bell"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { appNavigation } from "@/config/navigation"
+import { useTransactionStats } from "@/hooks/use-transactions"
 import ClientPage from "@/pages/client"
 import DashboardPage from "@/pages/dashboard"
 import InvoicePage from "@/pages/invoice"
@@ -38,6 +40,24 @@ function AppLayout() {
     [navigate]
   )
 
+  // Get pending count for sidebar badge
+  const { stats } = useTransactionStats()
+  const pendingCount = stats?.pending_count ?? 0
+
+  // Dynamically map mainItems to add the pending count to Transaction menu
+  const mainItems = React.useMemo(() => {
+    return appNavigation.mainItems.map((item) => {
+      if (item.title === "Transaction" && pendingCount > 0) {
+        return {
+          ...item,
+          badge: pendingCount,
+          badgeVariant: "amber" as const,
+        }
+      }
+      return item
+    })
+  }, [pendingCount])
+
   return (
     <SidebarProvider
       style={
@@ -50,7 +70,7 @@ function AppLayout() {
       <AppSidebar
         activeUrl={activeUrl}
         brand={appNavigation.brand}
-        mainItems={appNavigation.mainItems}
+        mainItems={mainItems}
         onNavigate={handleNavigate}
         planSections={appNavigation.planSections}
         quickActions={appNavigation.quickActions}
@@ -63,6 +83,7 @@ function AppLayout() {
           activeUrl={activeUrl}
           breadcrumbLabels={appNavigation.breadcrumbLabels}
           onNavigate={handleNavigate}
+          actions={<NotificationBell onNavigate={handleNavigate} />}
         />
         <Outlet />
       </SidebarInset>

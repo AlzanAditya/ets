@@ -35,6 +35,32 @@ function PlanBadge({ plan }: { plan?: Plan }) {
   )
 }
 
+const BADGE_STYLES: Record<NonNullable<NavigationItem["badgeVariant"]>, string> = {
+  default:     "bg-muted-foreground/20 text-muted-foreground",
+  amber:       "bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30",
+  emerald:     "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30",
+  destructive: "bg-red-500/20 text-red-400 ring-1 ring-red-500/30",
+}
+
+function MenuBadge({
+  badge,
+  variant = "default",
+}: {
+  badge?: string | number
+  variant?: NavigationItem["badgeVariant"]
+}) {
+  if (badge === undefined || badge === null || badge === "") return null
+  return (
+    <span
+      className={`ml-auto min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-center text-[0.6rem] font-semibold leading-none tabular-nums ${
+        BADGE_STYLES[variant ?? "default"]
+      }`}
+    >
+      {badge}
+    </span>
+  )
+}
+
 /**
  * Purpose: render primary sidebar navigation and optional quick actions.
  * Responsibilities: handle active state, plan badges, and delegated navigation.
@@ -100,8 +126,9 @@ export function NavMain({
                   }}
                 >
                   {item.icon}
-                  <span>{item.title}</span>
+                  <span className="flex-1">{item.title}</span>
                   <PlanBadge plan={item.plan} />
+                  <MenuBadge badge={item.badge} variant={item.badgeVariant} />
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>

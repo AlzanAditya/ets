@@ -7,6 +7,8 @@ export interface NavigationItem {
   url: string
   icon?: ReactNode
   plan?: Plan
+  badge?: string | number
+  badgeVariant?: "default" | "amber" | "emerald" | "destructive"
 }
 
 export interface PlanNavigationItem {
@@ -14,6 +16,8 @@ export interface PlanNavigationItem {
   url: string
   icon: ReactNode
   plan?: Plan
+  badge?: string | number
+  badgeVariant?: "default" | "amber" | "emerald" | "destructive"
 }
 
 export interface QuickActionItem {

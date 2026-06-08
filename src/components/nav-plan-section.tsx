@@ -30,6 +30,32 @@ function PlanBadge({ plan }: { plan?: Plan }) {
   )
 }
 
+const BADGE_STYLES: Record<NonNullable<PlanNavigationItem["badgeVariant"]>, string> = {
+  default:     "bg-muted-foreground/20 text-muted-foreground",
+  amber:       "bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30",
+  emerald:     "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30",
+  destructive: "bg-red-500/20 text-red-400 ring-1 ring-red-500/30",
+}
+
+function MenuBadge({
+  badge,
+  variant = "default",
+}: {
+  badge?: string | number
+  variant?: PlanNavigationItem["badgeVariant"]
+}) {
+  if (badge === undefined || badge === null || badge === "") return null
+  return (
+    <span
+      className={`ml-auto min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-center text-[0.6rem] font-semibold leading-none tabular-nums ${
+        BADGE_STYLES[variant ?? "default"]
+      }`}
+    >
+      {badge}
+    </span>
+  )
+}
+
 /**
  * Purpose: render a grouped navigation section for plan-gated items.
  * Responsibilities: show item links, plan badges, and compact expand/collapse behavior.
@@ -66,8 +92,9 @@ export function NavPlanSection({
                 }}
               >
                 {item.icon}
-                <span>{item.name}</span>
+                <span className="flex-1">{item.name}</span>
                 <PlanBadge plan={item.plan} />
+                <MenuBadge badge={item.badge} variant={item.badgeVariant} />
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

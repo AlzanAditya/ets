@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
@@ -23,9 +24,9 @@ function getBreadcrumbs(
 }
 
 /**
- * Purpose: render the page header with sidebar trigger and breadcrumbs.
+ * Purpose: render the page header with sidebar trigger, breadcrumbs, and optional action slot.
  * Responsibilities: derive breadcrumb items from the active URL and labels.
- * Expected props: active URL, optional label map, and navigation callback.
+ * Expected props: active URL, optional label map, navigation callback, and optional actions node.
  * Usage notes: generic fallback labels allow standalone development rendering.
  */
 export function SiteHeader({
@@ -33,11 +34,13 @@ export function SiteHeader({
   breadcrumbLabels = { dashboard: "Dashboard" },
   defaultUrl = "/dashboard",
   onNavigate,
+  actions,
 }: {
   activeUrl?: string
   breadcrumbLabels?: Record<string, string>
   defaultUrl?: string
   onNavigate?: (url: string, title: string) => void
+  actions?: React.ReactNode
 }) {
   const breadcrumbs = getBreadcrumbs(activeUrl, breadcrumbLabels, defaultUrl)
 
@@ -81,6 +84,11 @@ export function SiteHeader({
             )
           })}
         </nav>
+        {actions ? (
+          <div className="ml-auto flex items-center gap-2">
+            {actions}
+          </div>
+        ) : null}
       </div>
     </header>
   )
