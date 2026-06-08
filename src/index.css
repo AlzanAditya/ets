@@ -240,3 +240,12 @@
     font-family: var(--font-geist-sans), sans-serif;
   }
 }
+
+/* ─── Animation toggle utility ──────────────────────────────────────────────── */
+/* Applied to <html> by AnimationContext when user disables animations.         */
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+  transition: none !important;
+  animation: none !important;
+}

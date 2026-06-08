@@ -12,9 +12,13 @@ import {
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { NotificationBell } from "@/components/notification-bell"
+import { ProtectedRoute } from "@/components/protected-route"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { appNavigation } from "@/config/navigation"
+import { AuthProvider } from "@/contexts/auth-context"
+import { AnimationProvider } from "@/contexts/animation-context"
 import { useTransactionStats } from "@/hooks/use-transactions"
+import LoginPage from "@/pages/auth/login"
 import ClientPage from "@/pages/client"
 import DashboardPage from "@/pages/dashboard"
 import InvoicePage from "@/pages/invoice"
@@ -28,6 +32,8 @@ import BranchesPage from "@/pages/branches"
 import ImagesPage from "@/pages/images"
 import QrStatisticsPage from "@/pages/qr-statistics"
 
+// ─── Inner layout (rendered only when authenticated) ─────────────────────────
+
 function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -40,11 +46,10 @@ function AppLayout() {
     [navigate]
   )
 
-  // Get pending count for sidebar badge
+  // Pending-count badge on the Transaction sidebar item
   const { stats } = useTransactionStats()
   const pendingCount = stats?.pending_count ?? 0
 
-  // Dynamically map mainItems to add the pending count to Transaction menu
   const mainItems = React.useMemo(() => {
     return appNavigation.mainItems.map((item) => {
       if (item.title === "Transaction" && pendingCount > 0) {
@@ -91,27 +96,43 @@ function AppLayout() {
   )
 }
 
+// ─── Root ─────────────────────────────────────────────────────────────────────
+
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="products" element={<ProductsPage />} />
-          <Route path="tax" element={<TaxPage />} />
-          <Route path="ai-agent" element={<AIAgentPage />} />
-          <Route path="branches" element={<BranchesPage />} />
-          <Route path="images" element={<ImagesPage />} />
-          <Route path="qr-statistics" element={<QrStatisticsPage />} />
-          <Route path="transaction" element={<TransactionPage />} />
-          <Route path="invoice" element={<InvoicePage />} />
-          <Route path="client" element={<ClientPage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Route>
-      </Routes>
+      <AuthProvider>
+        <AnimationProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
+
+            {/* Protected routes */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard"      element={<DashboardPage />} />
+              <Route path="products"       element={<ProductsPage />} />
+              <Route path="tax"            element={<TaxPage />} />
+              <Route path="ai-agent"       element={<AIAgentPage />} />
+              <Route path="branches"       element={<BranchesPage />} />
+              <Route path="images"         element={<ImagesPage />} />
+              <Route path="qr-statistics"  element={<QrStatisticsPage />} />
+              <Route path="transaction"    element={<TransactionPage />} />
+              <Route path="invoice"        element={<InvoicePage />} />
+              <Route path="client"         element={<ClientPage />} />
+              <Route path="reports"        element={<ReportsPage />} />
+              <Route path="settings"       element={<SettingsPage />} />
+              <Route path="*"              element={<Navigate to="/dashboard" replace />} />
+            </Route>
+          </Routes>
+        </AnimationProvider>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

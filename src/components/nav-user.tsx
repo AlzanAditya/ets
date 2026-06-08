@@ -18,8 +18,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
+import { EllipsisVerticalIcon, SettingsIcon, LogOutIcon, ShieldIcon } from "lucide-react"
 import type { UserProfile } from "@/types/navigation"
+import { useAuth } from "@/contexts/auth-context"
+import { useNavigate } from "react-router-dom"
 
 const placeholderUser = {
   name: "Preview User",
@@ -30,8 +32,7 @@ const placeholderUser = {
 /**
  * Purpose: render the sidebar user account menu.
  * Responsibilities: show user identity, avatar fallback, and account actions.
- * Expected props: user profile supplied by app or feature config.
- * Usage notes: generic placeholder user supports isolated development rendering.
+ * Wired to useAuth for real logout + admin profile display.
  */
 export function NavUser({
   user = placeholderUser,
@@ -39,7 +40,18 @@ export function NavUser({
   user?: UserProfile
 }) {
   const { isMobile } = useSidebar()
-  const fallback = user.fallback ?? user.name.slice(0, 2).toUpperCase()
+  const { admin, signOut } = useAuth()
+  const navigate = useNavigate()
+
+  // Prefer live admin data when available
+  const displayName  = admin?.full_name ?? user.name
+  const displayEmail = admin?.email ?? user.email
+  const fallback = (displayName.slice(0, 2)).toUpperCase()
+
+  async function handleSignOut() {
+    await signOut()
+    navigate("/login", { replace: true })
+  }
 
   return (
     <SidebarMenu>
@@ -51,13 +63,13 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={user.avatar} alt={displayName} />
                 <AvatarFallback className="rounded-lg">{fallback}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">{displayName}</span>
                 <span className="truncate text-xs text-sidebar-foreground/60">
-                  {user.email}
+                  {displayEmail}
                 </span>
               </div>
               <EllipsisVerticalIcon className="ml-auto size-4" />
@@ -72,39 +84,40 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={user.avatar} alt={displayName} />
                   <AvatarFallback className="rounded-lg">{fallback}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-medium">{displayName}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {user.email}
+                    {displayEmail}
                   </span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <CircleUserRoundIcon
-                />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCardIcon
-                />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon
-                />
-                Notifications
+              {admin?.role && (
+                <DropdownMenuItem disabled className="gap-2 opacity-60">
+                  <ShieldIcon className="size-4" />
+                  {admin.role === "super_admin" ? "Super Admin" : admin.role === "admin" ? "Admin" : "Warehouse"}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => navigate("/settings")}
+              >
+                <SettingsIcon className="size-4" />
+                Settings
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOutIcon
-              />
+            <DropdownMenuItem
+              id="nav-user-logout"
+              className="gap-2 text-destructive focus:text-destructive"
+              onClick={handleSignOut}
+            >
+              <LogOutIcon className="size-4" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
