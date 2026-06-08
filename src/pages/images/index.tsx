@@ -2,7 +2,7 @@ import { ImageIcon } from "lucide-react"
 
 import { MetricCards } from "@/components/metric-cards"
 import { PageContent } from "@/components/page-content"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import type { MetricCardItem } from "@/types/metrics"
 
 const metrics = [
