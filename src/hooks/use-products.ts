@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query-keys'
 import { productsService, type GetProductsParams, type ProductWithRelations } from '@/services/products.service'
-import type { ProductRow } from '@/types/database'
+import type { ProductRow, ProductInsert, ProductUpdate } from '@/types/database'
 
 // ─── useProducts ──────────────────────────────────────────────────────────────
 
@@ -12,32 +13,17 @@ interface UseProductsResult {
 }
 
 export function useProducts(params: GetProductsParams = {}): UseProductsResult {
-  const [data, setData] = useState<ProductWithRelations[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.products.list(params),
+    queryFn: () => productsService.getProducts(params),
+  })
 
-  // Stable key for dependency tracking
-  const paramsKey = JSON.stringify(params)
-
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await productsService.getProducts(params)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load products')
-    } finally {
-      setLoading(false)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramsKey])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { data, loading, error, refetch: fetch }
+  return {
+    data: data ?? [],
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
 
 // ─── useProduct (single) ──────────────────────────────────────────────────────
@@ -50,29 +36,18 @@ interface UseProductResult {
 }
 
 export function useProduct(product_id: string | null): UseProductResult {
-  const [data, setData] = useState<ProductRow | null>(null)
-  const [loading, setLoading] = useState(!!product_id)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.products.detail(product_id || ''),
+    queryFn: () => productsService.getProductById(product_id!),
+    enabled: !!product_id,
+  })
 
-  const fetch = useCallback(async () => {
-    if (!product_id) return
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await productsService.getProductById(product_id)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load product')
-    } finally {
-      setLoading(false)
-    }
-  }, [product_id])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { data, loading, error, refetch: fetch }
+  return {
+    data: data ?? null,
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
 
 // ─── useProductCount ──────────────────────────────────────────────────────────
@@ -81,26 +56,21 @@ interface UseProductCountResult {
   count: number
   loading: boolean
   error: string | null
+  refetch: () => void
 }
 
 export function useProductCount(status?: ProductRow['status']): UseProductCountResult {
-  const [count, setCount] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.products.count(status),
+    queryFn: () => productsService.getProductCount(status),
+  })
 
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    setError(null)
-
-    productsService.getProductCount(status)
-      .then(c => { if (!cancelled) { setCount(c); setLoading(false) } })
-      .catch(err => { if (!cancelled) { setError(err.message); setLoading(false) } })
-
-    return () => { cancelled = true }
-  }, [status])
-
-  return { count, loading, error }
+  return {
+    count: data ?? 0,
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
 
 // ─── useRecentProducts ────────────────────────────────────────────────────────
@@ -113,24 +83,45 @@ interface UseRecentProductsResult {
 }
 
 export function useRecentProducts(limit = 10): UseRecentProductsResult {
-  const [data, setData] = useState<ProductRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.products.recent(limit),
+    queryFn: () => productsService.getRecentProducts(limit),
+  })
 
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await productsService.getRecentProducts(limit)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load recent products')
-    } finally {
-      setLoading(false)
-    }
-  }, [limit])
-
-  useEffect(() => { fetch() }, [fetch])
-
-  return { data, loading, error, refetch: fetch }
+  return {
+    data: data ?? [],
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
+
+// ─── Mutations ────────────────────────────────────────────────────────────────
+
+export function useCreateProductMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: ProductInsert) => productsService.createProduct(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.lists() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.count() })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+export function useUpdateProductMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ product_id, data }: { product_id: string; data: ProductUpdate }) =>
+      productsService.updateProduct(product_id, data),
+    onSuccess: (updatedProduct) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(updatedProduct.product_id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.lists() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.count() })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+

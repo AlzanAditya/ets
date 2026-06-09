@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query-keys'
 import { scanLogsService, type ScanStats, type ScanTrendDatum, type ScanLogWithRelations } from '@/services/scan-logs.service'
 import type { ScanLogRow } from '@/types/database'
 
@@ -12,29 +13,18 @@ interface UseScanLogsByProductResult {
 }
 
 export function useScanLogsByProduct(product_id: string | null, limit = 50): UseScanLogsByProductResult {
-  const [data, setData] = useState<ScanLogRow[]>([])
-  const [loading, setLoading] = useState(!!product_id)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.scanLogs.byProduct(product_id || '', limit),
+    queryFn: () => scanLogsService.getScanLogsByProduct(product_id!, limit),
+    enabled: !!product_id,
+  })
 
-  const fetch = useCallback(async () => {
-    if (!product_id) return
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await scanLogsService.getScanLogsByProduct(product_id, limit)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load scan logs')
-    } finally {
-      setLoading(false)
-    }
-  }, [product_id, limit])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { data, loading, error, refetch: fetch }
+  return {
+    data: data ?? [],
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
 
 // ─── useScanStats ─────────────────────────────────────────────────────────────
@@ -47,28 +37,19 @@ interface UseScanStatsResult {
 }
 
 export function useScanStats(): UseScanStatsResult {
-  const [stats, setStats] = useState<ScanStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.scanLogs.stats(),
+    queryFn: () => scanLogsService.getScanStats(),
+    staleTime: 1000 * 30,       // 30 seconds acceptable freshness for stats view
+    refetchInterval: 1000 * 60, // poll every 60 seconds when page is visible
+  })
 
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await scanLogsService.getScanStats()
-      setStats(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load scan stats')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { stats, loading, error, refetch: fetch }
+  return {
+    stats: data ?? null,
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
 
 // ─── useScanTrend ─────────────────────────────────────────────────────────────
@@ -81,28 +62,17 @@ interface UseScanTrendResult {
 }
 
 export function useScanTrend(days = 7): UseScanTrendResult {
-  const [data, setData] = useState<ScanTrendDatum[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.scanLogs.trend(days),
+    queryFn: () => scanLogsService.getScanTrend(days),
+  })
 
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await scanLogsService.getScanTrend(days)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load scan trend')
-    } finally {
-      setLoading(false)
-    }
-  }, [days])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { data, loading, error, refetch: fetch }
+  return {
+    data: data ?? [],
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
 
 // ─── useRecentScanLogs ────────────────────────────────────────────────────────
@@ -115,26 +85,18 @@ interface UseRecentScanLogsResult {
 }
 
 export function useRecentScanLogs(limit = 50): UseRecentScanLogsResult {
-  const [data, setData] = useState<ScanLogWithRelations[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.scanLogs.recent(limit),
+    queryFn: () => scanLogsService.getRecentScanLogs(limit),
+    staleTime: 1000 * 30,       // 30 seconds staleTime
+    refetchInterval: 1000 * 30, // poll every 30 seconds
+  })
 
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await scanLogsService.getRecentScanLogs(limit)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load recent scan logs')
-    } finally {
-      setLoading(false)
-    }
-  }, [limit])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { data, loading, error, refetch: fetch }
+  return {
+    data: data ?? [],
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
+

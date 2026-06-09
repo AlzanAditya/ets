@@ -31,10 +31,12 @@ import AIAgentPage from "@/pages/ai-agent"
 import BranchesPage from "@/pages/branches"
 import ImagesPage from "@/pages/images"
 import QrStatisticsPage from "@/pages/qr-statistics"
+import { useRealtimeSync } from "@/hooks/use-realtime-sync"
 
 // ─── Inner layout (rendered only when authenticated) ─────────────────────────
 
 function AppLayout() {
+  useRealtimeSync()
   const location = useLocation()
   const navigate = useNavigate()
   const activeUrl = location.pathname === "/" ? "/dashboard" : location.pathname

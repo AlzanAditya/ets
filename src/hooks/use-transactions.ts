@@ -1,5 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
-import { transactionsService, type GetTransactionsParams, type TransactionWithItems, type TransactionStats, type TransactionTrendDatum, type TransactionWithRelations } from '@/services/transactions.service'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query-keys'
+import {
+  transactionsService,
+  type GetTransactionsParams,
+  type TransactionWithItems,
+  type TransactionStats,
+  type TransactionTrendDatum,
+  type TransactionWithRelations
+} from '@/services/transactions.service'
+import type { TransactionInsert } from '@/types/database'
 
 // ─── useTransactions ──────────────────────────────────────────────────────────
 
@@ -11,31 +20,17 @@ interface UseTransactionsResult {
 }
 
 export function useTransactions(params: GetTransactionsParams = {}): UseTransactionsResult {
-  const [data, setData] = useState<TransactionWithRelations[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.transactions.list(params),
+    queryFn: () => transactionsService.getTransactions(params),
+  })
 
-  const paramsKey = JSON.stringify(params)
-
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await transactionsService.getTransactions(params)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load transactions')
-    } finally {
-      setLoading(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramsKey])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { data, loading, error, refetch: fetch }
+  return {
+    data: data ?? [],
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
 
 // ─── useTransaction ───────────────────────────────────────────────────────────
@@ -48,29 +43,18 @@ interface UseTransactionResult {
 }
 
 export function useTransaction(transaction_id: string | null): UseTransactionResult {
-  const [data, setData] = useState<TransactionWithItems | null>(null)
-  const [loading, setLoading] = useState(!!transaction_id)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.transactions.detail(transaction_id || ''),
+    queryFn: () => transactionsService.getTransactionWithItems(transaction_id!),
+    enabled: !!transaction_id,
+  })
 
-  const fetch = useCallback(async () => {
-    if (!transaction_id) return
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await transactionsService.getTransactionWithItems(transaction_id)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load transaction details')
-    } finally {
-      setLoading(false)
-    }
-  }, [transaction_id])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { data, loading, error, refetch: fetch }
+  return {
+    data: data ?? null,
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
 
 // ─── useTransactionStats ──────────────────────────────────────────────────────
@@ -83,28 +67,17 @@ interface UseTransactionStatsResult {
 }
 
 export function useTransactionStats(): UseTransactionStatsResult {
-  const [stats, setStats] = useState<TransactionStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.transactions.stats(),
+    queryFn: () => transactionsService.getTransactionStats(),
+  })
 
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await transactionsService.getTransactionStats()
-      setStats(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load transaction statistics')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { stats, loading, error, refetch: fetch }
+  return {
+    stats: data ?? null,
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
 
 // ─── useTransactionTrend ──────────────────────────────────────────────────────
@@ -117,28 +90,17 @@ interface UseTransactionTrendResult {
 }
 
 export function useTransactionTrend(days = 7): UseTransactionTrendResult {
-  const [data, setData] = useState<TransactionTrendDatum[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.transactions.trend(days),
+    queryFn: () => transactionsService.getTransactionTrend(days),
+  })
 
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await transactionsService.getTransactionTrend(days)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load transaction trend')
-    } finally {
-      setLoading(false)
-    }
-  }, [days])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { data, loading, error, refetch: fetch }
+  return {
+    data: data ?? [],
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
 
 // ─── useRecentTransactions ────────────────────────────────────────────────────
@@ -151,26 +113,61 @@ interface UseRecentTransactionsResult {
 }
 
 export function useRecentTransactions(limit = 10): UseRecentTransactionsResult {
-  const [data, setData] = useState<TransactionWithRelations[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.transactions.recent(limit),
+    queryFn: () => transactionsService.getRecentTransactions(limit),
+  })
 
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await transactionsService.getRecentTransactions(limit)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load recent transactions')
-    } finally {
-      setLoading(false)
-    }
-  }, [limit])
-
-  useEffect(() => {
-    fetch()
-  }, [fetch])
-
-  return { data, loading, error, refetch: fetch }
+  return {
+    data: data ?? [],
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
+  }
 }
+
+// ─── Mutations ────────────────────────────────────────────────────────────────
+
+export function useCreateTransactionMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Omit<TransactionInsert, 'transaction_code'>) =>
+      transactionsService.createTransaction(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.stats() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.lists() })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+export function useApproveTransactionMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (transaction_id: string) =>
+      transactionsService.approveTransaction(transaction_id),
+    onSuccess: (updatedTxn) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.stats() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.detail(updatedTxn.transaction_id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.lists() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all }) // products branch/status changes
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+export function useCancelTransactionMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ transaction_id, reason }: { transaction_id: string; reason?: string }) =>
+      transactionsService.cancelTransaction(transaction_id, reason),
+    onSuccess: (updatedTxn) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.stats() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.detail(updatedTxn.transaction_id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.lists() })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+

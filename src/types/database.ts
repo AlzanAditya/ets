@@ -161,7 +161,7 @@ export type AdminInsert = Omit<AdminRow, 'created_at' | 'updated_at' | 'deleted_
 export type BranchInsert = Omit<BranchRow, 'branch_id' | 'created_at' | 'updated_at' | 'deleted_at'>
 export type ClientInsert = Omit<ClientRow, 'client_id' | 'created_at' | 'updated_at' | 'deleted_at'>
 export type ProductInsert = Omit<ProductRow, 'product_id' | 'created_at' | 'updated_at'>
-export type TransactionInsert = Omit<TransactionRow, 'transaction_id' | 'created_at' | 'updated_at' | 'approved_by' | 'approved_at'>
+export type TransactionInsert = Omit<TransactionRow, 'transaction_id' | 'created_at' | 'updated_at' | 'approved_by' | 'approved_at' | 'transaction_code'> & { transaction_code?: string }
 export type TransactionItemInsert = Omit<TransactionItemRow, 'transaction_item_id' | 'created_at'>
 export type InventoryMovementInsert = Omit<InventoryMovementRow, 'movement_id' | 'created_at'>
 export type ScanLogInsert = Omit<ScanLogRow, 'id' | 'scanned_at'>
@@ -172,6 +172,31 @@ export type ProductUpdate = Partial<Omit<ProductRow, 'product_id' | 'nomor_seri'
 export type TransactionUpdate = Partial<Omit<TransactionRow, 'transaction_id' | 'created_at'>>
 export type BranchUpdate = Partial<Omit<BranchRow, 'branch_id' | 'created_at'>>
 export type ClientUpdate = Partial<Omit<ClientRow, 'client_id' | 'created_at'>>
+
+// ─── View Row Types ───────────────────────────────────────────────────────────
+// Standalone types for Postgres views. NOT part of Database generic —
+// adding typed Views to Database breaks Supabase's query builder inference.
+// Use explicit `as TransactionStatsRow` cast when querying these views.
+
+export type TransactionStatsRow = {
+  total_count:         number
+  completed_count:     number
+  pending_count:       number
+  draft_count:         number
+  cancelled_count:     number
+  total_revenue:       number
+  pending_revenue:     number
+  last_transaction_at: string | null
+}
+
+export type ScanStatsRow = {
+  total_scans:             number
+  scans_this_month:        number
+  scans_this_week:         number
+  scans_today:             number
+  unique_products_scanned: number
+  last_scanned_at:         string | null
+}
 
 // ─── Supabase Database type for createClient<Database>() ─────────────────────
 

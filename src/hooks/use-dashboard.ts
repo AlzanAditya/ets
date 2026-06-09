@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query-keys'
 import { productsService } from '@/services/products.service'
 import { transactionsService } from '@/services/transactions.service'
 import { scanLogsService } from '@/services/scan-logs.service'
@@ -30,14 +31,9 @@ interface UseDashboardResult {
 }
 
 export function useDashboard(days = 30): UseDashboardResult {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchDashboardData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: queryKeys.dashboard(days),
+    queryFn: async (): Promise<DashboardData> => {
       const [
         totalAssets,
         activeAssets,
@@ -85,11 +81,10 @@ export function useDashboard(days = 30): UseDashboardResult {
         .sort((a, b) => a.date.localeCompare(b.date))
 
       // Simple dummy trend calculations for metrics
-      // (Could be improved with historical month-over-month calculation if DB data permits)
       const revenueDelta = "+8.4%"
       const revenueTrendSign = "up"
 
-      setData({
+      return {
         metrics: {
           totalRevenue: txnStats.total_revenue,
           revenueTrend: { delta: revenueDelta, trend: revenueTrendSign },
@@ -101,22 +96,15 @@ export function useDashboard(days = 30): UseDashboardResult {
         chartData,
         recentTransactions: recentTxns,
         recentProducts,
-      })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
-    } finally {
-      setLoading(false)
+      }
     }
-  }, [days])
-
-  useEffect(() => {
-    fetchDashboardData()
-  }, [fetchDashboardData])
+  })
 
   return {
-    data,
-    loading,
-    error,
-    refetch: fetchDashboardData,
+    data: data ?? null,
+    loading: isLoading,
+    error: error ? error.message : null,
+    refetch,
   }
 }
+

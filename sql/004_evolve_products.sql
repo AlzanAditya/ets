@@ -45,14 +45,24 @@ ALTER TABLE products
   ALTER COLUMN product_id SET NOT NULL;
 
 -- ── STEP 4e: Swap PRIMARY KEY ─────────────────────────────────────────────────
--- Drop old PK on nomor_seri
+-- Drop old PK on nomor_seri (and any auto-named variants)
+-- IF NOT EXISTS guards make this safe to re-run.
 ALTER TABLE products
   DROP CONSTRAINT IF EXISTS products_pkey,
   DROP CONSTRAINT IF EXISTS products_pkey1;
 
--- Set new PK on product_id
-ALTER TABLE products
-  ADD PRIMARY KEY (product_id);
+-- Add new PK on product_id — only if no PK exists yet (idempotent guard)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'products'::regclass
+      AND contype = 'p'
+  ) THEN
+    ALTER TABLE products ADD PRIMARY KEY (product_id);
+  END IF;
+END
+$$;
 
 -- ── STEP 4f: Add UNIQUE constraint on nomor_seri ─────────────────────────────
 -- nomor_seri is no longer PK but MUST remain unique.
