@@ -47,7 +47,8 @@ ALTER TABLE products
 -- ── STEP 4e: Swap PRIMARY KEY ─────────────────────────────────────────────────
 -- Drop old PK on nomor_seri
 ALTER TABLE products
-  DROP CONSTRAINT IF EXISTS products_pkey;
+  DROP CONSTRAINT IF EXISTS products_pkey,
+  DROP CONSTRAINT IF EXISTS products_pkey1;
 
 -- Set new PK on product_id
 ALTER TABLE products
