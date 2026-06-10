@@ -1,10 +1,8 @@
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
 
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@/components/ui/badge";
 
-const placeholderActions = (
-  <Badge variant="outline">Development Preview</Badge>
-)
+const placeholderActions = <Badge variant="outline">Development Preview</Badge>;
 
 /**
  * Purpose: provide a consistent content frame for module pages.
@@ -19,14 +17,14 @@ export function PageContent({
   eyebrow = "Module",
   title = "Sample Page",
 }: {
-  actions?: ReactNode
-  children?: ReactNode
-  description?: string
-  eyebrow?: string
-  title?: string
+  actions?: ReactNode;
+  children?: ReactNode;
+  description?: string;
+  eyebrow?: string;
+  title?: string;
 }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col">
+    <div className="flex min-w-0 flex-1 flex-col no-scrollbar">
       <div className="@container/main flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
           <div className="flex flex-col gap-3 px-4 lg:flex-row lg:items-start lg:justify-between lg:px-6">
@@ -39,11 +37,13 @@ export function PageContent({
               </h1>
               <p className="text-sm text-muted-foreground">{description}</p>
             </div>
-            {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+            {actions ? (
+              <div className="flex items-center gap-2">{actions}</div>
+            ) : null}
           </div>
           {children}
         </div>
       </div>
     </div>
-  )
+  );
 }

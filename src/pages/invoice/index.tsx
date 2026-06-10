@@ -79,7 +79,7 @@ export default function InvoicePage() {
         </Card>
         <div className="lg:col-span-2">
           <DataTable
-            addButtonLabel="Prepare Invoice"
+            addButtonLabel="Invoice"
             columns={columns}
             data={rows}
             defaultTab="drafts"

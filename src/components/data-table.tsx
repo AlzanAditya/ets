@@ -517,17 +517,18 @@ export function DataTable<TData extends DataTableRow>({
             size="sm"
             onClick={handleExportCsv}
             disabled={table.getFilteredRowModel().rows.length === 0}
-            title="Ekspor CSV"
+            title="ekspor"
           >
             <DownloadIcon />
-            <span className="hidden lg:inline">Ekspor CSV</span>
+            <span className="hidden lg:inline">Ekspor</span>
           </Button>
 
           <Button
             id="data-table-add"
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={onAddClick}
+            className="bg-primary text-background hover:bg-primary/90"
           >
             <PlusIcon />
             <span className="hidden lg:inline">{addButtonLabel}</span>

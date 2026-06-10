@@ -367,7 +367,7 @@ export default function ClientPage() {
         subtitle={editTarget ? `Kode: ${editTarget.client_code}` : undefined}
         sessionId="client-drawer-session"
         onSubmit={handleSubmit}
-        onDraft={() => {}}
+        onDraft={() => { }}
         showImages={false}
         isSubmitting={isSubmitting}
         isEditMode={!!editTarget}
@@ -377,7 +377,7 @@ export default function ClientPage() {
 
       <div className="grid grid-cols-1 gap-4">
         <DataTable
-          addButtonLabel="Tambah Klien"
+          addButtonLabel="Tambah"
           columns={columns as any}
           data={mappedClients}
           onAddClick={openForAdd}

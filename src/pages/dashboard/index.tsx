@@ -197,11 +197,11 @@ export default function DashboardPage() {
     chartConfig: {
       desktop: {
         label: "Revenue (IDR)",
-        color: "hsl(var(--primary))",
+        color: "var(--primary)",
       },
       mobile: {
         label: "Volume Scan",
-        color: "hsl(var(--chart-2))",
+        color: "var(--primary)",
       },
     },
     ranges: [

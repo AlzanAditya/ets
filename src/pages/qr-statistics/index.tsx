@@ -13,7 +13,7 @@ import type { InteractiveAreaChartConfig } from "@/types/charts"
 import type { MetricCardItem } from "@/types/metrics"
 import type { ScanLogWithRelations } from "@/services/scan-logs.service"
 
-interface ScanLogWithId extends Omit<ScanLogWithRelations, "id">, DataTableRow {}
+interface ScanLogWithId extends Omit<ScanLogWithRelations, "id">, DataTableRow { }
 
 const columns: ColumnDef<ScanLogWithId>[] = [
   {
@@ -181,8 +181,8 @@ export default function QRStatisticsPage() {
     compactDescription: "Tren Scan",
     data: chartData,
     chartConfig: {
-      desktop: { label: "Total Scan", color: "hsl(var(--primary))" },
-      mobile: { label: "Scan Unik", color: "hsl(var(--chart-2))" },
+      desktop: { label: "Total Scan", color: "var(--primary)" },
+      mobile: { label: "Scan Unik", color: "var(--)" },
     },
     ranges: [
       { value: "30d", label: "30 Hari Terakhir", days: 30 },
@@ -206,7 +206,7 @@ export default function QRStatisticsPage() {
       title="QR Statistics"
     >
       <MetricCards items={metrics} />
-      
+
       <div className="px-4 lg:px-6">
         <ChartAreaInteractive config={chartConfig} />
       </div>

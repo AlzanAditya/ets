@@ -1038,7 +1038,7 @@ export default function ProductsPage() {
         </div>
       ) : (
         <DataTable
-          addButtonLabel="Tambah Aset"
+          addButtonLabel="Tambah"
           columns={columns}
           data={filteredProducts}
           activeTab={activeTab}
@@ -1060,7 +1060,7 @@ export default function ProductsPage() {
             },
             {
               value: "active",
-              label: "Di Gudang - Aktif",
+              label: "Di Gudang",
               badge: mappedActive.length,
             },
             {

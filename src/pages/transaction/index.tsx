@@ -401,8 +401,8 @@ export default function TransactionPage() {
     compactDescription: "Tren Transaksi",
     data: chartData,
     chartConfig: {
-      desktop: { label: "Revenue (IDR)", color: "hsl(var(--primary))" },
-      mobile: { label: "Jumlah Transaksi", color: "hsl(var(--chart-2))" },
+      desktop: { label: "Revenue (IDR)", color: "var(--primary)" },
+      mobile: { label: "Jumlah Transaksi", color: "var(--primary)" },
     },
     ranges: [
       { value: "30d", label: "30 Hari Terakhir", days: 30 },

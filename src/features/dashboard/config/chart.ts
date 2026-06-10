@@ -1,4 +1,4 @@
-import type { InteractiveAreaChartConfig } from "@/types/charts"
+import type { InteractiveAreaChartConfig } from "@/types/charts";
 
 const dashboardChartData = [
   { date: "2024-04-01", desktop: 222, mobile: 150 },
@@ -92,7 +92,7 @@ const dashboardChartData = [
   { date: "2024-06-28", desktop: 149, mobile: 200 },
   { date: "2024-06-29", desktop: 103, mobile: 160 },
   { date: "2024-06-30", desktop: 446, mobile: 400 },
-]
+];
 
 export const dashboardAreaChart = {
   title: "Total Visitors",
@@ -105,11 +105,11 @@ export const dashboardAreaChart = {
     },
     desktop: {
       label: "Desktop",
-      color: "var(--primary)",
+      color: "#22a853", // Using a brighter green
     },
     mobile: {
       label: "Mobile",
-      color: "var(--primary)",
+      color: "#1a7c3e", // Using a slightly darker shade of green
     },
   },
   ranges: [
@@ -120,4 +120,4 @@ export const dashboardAreaChart = {
   defaultRange: "90d",
   mobileRange: "7d",
   referenceDate: "2024-06-30",
-} satisfies InteractiveAreaChartConfig
+} satisfies InteractiveAreaChartConfig;
