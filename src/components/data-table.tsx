@@ -178,6 +178,7 @@ function DraggableRow<TData extends DataTableRow>({
 }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
+    disabled: true, // completely disable drag sensors/behavior
   })
 
   function handleClick(e: React.MouseEvent<HTMLTableRowElement>) {
@@ -214,7 +215,15 @@ function createBaseColumns<TData extends DataTableRow>(): ColumnDef<TData>[] {
     {
       id: "drag",
       header: () => null,
-      cell: ({ row }) => <DragHandle id={row.original.id} />,
+      cell: ({ row, table }) => {
+        const pageIndex = table.getState().pagination.pageIndex
+        const pageSize = table.getState().pagination.pageSize
+        return (
+          <span className="flex items-center justify-center font-mono text-xs text-muted-foreground w-7 select-none">
+            {pageIndex * pageSize + row.index + 1}
+          </span>
+        )
+      },
       enableSorting: false,
       enableHiding: false,
     },
