@@ -47,20 +47,20 @@ const STATUS_OPTIONS: ProductRow['status'][] = [
   'active', 'deployed', 'sold', 'maintenance', 'inactive', 'retired',
 ]
 const STATUS_LABELS: Record<string, string> = {
-  active:      "Aktif (Gudang)",
-  deployed:    "Terpasang (Klien)",
-  sold:        "Terjual",
+  active: "Aktif (Gudang)",
+  deployed: "Terpasang (Klien)",
+  sold: "Terjual",
   maintenance: "Servis",
-  inactive:    "Nonaktif",
-  retired:     "Pensiun",
+  inactive: "Nonaktif",
+  retired: "Pensiun",
 }
 const STATUS_COLORS: Record<string, string> = {
-  active:      "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  deployed:    "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  sold:        "bg-violet-500/10 text-violet-500 border-violet-500/20",
+  active: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  deployed: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  sold: "bg-violet-500/10 text-violet-500 border-violet-500/20",
   maintenance: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  inactive:    "bg-muted text-muted-foreground border-transparent",
-  retired:     "bg-muted text-muted-foreground border-transparent",
+  inactive: "bg-muted text-muted-foreground border-transparent",
+  retired: "bg-muted text-muted-foreground border-transparent",
 }
 
 // ─── Draft Types ──────────────────────────────────────────────────────────────
@@ -120,7 +120,7 @@ function emptyFields(): ProductDraftFields {
 
 // ─── Row Type ─────────────────────────────────────────────────────────────────
 
-interface ProductRowWithId extends DataTableRow, ProductWithRelations {}
+interface ProductRowWithId extends DataTableRow, ProductWithRelations { }
 
 // ─── Columns ──────────────────────────────────────────────────────────────────
 
@@ -193,30 +193,30 @@ const columns: ColumnDef<ProductRowWithId>[] = [
 
 export default function ProductsPage() {
   const { data: allProducts, loading, error, refetch } = useProducts()
-  const { count: totalCount }       = useProductCount()
-  const { count: activeCount }      = useProductCount("active")
-  const { count: deployedCount }    = useProductCount("deployed")
+  const { count: totalCount } = useProductCount()
+  const { count: activeCount } = useProductCount("active")
+  const { count: deployedCount } = useProductCount("deployed")
   const { count: maintenanceCount } = useProductCount("maintenance")
-  const { data: branches }          = useBranches()
-  const { data: clients }           = useClients()
-  const createMutation              = useCreateProductMutation()
-  const updateMutation              = useUpdateProductMutation()
+  const { data: branches } = useBranches()
+  const { data: clients } = useClients()
+  const createMutation = useCreateProductMutation()
+  const updateMutation = useUpdateProductMutation()
 
   // ── Drafts ────────────────────────────────────────────────────────────────────
   const [drafts, setDrafts] = React.useState<ProductDraft[]>(loadDrafts)
 
   // ── Drawer state ──────────────────────────────────────────────────────────────
-  const [drawerOpen, setDrawerOpen]       = React.useState(false)
-  const [editTarget, setEditTarget]       = React.useState<ProductWithRelations | null>(null)
-  const [isDraftMode, setIsDraftMode]     = React.useState(false)
+  const [drawerOpen, setDrawerOpen] = React.useState(false)
+  const [editTarget, setEditTarget] = React.useState<ProductWithRelations | null>(null)
+  const [isDraftMode, setIsDraftMode] = React.useState(false)
   const [activeDraftId, setActiveDraftId] = React.useState<string | null>(null)
-  const [activeTab, setActiveTab]         = React.useState("all")
-  const sessionId                         = React.useMemo(() => safeUUID(), [])
-  const [isSubmitting, setIsSubmitting]   = React.useState(false)
-  const [isSaving, setIsSaving]           = React.useState(false)
+  const [activeTab, setActiveTab] = React.useState("all")
+  const sessionId = React.useMemo(() => safeUUID(), [])
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [isSaving, setIsSaving] = React.useState(false)
 
   // ── Form fields (controlled) ──────────────────────────────────────────────────
-  const [fields, setFields]   = React.useState<ProductDraftFields>(emptyFields())
+  const [fields, setFields] = React.useState<ProductDraftFields>(emptyFields())
   const [drawerImages, setDrawerImages] = React.useState<DrawerImage[]>([])
 
   function setField<K extends keyof ProductDraftFields>(key: K, value: ProductDraftFields[K]) {
@@ -229,32 +229,32 @@ export default function ProductsPage() {
     setIsDraftMode(false)
     setActiveDraftId(null)
     setFields({
-      nomor_seri:             product.nomor_seri,
-      product_code:           product.product_code ?? '',
-      nama_produk:            product.nama_produk,
-      category:               product.category ?? '',
-      brand:                  product.brand ?? '',
-      tipe_kode:              product.tipe_kode ?? '',
-      tahun_pembuatan:        product.tahun_pembuatan?.toString() ?? '',
-      input:                  product.input ?? '',
-      output:                 product.output ?? '',
-      frekuensi:              product.frekuensi ?? '',
-      jumlah_socket:          product.jumlah_socket?.toString() ?? '',
-      range_daya:             product.range_daya ?? '',
-      soft_fuse_protection:   product.soft_fuse_protection ?? '',
-      hard_fuse_protection:   product.hard_fuse_protection ?? '',
-      ground_output:          product.ground_output ?? '',
-      tambahan_optional:      product.tambahan_optional ?? '',
-      current_branch_id:      product.current_branch_id ?? '',
-      current_client_id:      product.current_client_id ?? '',
-      status:                 product.status,
+      nomor_seri: product.nomor_seri,
+      product_code: product.product_code ?? '',
+      nama_produk: product.nama_produk,
+      category: product.category ?? '',
+      brand: product.brand ?? '',
+      tipe_kode: product.tipe_kode ?? '',
+      tahun_pembuatan: product.tahun_pembuatan?.toString() ?? '',
+      input: product.input ?? '',
+      output: product.output ?? '',
+      frekuensi: product.frekuensi ?? '',
+      jumlah_socket: product.jumlah_socket?.toString() ?? '',
+      range_daya: product.range_daya ?? '',
+      soft_fuse_protection: product.soft_fuse_protection ?? '',
+      hard_fuse_protection: product.hard_fuse_protection ?? '',
+      ground_output: product.ground_output ?? '',
+      tambahan_optional: product.tambahan_optional ?? '',
+      current_branch_id: product.current_branch_id ?? '',
+      current_client_id: product.current_client_id ?? '',
+      status: product.status,
     })
     // Map DB image records to DrawerImage format
     const imgs: DrawerImage[] = (product.images ?? []).map((img: ProductImageRow) => ({
-      id:          img.id,
+      id: img.id,
       storagePath: img.storage_path,
-      thumbPath:   img.thumbnail_path ?? img.storage_path,
-      sortOrder:   img.sort_order,
+      thumbPath: img.thumbnail_path ?? img.storage_path,
+      sortOrder: img.sort_order,
     }))
     setDrawerImages(imgs)
     setDrawerOpen(true)
@@ -277,10 +277,10 @@ export default function ProductsPage() {
     setActiveDraftId(draft.draftId)
     setFields(draft.fields)
     const imgs: DrawerImage[] = draft.imagePaths.map((p) => ({
-      id:          null,
+      id: null,
       storagePath: p.storagePath,
-      thumbPath:   p.thumbPath,
-      sortOrder:   p.sortOrder,
+      thumbPath: p.thumbPath,
+      sortOrder: p.sortOrder,
     }))
     setDrawerImages(imgs)
     setDrawerOpen(true)
@@ -307,25 +307,25 @@ export default function ProductsPage() {
     setIsSubmitting(true)
     try {
       const productData: ProductInsert = {
-        nomor_seri:           fields.nomor_seri.trim(),
-        product_code:         fields.product_code.trim() || null,
-        nama_produk:          fields.nama_produk.trim(),
-        category:             fields.category || null,
-        brand:                fields.brand || null,
-        tipe_kode:            fields.tipe_kode || null,
-        tahun_pembuatan:      fields.tahun_pembuatan ? Number(fields.tahun_pembuatan) : null,
-        input:                fields.input || null,
-        output:               fields.output || null,
-        frekuensi:            fields.frekuensi || null,
-        jumlah_socket:        fields.jumlah_socket ? Number(fields.jumlah_socket) : null,
-        range_daya:           fields.range_daya || null,
+        nomor_seri: fields.nomor_seri.trim(),
+        product_code: fields.product_code.trim() || null,
+        nama_produk: fields.nama_produk.trim(),
+        category: fields.category || null,
+        brand: fields.brand || null,
+        tipe_kode: fields.tipe_kode || null,
+        tahun_pembuatan: fields.tahun_pembuatan ? Number(fields.tahun_pembuatan) : null,
+        input: fields.input || null,
+        output: fields.output || null,
+        frekuensi: fields.frekuensi || null,
+        jumlah_socket: fields.jumlah_socket ? Number(fields.jumlah_socket) : null,
+        range_daya: fields.range_daya || null,
         soft_fuse_protection: fields.soft_fuse_protection || null,
         hard_fuse_protection: fields.hard_fuse_protection || null,
-        ground_output:        fields.ground_output || null,
-        tambahan_optional:    fields.tambahan_optional || null,
-        current_branch_id:    fields.current_branch_id || null,
-        current_client_id:    fields.current_client_id || null,
-        status:               fields.status,
+        ground_output: fields.ground_output || null,
+        tambahan_optional: fields.tambahan_optional || null,
+        current_branch_id: fields.current_branch_id || null,
+        current_client_id: fields.current_client_id || null,
+        status: fields.status,
       }
 
       if (editTarget) {
@@ -418,13 +418,13 @@ export default function ProductsPage() {
         const created = await createMutation.mutateAsync(productData)
 
         // Move images from draft or temp to final product path
-        const sourceId  = activeDraftId ?? sessionId
+        const sourceId = activeDraftId ?? sessionId
         const namespace = activeDraftId ? 'draft' : 'temp'
         const tempImages = drawerImages.filter((img) => img.id === null)
 
         if (tempImages.length > 0) {
           const pairs = tempImages.map((img) => ({
-            fullPath:  img.storagePath,
+            fullPath: img.storagePath,
             thumbPath: img.thumbPath,
           }))
 
@@ -437,16 +437,16 @@ export default function ProductsPage() {
           // Save product_images records to DB
           await productsService.addProductImages(
             finalPairs.map((p, i) => ({
-              product_id:     created.product_id,
-              storage_path:   p.fullPath,
+              product_id: created.product_id,
+              storage_path: p.fullPath,
               thumbnail_path: p.thumbPath,
-              mime_type:      'image/webp',
-              sort_order:     i,
-              uploaded_by:    null, // TODO: inject auth user id
-              width:          null,
-              height:         null,
-              file_name:      null,
-              file_size:      null,
+              mime_type: 'image/webp',
+              sort_order: i,
+              uploaded_by: null, // TODO: inject auth user id
+              width: null,
+              height: null,
+              file_name: null,
+              file_size: null,
             }))
           )
         }
@@ -480,8 +480,8 @@ export default function ProductsPage() {
       const tempImages = drawerImages.filter((img) => img.id === null)
       let imagePaths = tempImages.map((img, i) => ({
         storagePath: img.storagePath,
-        thumbPath:   img.thumbPath,
-        sortOrder:   i,
+        thumbPath: img.thumbPath,
+        sortOrder: i,
       }))
 
       if (tempImages.length > 0 && !activeDraftId) {
@@ -492,8 +492,8 @@ export default function ProductsPage() {
         )
         imagePaths = pairs.map((p, i) => ({
           storagePath: p.fullPath,
-          thumbPath:   p.thumbPath,
-          sortOrder:   i,
+          thumbPath: p.thumbPath,
+          sortOrder: i,
         }))
       }
 
@@ -585,35 +585,35 @@ export default function ProductsPage() {
     },
   ]
 
-  const mappedAll: ProductRowWithId[]         = allProducts.map((p) => ({ id: p.product_id, ...p }))
-  const mappedActive                          = mappedAll.filter((p) => p.status === "active")
-  const mappedDeployed                        = mappedAll.filter((p) => p.status === "deployed")
-  const mappedMaintenance                     = mappedAll.filter((p) => p.status === "maintenance")
-  const mappedDrafts: ProductRowWithId[]      = drafts.map((d, i) => ({
-    id:           d.draftId,
-    product_id:   d.draftId,
-    nomor_seri:   d.fields.nomor_seri || `DRAFT-${i + 1}`,
-    nama_produk:  d.fields.nama_produk || "Draft Baru",
+  const mappedAll: ProductRowWithId[] = allProducts.map((p) => ({ id: p.product_id, ...p }))
+  const mappedActive = mappedAll.filter((p) => p.status === "active")
+  const mappedDeployed = mappedAll.filter((p) => p.status === "deployed")
+  const mappedMaintenance = mappedAll.filter((p) => p.status === "maintenance")
+  const mappedDrafts: ProductRowWithId[] = drafts.map((d, i) => ({
+    id: d.draftId,
+    product_id: d.draftId,
+    nomor_seri: d.fields.nomor_seri || `DRAFT-${i + 1}`,
+    nama_produk: d.fields.nama_produk || "Draft Baru",
     product_code: d.fields.product_code || null,
-    category:     d.fields.category || null,
-    brand:        d.fields.brand || null,
-    tipe_kode:    d.fields.tipe_kode || null,
-    tahun_pembuatan:        d.fields.tahun_pembuatan ? Number(d.fields.tahun_pembuatan) : null,
-    input:                  d.fields.input || null,
-    output:                 d.fields.output || null,
-    frekuensi:              d.fields.frekuensi || null,
-    jumlah_socket:          d.fields.jumlah_socket ? Number(d.fields.jumlah_socket) : null,
-    range_daya:             d.fields.range_daya || null,
-    soft_fuse_protection:   d.fields.soft_fuse_protection || null,
-    hard_fuse_protection:   d.fields.hard_fuse_protection || null,
-    ground_output:          d.fields.ground_output || null,
-    tambahan_optional:      d.fields.tambahan_optional || null,
-    current_branch_id:      d.fields.current_branch_id || null,
-    current_client_id:      d.fields.current_client_id || null,
-    status:                 d.fields.status,
-    branch:   null,
-    client:   null,
-    images:   [],
+    category: d.fields.category || null,
+    brand: d.fields.brand || null,
+    tipe_kode: d.fields.tipe_kode || null,
+    tahun_pembuatan: d.fields.tahun_pembuatan ? Number(d.fields.tahun_pembuatan) : null,
+    input: d.fields.input || null,
+    output: d.fields.output || null,
+    frekuensi: d.fields.frekuensi || null,
+    jumlah_socket: d.fields.jumlah_socket ? Number(d.fields.jumlah_socket) : null,
+    range_daya: d.fields.range_daya || null,
+    soft_fuse_protection: d.fields.soft_fuse_protection || null,
+    hard_fuse_protection: d.fields.hard_fuse_protection || null,
+    ground_output: d.fields.ground_output || null,
+    tambahan_optional: d.fields.tambahan_optional || null,
+    current_branch_id: d.fields.current_branch_id || null,
+    current_client_id: d.fields.current_client_id || null,
+    status: d.fields.status,
+    branch: null,
+    client: null,
+    images: [],
     created_at: d.createdAt,
     updated_at: d.createdAt,
   }))
@@ -621,11 +621,11 @@ export default function ProductsPage() {
   // NOTE: plain variable — no useMemo here because this runs after early returns
   // (useMemo after conditional returns violates Rules of Hooks)
   const filteredProducts: ProductRowWithId[] =
-    activeTab === "active"      ? mappedActive
-    : activeTab === "deployed"  ? mappedDeployed
-    : activeTab === "maintenance" ? mappedMaintenance
-    : activeTab === "draft"     ? mappedDrafts
-    : mappedAll
+    activeTab === "active" ? mappedActive
+      : activeTab === "deployed" ? mappedDeployed
+        : activeTab === "maintenance" ? mappedMaintenance
+          : activeTab === "draft" ? mappedDrafts
+            : mappedAll
 
   // ─── Form fields section (passed to drawer as children) ───────────────────────
   const FormFields = (
@@ -846,12 +846,12 @@ export default function ProductsPage() {
             },
             {
               value: "active",
-              label: "Di Gudang (Aktif)",
+              label: "Di Gudang - Aktif",
               badge: mappedActive.length,
             },
             {
               value: "deployed",
-              label: "Di Klien (Deployed)",
+              label: "Di Klien",
               badge: mappedDeployed.length,
             },
             {
