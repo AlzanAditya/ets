@@ -11,7 +11,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS clients (
   client_id       UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   client_code     TEXT        NOT NULL UNIQUE,
-  client_name     TEXT        NOT NULL,
+  customer_name     TEXT        NOT NULL,
   company_name    TEXT,
   email           TEXT,
   phone_number    TEXT,

@@ -156,7 +156,7 @@ function emptyFields(): ProductDraftFields {
 
 // ─── Row Type ─────────────────────────────────────────────────────────────────
 
-interface ProductRowWithId extends DataTableRow, ProductWithRelations {}
+interface ProductRowWithId extends DataTableRow, ProductWithRelations { }
 
 // ─── Columns ──────────────────────────────────────────────────────────────────
 
@@ -209,7 +209,7 @@ const columns: ColumnDef<ProductRowWithId>[] = [
       return client ? (
         <span className="text-sm text-foreground flex items-center gap-1.5">
           <UserCheckIcon className="h-3.5 w-3.5 text-muted-foreground" />
-          {client.client_name}
+          {client.customer_name}
         </span>
       ) : (
         <span className="text-sm text-muted-foreground">—</span>
@@ -968,7 +968,7 @@ export default function ProductsPage() {
               <SelectItem value={NO_SELECTION_VALUE}>— Tidak ada —</SelectItem>
               {clients.map((c) => (
                 <SelectItem key={c.client_id} value={c.client_id}>
-                  {c.client_name}
+                  {c.customer_name}
                 </SelectItem>
               ))}
             </SelectGroup>

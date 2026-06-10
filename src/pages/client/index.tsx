@@ -217,23 +217,14 @@ export default function ClientPage() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="client_name">Nama Klien *</Label>
+          <Label htmlFor="customer_name">Nama Pelanggan *</Label>
           <Input
-            id="client_name"
-            value={fields.client_name}
-            onChange={(e) => setField("client_name", e.target.value)}
-            placeholder="Nama lengkap/Kontak klien"
+            id="customer_name"
+            value={fields.customer_name}
+            onChange={(e) => setField("customer_name", e.target.value)}
+            placeholder="Nama lengkap pelanggan"
           />
         </div>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="company_name">Nama Perusahaan / Instansi</Label>
-        <Input
-          id="company_name"
-          value={fields.company_name ?? ""}
-          onChange={(e) => setField("company_name", e.target.value)}
-          placeholder="PT ... atau CV ..."
-        />
       </div>
 
       <div className="flex flex-col gap-1 pt-1">

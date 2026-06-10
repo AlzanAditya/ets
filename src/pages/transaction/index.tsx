@@ -43,7 +43,7 @@ const NO_SELECTION_VALUE = "__none__"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface TransactionRowWithId extends DataTableRow, TransactionWithRelations {}
+interface TransactionRowWithId extends DataTableRow, TransactionWithRelations { }
 
 interface TransactionFormFields {
   transaction_type: TransactionType
@@ -62,35 +62,35 @@ interface TransactionFormFields {
 
 function emptyTxnFields(): TransactionFormFields {
   return {
-    transaction_type:      'sale',
-    transaction_date:      new Date().toISOString().split('T')[0],
-    client_id:             '',
-    source_branch_id:      '',
+    transaction_type: 'sale',
+    transaction_date: new Date().toISOString().split('T')[0],
+    client_id: '',
+    source_branch_id: '',
     destination_branch_id: '',
-    notes:                 '',
-    subtotal:              '0',
-    discount_amount:       '0',
-    tax_amount:            '0',
-    shipping_cost:         '0',
-    grand_total:           '0',
-    status:                'draft',
+    notes: '',
+    subtotal: '0',
+    discount_amount: '0',
+    tax_amount: '0',
+    shipping_cost: '0',
+    grand_total: '0',
+    status: 'draft',
   }
 }
 
 function fromTransaction(t: TransactionWithRelations): TransactionFormFields {
   return {
-    transaction_type:      t.transaction_type,
-    transaction_date:      t.transaction_date,
-    client_id:             t.client_id ?? '',
-    source_branch_id:      t.source_branch_id ?? '',
+    transaction_type: t.transaction_type,
+    transaction_date: t.transaction_date,
+    client_id: t.client_id ?? '',
+    source_branch_id: t.source_branch_id ?? '',
     destination_branch_id: t.destination_branch_id ?? '',
-    notes:                 t.notes ?? '',
-    subtotal:              String(t.subtotal),
-    discount_amount:       String(t.discount_amount),
-    tax_amount:            String(t.tax_amount),
-    shipping_cost:         String(t.shipping_cost),
-    grand_total:           String(t.grand_total),
-    status:                t.status,
+    notes: t.notes ?? '',
+    subtotal: String(t.subtotal),
+    discount_amount: String(t.discount_amount),
+    tax_amount: String(t.tax_amount),
+    shipping_cost: String(t.shipping_cost),
+    grand_total: String(t.grand_total),
+    status: t.status,
   }
 }
 
@@ -139,9 +139,9 @@ const columns: ColumnDef<TransactionRowWithId>[] = [
     header: "Asal / Tujuan",
     cell: ({ row }) => {
       const { transaction_type, client, source_branch, destination_branch } = row.original
-      const clientName = client?.client_name ?? "Klien"
-      const srcName    = source_branch?.branch_name ?? "Gudang Asal"
-      const destName   = destination_branch?.branch_name ?? "Gudang Tujuan"
+      const clientName = client?.customer_name ?? "Klien"
+      const srcName = source_branch?.branch_name ?? "Gudang Asal"
+      const destName = destination_branch?.branch_name ?? "Gudang Tujuan"
 
       if (transaction_type === "sale") {
         return (
@@ -196,8 +196,8 @@ const columns: ColumnDef<TransactionRowWithId>[] = [
     header: "Status",
     cell: ({ row }) => {
       const statusColors: Record<string, string> = {
-        draft:     "bg-muted text-muted-foreground border-transparent",
-        pending:   "bg-amber-500/10 text-amber-500 border-amber-500/20",
+        draft: "bg-muted text-muted-foreground border-transparent",
+        pending: "bg-amber-500/10 text-amber-500 border-amber-500/20",
         completed: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
         cancelled: "bg-destructive/10 text-destructive border-destructive/20",
       }
@@ -229,21 +229,21 @@ const columns: ColumnDef<TransactionRowWithId>[] = [
 
 export default function TransactionPage() {
   const { data: txns, loading: loadingTxns, error: errorTxns, refetch: refetchTxns } = useTransactions()
-  const { stats, loading: loadingStats, error: errorStats }     = useTransactionStats()
+  const { stats, loading: loadingStats, error: errorStats } = useTransactionStats()
   const { data: trend, loading: loadingTrend, error: errorTrend } = useTransactionTrend(30)
   const { data: branches } = useBranches()
-  const { data: clients }  = useClients()
-  const createMutation     = useCreateTransactionMutation()
+  const { data: clients } = useClients()
+  const createMutation = useCreateTransactionMutation()
 
   const isLoading = loadingTxns || loadingStats || loadingTrend
-  const hasError  = errorTxns  || errorStats  || errorTrend
+  const hasError = errorTxns || errorStats || errorTrend
 
-  const [drawerOpen, setDrawerOpen]     = React.useState(false)
-  const [editTarget, setEditTarget]     = React.useState<TransactionWithRelations | null>(null)
-  const [activeTab, setActiveTab]       = React.useState("all")
-  const sessionId                       = React.useMemo(() => safeUUID(), [])
+  const [drawerOpen, setDrawerOpen] = React.useState(false)
+  const [editTarget, setEditTarget] = React.useState<TransactionWithRelations | null>(null)
+  const [activeTab, setActiveTab] = React.useState("all")
+  const sessionId = React.useMemo(() => safeUUID(), [])
   const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const [isSaving, setIsSaving]         = React.useState(false)
+  const [isSaving, setIsSaving] = React.useState(false)
 
   const [fields, setFields] = React.useState<TransactionFormFields>(emptyTxnFields())
   function setField<K extends keyof TransactionFormFields>(key: K, value: TransactionFormFields[K]) {
@@ -270,19 +270,19 @@ export default function TransactionPage() {
         toast.info("Edit transaksi belum diimplementasi di sini.")
       } else {
         await createMutation.mutateAsync({
-          transaction_type:      fields.transaction_type,
-          transaction_date:      fields.transaction_date,
-          client_id:             fields.client_id || null,
-          source_branch_id:      fields.source_branch_id || null,
+          transaction_type: fields.transaction_type,
+          transaction_date: fields.transaction_date,
+          client_id: fields.client_id || null,
+          source_branch_id: fields.source_branch_id || null,
           destination_branch_id: fields.destination_branch_id || null,
-          notes:                 fields.notes || null,
-          subtotal:              Number(fields.subtotal),
-          discount_amount:       Number(fields.discount_amount),
-          tax_amount:            Number(fields.tax_amount),
-          shipping_cost:         Number(fields.shipping_cost),
-          grand_total:           Number(fields.grand_total),
-          status:                'pending',
-          created_by:            null,
+          notes: fields.notes || null,
+          subtotal: Number(fields.subtotal),
+          discount_amount: Number(fields.discount_amount),
+          tax_amount: Number(fields.tax_amount),
+          shipping_cost: Number(fields.shipping_cost),
+          grand_total: Number(fields.grand_total),
+          status: 'pending',
+          created_by: null,
         })
         toast.success("Transaksi berhasil dibuat dan disubmit")
       }
@@ -300,19 +300,19 @@ export default function TransactionPage() {
     setIsSaving(true)
     try {
       await createMutation.mutateAsync({
-        transaction_type:      fields.transaction_type,
-        transaction_date:      fields.transaction_date,
-        client_id:             fields.client_id || null,
-        source_branch_id:      fields.source_branch_id || null,
+        transaction_type: fields.transaction_type,
+        transaction_date: fields.transaction_date,
+        client_id: fields.client_id || null,
+        source_branch_id: fields.source_branch_id || null,
         destination_branch_id: fields.destination_branch_id || null,
-        notes:                 fields.notes || null,
-        subtotal:              Number(fields.subtotal),
-        discount_amount:       Number(fields.discount_amount),
-        tax_amount:            Number(fields.tax_amount),
-        shipping_cost:         Number(fields.shipping_cost),
-        grand_total:           Number(fields.grand_total),
-        status:                'draft',
-        created_by:            null,
+        notes: fields.notes || null,
+        subtotal: Number(fields.subtotal),
+        discount_amount: Number(fields.discount_amount),
+        tax_amount: Number(fields.tax_amount),
+        shipping_cost: Number(fields.shipping_cost),
+        grand_total: Number(fields.grand_total),
+        status: 'draft',
+        created_by: null,
       })
       toast.success("Transaksi disimpan sebagai draft")
       setDrawerOpen(false)
@@ -389,48 +389,48 @@ export default function TransactionPage() {
     },
   ]
 
-  const today     = new Date().toISOString().split("T")[0]
+  const today = new Date().toISOString().split("T")[0]
   const chartData = trend.map((t) => ({
-    date:    t.date,
+    date: t.date,
     desktop: t.revenue,
-    mobile:  t.count,
+    mobile: t.count,
   }))
   const chartConfig: InteractiveAreaChartConfig = {
-    title:              "Aktivitas Transaksi",
-    description:        "Tren nilai transaksi disetujui (dalam IDR) dan frekuensi transaksi harian",
+    title: "Aktivitas Transaksi",
+    description: "Tren nilai transaksi disetujui (dalam IDR) dan frekuensi transaksi harian",
     compactDescription: "Tren Transaksi",
-    data:               chartData,
+    data: chartData,
     chartConfig: {
       desktop: { label: "Revenue (IDR)", color: "hsl(var(--primary))" },
-      mobile:  { label: "Jumlah Transaksi", color: "hsl(var(--chart-2))" },
+      mobile: { label: "Jumlah Transaksi", color: "hsl(var(--chart-2))" },
     },
     ranges: [
       { value: "30d", label: "30 Hari Terakhir", days: 30 },
-      { value: "7d",  label: "7 Hari Terakhir",  days: 7  },
+      { value: "7d", label: "7 Hari Terakhir", days: 7 },
     ],
-    defaultRange:  "30d",
-    mobileRange:   "7d",
+    defaultRange: "30d",
+    mobileRange: "7d",
     referenceDate: today,
   }
 
-  const mappedAll       = txns.map((t) => ({ id: t.transaction_id, ...t }))
-  const mappedPending   = mappedAll.filter((t) => t.status === "pending")
+  const mappedAll = txns.map((t) => ({ id: t.transaction_id, ...t }))
+  const mappedPending = mappedAll.filter((t) => t.status === "pending")
   const mappedCompleted = mappedAll.filter((t) => t.status === "completed" || t.status === "cancelled")
-  const mappedDraft     = mappedAll.filter((t) => t.status === "draft")
+  const mappedDraft = mappedAll.filter((t) => t.status === "draft")
 
   // NOTE: plain variable — no useMemo here because this runs after early returns
   // (useMemo after conditional returns violates Rules of Hooks)
   const filteredTxns =
-    activeTab === "pending"   ? mappedPending
-    : activeTab === "completed" ? mappedCompleted
-    : activeTab === "draft"   ? mappedDraft
-    : mappedAll
+    activeTab === "pending" ? mappedPending
+      : activeTab === "completed" ? mappedCompleted
+        : activeTab === "draft" ? mappedDraft
+          : mappedAll
 
   // ─── Transaction Form Fields ───────────────────────────────────────────────────
   const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
-    { value: 'sale',     label: 'Penjualan'  },
-    { value: 'purchase', label: 'Pembelian'  },
-    { value: 'return',   label: 'Retur'      },
+    { value: 'sale', label: 'Penjualan' },
+    { value: 'purchase', label: 'Pembelian' },
+    { value: 'return', label: 'Retur' },
     { value: 'transfer', label: 'Mutasi/Transfer' },
   ]
 
@@ -475,7 +475,7 @@ export default function TransactionPage() {
             <SelectGroup>
               <SelectItem value={NO_SELECTION_VALUE}>— Tidak ada —</SelectItem>
               {clients.map((c) => (
-                <SelectItem key={c.client_id} value={c.client_id}>{c.client_name}</SelectItem>
+                <SelectItem key={c.client_id} value={c.client_id}>{c.customer_name}</SelectItem>
               ))}
             </SelectGroup>
           </SelectContent>

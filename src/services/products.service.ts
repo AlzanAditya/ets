@@ -1,136 +1,163 @@
-import { supabase } from '@/lib/supabase'
-import { safeUUID } from '@/lib/utils'
+import { supabase } from "@/lib/supabase";
+import { safeUUID } from "@/lib/utils";
 import type {
   ProductRow,
   ProductInsert,
   ProductUpdate,
   ProductImageRow,
   ProductImageInsert,
-} from '@/types/database'
+} from "@/types/database";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface GetProductsParams {
-  search?: string
-  status?: ProductRow['status']
-  branch_id?: string
-  client_id?: string
-  limit?: number
-  offset?: number
+  search?: string;
+  status?: ProductRow["status"];
+  branch_id?: string;
+  client_id?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface ProductWithRelations extends ProductRow {
-  branch?: { branch_name: string; branch_code: string } | null
-  client?: { client_name: string; client_code: string } | null
-  images?: ProductImageRow[]
+  branch?: { branch_name: string; branch_code: string } | null;
+  client?: { customer_name: string; client_code: string } | null;
+  images?: ProductImageRow[];
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export const productsService = {
-
   /**
    * Fetch paginated list of products with branch, client, and image relations.
    * Excludes retired by default unless status is explicitly passed.
    */
-  async getProducts(params: GetProductsParams = {}): Promise<ProductWithRelations[]> {
-    const { search, status, branch_id, client_id, limit = 50, offset = 0 } = params
+  async getProducts(
+    params: GetProductsParams = {},
+  ): Promise<ProductWithRelations[]> {
+    const {
+      search,
+      status,
+      branch_id,
+      client_id,
+      limit = 50,
+      offset = 0,
+    } = params;
 
     let query = supabase
-      .from('products')
-      .select(`
+      .from("products")
+      .select(
+        `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_name, client_code),
+        client:clients(customer_name, client_code),
         images:product_images(*)
-      `)
-      .order('created_at', { ascending: false })
-      .order('sort_order', { referencedTable: 'product_images', ascending: true })
-      .range(offset, offset + limit - 1)
+      `,
+      )
+      .order("created_at", { ascending: false })
+      .order("sort_order", {
+        referencedTable: "product_images",
+        ascending: true,
+      })
+      .range(offset, offset + limit - 1);
 
     if (status) {
-      query = query.eq('status', status)
+      query = query.eq("status", status);
     } else {
-      query = query.neq('status', 'retired')
+      query = query.neq("status", "retired");
     }
 
     if (search) {
       query = query.or(
-        `nomor_seri.ilike.%${search}%,nama_produk.ilike.%${search}%,product_code.ilike.%${search}%`
-      )
+        `nomor_seri.ilike.%${search}%,nama_produk.ilike.%${search}%,product_code.ilike.%${search}%`,
+      );
     }
 
-    if (branch_id) query = query.eq('current_branch_id', branch_id)
-    if (client_id) query = query.eq('current_client_id', client_id)
+    if (branch_id) query = query.eq("current_branch_id", branch_id);
+    if (client_id) query = query.eq("current_client_id", client_id);
 
-    const { data, error } = await query
+    const { data, error } = await query;
 
-    if (error) throw new Error(`Failed to fetch products: ${error.message}`)
-    return (data ?? []) as ProductWithRelations[]
+    if (error) throw new Error(`Failed to fetch products: ${error.message}`);
+    return (data ?? []) as ProductWithRelations[];
   },
 
   /**
    * Fetch single product by product_id (UUID), including images.
    */
-  async getProductById(product_id: string): Promise<ProductWithRelations | null> {
+  async getProductById(
+    product_id: string,
+  ): Promise<ProductWithRelations | null> {
     const { data, error } = await supabase
-      .from('products')
-      .select(`
+      .from("products")
+      .select(
+        `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_name, client_code),
+        client:clients(customer_name, client_code),
         images:product_images(*)
-      `)
-      .eq('product_id', product_id)
-      .order('sort_order', { referencedTable: 'product_images', ascending: true })
-      .single()
+      `,
+      )
+      .eq("product_id", product_id)
+      .order("sort_order", {
+        referencedTable: "product_images",
+        ascending: true,
+      })
+      .single();
 
-    if (error && error.code !== 'PGRST116') {
-      throw new Error(`Failed to fetch product: ${error.message}`)
+    if (error && error.code !== "PGRST116") {
+      throw new Error(`Failed to fetch product: ${error.message}`);
     }
-    return (data as unknown as ProductWithRelations) ?? null
+    return (data as unknown as ProductWithRelations) ?? null;
   },
 
   /**
    * Fetch single product by nomor_seri (for QR compatibility).
    */
-  async getProductBySerial(nomor_seri: string): Promise<ProductWithRelations | null> {
+  async getProductBySerial(
+    nomor_seri: string,
+  ): Promise<ProductWithRelations | null> {
     const { data, error } = await supabase
-      .from('products')
-      .select(`
+      .from("products")
+      .select(
+        `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_name, client_code),
+        client:clients(customer_name, client_code),
         images:product_images(*)
-      `)
-      .eq('nomor_seri', nomor_seri)
-      .order('sort_order', { referencedTable: 'product_images', ascending: true })
-      .single()
+      `,
+      )
+      .eq("nomor_seri", nomor_seri)
+      .order("sort_order", {
+        referencedTable: "product_images",
+        ascending: true,
+      })
+      .single();
 
-    if (error && error.code !== 'PGRST116') {
-      throw new Error(`Failed to fetch product: ${error.message}`)
+    if (error && error.code !== "PGRST116") {
+      throw new Error(`Failed to fetch product: ${error.message}`);
     }
-    return (data as unknown as ProductWithRelations) ?? null
+    return (data as unknown as ProductWithRelations) ?? null;
   },
 
   /**
    * Count total products (excluding retired).
    */
-  async getProductCount(status?: ProductRow['status']): Promise<number> {
+  async getProductCount(status?: ProductRow["status"]): Promise<number> {
     let query = supabase
-      .from('products')
-      .select('*', { count: 'exact', head: true })
+      .from("products")
+      .select("*", { count: "exact", head: true });
 
     if (status) {
-      query = query.eq('status', status)
+      query = query.eq("status", status);
     } else {
-      query = query.neq('status', 'retired')
+      query = query.neq("status", "retired");
     }
 
-    const { count, error } = await query
+    const { count, error } = await query;
 
-    if (error) throw new Error(`Failed to count products: ${error.message}`)
-    return count ?? 0
+    if (error) throw new Error(`Failed to count products: ${error.message}`);
+    return count ?? 0;
   },
 
   /**
@@ -138,34 +165,37 @@ export const productsService = {
    */
   async createProduct(data: ProductInsert): Promise<ProductRow> {
     const { data: created, error } = await supabase
-      .from('products')
+      .from("products")
       .insert({
         ...data,
         product_id: data.product_id ?? safeUUID(),
       })
       .select()
-      .single()
+      .single();
 
-    if (error) throw new Error(`Failed to create product: ${error.message}`)
-    if (!created) throw new Error('Product creation returned no data')
-    return created
+    if (error) throw new Error(`Failed to create product: ${error.message}`);
+    if (!created) throw new Error("Product creation returned no data");
+    return created;
   },
 
   /**
    * Update an existing product by product_id.
    * nomor_seri is immutable — excluded from update type.
    */
-  async updateProduct(product_id: string, data: ProductUpdate): Promise<ProductRow> {
+  async updateProduct(
+    product_id: string,
+    data: ProductUpdate,
+  ): Promise<ProductRow> {
     const { data: updated, error } = await supabase
-      .from('products')
+      .from("products")
       .update({ ...data, updated_at: new Date().toISOString() } as any)
-      .eq('product_id', product_id)
+      .eq("product_id", product_id)
       .select()
-      .single()
+      .single();
 
-    if (error) throw new Error(`Failed to update product: ${error.message}`)
-    if (!updated) throw new Error('Product update returned no data')
-    return updated
+    if (error) throw new Error(`Failed to update product: ${error.message}`);
+    if (!updated) throw new Error("Product update returned no data");
+    return updated;
   },
 
   /**
@@ -174,11 +204,14 @@ export const productsService = {
    */
   async retireProduct(product_id: string): Promise<void> {
     const { error } = await supabase
-      .from('products')
-      .update({ status: 'retired', updated_at: new Date().toISOString() } as any)
-      .eq('product_id', product_id)
+      .from("products")
+      .update({
+        status: "retired",
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("product_id", product_id);
 
-    if (error) throw new Error(`Failed to retire product: ${error.message}`)
+    if (error) throw new Error(`Failed to retire product: ${error.message}`);
   },
 
   /**
@@ -186,19 +219,22 @@ export const productsService = {
    */
   async getRecentProducts(limit = 10): Promise<ProductWithRelations[]> {
     const { data, error } = await supabase
-      .from('products')
-      .select(`
+      .from("products")
+      .select(
+        `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_name, client_code),
+        client:clients(customer_name, client_code),
         images:product_images(*)
-      `)
-      .neq('status', 'retired')
-      .order('created_at', { ascending: false })
-      .limit(limit)
+      `,
+      )
+      .neq("status", "retired")
+      .order("created_at", { ascending: false })
+      .limit(limit);
 
-    if (error) throw new Error(`Failed to fetch recent products: ${error.message}`)
-    return (data ?? []) as ProductWithRelations[]
+    if (error)
+      throw new Error(`Failed to fetch recent products: ${error.message}`);
+    return (data ?? []) as ProductWithRelations[];
   },
 
   // ─── Image Management ────────────────────────────────────────────────────────
@@ -208,29 +244,32 @@ export const productsService = {
    */
   async addProductImage(record: ProductImageInsert): Promise<ProductImageRow> {
     const { data, error } = await supabase
-      .from('product_images')
+      .from("product_images")
       .insert(record)
       .select()
-      .single()
+      .single();
 
-    if (error) throw new Error(`Failed to add product image: ${error.message}`)
-    if (!data) throw new Error('Product image insert returned no data')
-    return data
+    if (error) throw new Error(`Failed to add product image: ${error.message}`);
+    if (!data) throw new Error("Product image insert returned no data");
+    return data;
   },
 
   /**
    * Insert multiple product_images records in a single batch.
    */
-  async addProductImages(records: ProductImageInsert[]): Promise<ProductImageRow[]> {
-    if (records.length === 0) return []
+  async addProductImages(
+    records: ProductImageInsert[],
+  ): Promise<ProductImageRow[]> {
+    if (records.length === 0) return [];
 
     const { data, error } = await supabase
-      .from('product_images')
+      .from("product_images")
       .insert(records)
-      .select()
+      .select();
 
-    if (error) throw new Error(`Failed to add product images: ${error.message}`)
-    return data ?? []
+    if (error)
+      throw new Error(`Failed to add product images: ${error.message}`);
+    return data ?? [];
   },
 
   /**
@@ -239,11 +278,14 @@ export const productsService = {
    */
   async deleteProductImage(imageId: string): Promise<void> {
     const { error } = await supabase
-      .from('product_images')
+      .from("product_images")
       .delete()
-      .eq('id', imageId)
+      .eq("id", imageId);
 
-    if (error) throw new Error(`Failed to delete product image record: ${error.message}`)
+    if (error)
+      throw new Error(
+        `Failed to delete product image record: ${error.message}`,
+      );
   },
 
   /**
@@ -251,15 +293,12 @@ export const productsService = {
    * Used after drag-and-drop reordering in the gallery.
    */
   async updateImageSortOrder(
-    updates: Array<{ id: string; sort_order: number }>
+    updates: Array<{ id: string; sort_order: number }>,
   ): Promise<void> {
     await Promise.all(
       updates.map(({ id, sort_order }) =>
-        supabase
-          .from('product_images')
-          .update({ sort_order })
-          .eq('id', id)
-      )
-    )
+        supabase.from("product_images").update({ sort_order }).eq("id", id),
+      ),
+    );
   },
-}
+};

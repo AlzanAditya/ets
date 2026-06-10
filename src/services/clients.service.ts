@@ -8,7 +8,7 @@ export const clientsService = {
       .from('clients')
       .select('*')
       .is('deleted_at', null)
-      .order('client_name', { ascending: true })
+      .order('customer_name', { ascending: true })
 
     if (error) throw new Error(`Failed to fetch clients: ${error.message}`)
     return data ?? []
