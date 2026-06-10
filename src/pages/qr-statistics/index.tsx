@@ -9,13 +9,15 @@ import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable, type DataTableRow } from "@/components/data-table"
 import { MetricCards } from "@/components/metric-cards"
 import { PageContent } from "@/components/page-content"
+import { useTableSchema } from "@/hooks/use-table-schema"
+import { mergeDynamicColumns } from "@/lib/dynamic-columns"
 import type { InteractiveAreaChartConfig } from "@/types/charts"
 import type { MetricCardItem } from "@/types/metrics"
 import type { ScanLogWithRelations } from "@/services/scan-logs.service"
 
 interface ScanLogWithId extends Omit<ScanLogWithRelations, "id">, DataTableRow { }
 
-const columns: ColumnDef<ScanLogWithId>[] = [
+const PINNED_COLUMNS: ColumnDef<ScanLogWithId>[] = [
   {
     accessorKey: "scanned_at",
     header: "Waktu Scan",
@@ -105,6 +107,13 @@ export default function QRStatisticsPage() {
   const { data: trend, loading: loadingTrend, error: errorTrend } = useScanTrend(30)
   const { data: logs, loading: loadingLogs, error: errorLogs, refetch } = useRecentScanLogs(50)
   const [activeTab, setActiveTab] = React.useState("all")
+
+  // ── Dynamic Schema ──────────────────────────────────────────────────────────
+  const { columns: schemaColumns } = useTableSchema("scan_logs")
+  const columns = React.useMemo(
+    () => mergeDynamicColumns<ScanLogWithId>(PINNED_COLUMNS, schemaColumns, ["id", "product_id"]),
+    [schemaColumns]
+  )
 
   const isLoading = loadingStats || loadingTrend || loadingLogs
   const hasError = errorStats || errorTrend || errorLogs

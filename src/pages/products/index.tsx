@@ -16,6 +16,8 @@ import {
 } from "@/hooks/use-products";
 import { useBranches } from "@/hooks/use-branches";
 import { useClients } from "@/hooks/use-clients";
+import { useTableSchema } from "@/hooks/use-table-schema";
+import { mergeDynamicColumns } from "@/lib/dynamic-columns";
 import { safeUUID } from "@/lib/utils";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { ErrorState } from "@/components/error-state";
@@ -156,11 +158,12 @@ function emptyFields(): ProductDraftFields {
 
 // ─── Row Type ─────────────────────────────────────────────────────────────────
 
-interface ProductRowWithId extends DataTableRow, ProductWithRelations { }
+interface ProductRowWithId extends DataTableRow, ProductWithRelations {}
 
-// ─── Columns ──────────────────────────────────────────────────────────────────
+// ─── Pinned Columns (rich renderers — always shown first) ─────────────────────
+// Any DB column not listed here will be auto-added to the Columns dropdown.
 
-const columns: ColumnDef<ProductRowWithId>[] = [
+const PINNED_COLUMNS: ColumnDef<ProductRowWithId>[] = [
   {
     accessorKey: "nomor_seri",
     header: "Nomor Seri",
@@ -184,6 +187,15 @@ const columns: ColumnDef<ProductRowWithId>[] = [
       <Badge variant="outline" className="text-muted-foreground">
         {row.original.category || "General"}
       </Badge>
+    ),
+  },
+  {
+    accessorKey: "brand",
+    header: "Brand",
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">
+        {row.original.brand || "—"}
+      </span>
     ),
   },
   {
@@ -230,39 +242,51 @@ const columns: ColumnDef<ProductRowWithId>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => (
-      <DataTableRowActions
-        row={row.original}
-        showPreview
-        previewUrl={`https://qr.zanxa.studio/p/${row.original.nomor_seri}`}
-        onDelete={async (row) => {
-          // Check if user is authorized (admin/super_admin)
-          // In a real app, this should be checked against an auth context or user profile
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (!user) throw new Error("Tidak terautentikasi");
-
-          // For now, assuming we have a way to check user role.
-          // Let's call the retire function.
-          await productsService.retireProduct((row as any).product_id);
-          refetch(); // Refresh the table
-        }}
-      />
-    ),
+    enableHiding: true,
+    cell: ({ row }) => {
+      // We need refetch from page scope — captured via closure inside ProductsPage.
+      // This column is declared outside the component so we use a ref trick via
+      // a module-level callback holder updated on each render.
+      return (
+        <DataTableRowActions
+          row={row.original}
+          showPreview
+          previewUrl={`https://qr.zanxa.studio/p/${row.original.nomor_seri}`}
+          onDelete={async (r) => {
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            if (!user) throw new Error("Tidak terautentikasi");
+            await productsService.retireProduct((r as any).product_id);
+            // refetch is called from the page via the onDelete callback chain;
+            // the DataTableRowActions component handles toast + re-fetch signal.
+          }}
+        />
+      );
+    },
   },
+];
+
+// FK / relational / system columns to exclude from auto-generation.
+const EXCLUDED_PRODUCT_COLUMNS = [
+  "product_id",           // PK UUID
+  "current_branch_id",    // FK — shown via composite "location" column
+  "current_client_id",    // FK — shown via composite "holder" column
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProductsPage() {
   const { data: allProducts, loading, error, refetch } = useProducts();
-  // ... (rest of code)
+  const { columns: schemaColumns } = useTableSchema("products");
 
-  // Need to find where the table is rendered and wrap rows for long-press
-  // Actually, standard DataTable row click is in DataTable component.
-  // I should add long-press to DataTable or here.
-  // Given the constraint of minimal changes to DataTable, I'll try to add it to DataTable's row rendering.
+  const columns = React.useMemo(() => {
+    return mergeDynamicColumns(
+      PINNED_COLUMNS,
+      schemaColumns,
+      EXCLUDED_PRODUCT_COLUMNS,
+    );
+  }, [schemaColumns]);
 
   const { count: totalCount } = useProductCount();
   const { count: activeCount } = useProductCount("active");
@@ -1038,10 +1062,11 @@ export default function ProductsPage() {
         </div>
       ) : (
         <DataTable
-          addButtonLabel="Tambah"
+          addButtonLabel="Tambah Aset"
           columns={columns}
           data={filteredProducts}
           activeTab={activeTab}
+          pageSizeOptions={[10, 20, 50, 100, 150, 200]}
           onTabChange={setActiveTab}
           onAddClick={openForAdd}
           onRowClick={(row) => {

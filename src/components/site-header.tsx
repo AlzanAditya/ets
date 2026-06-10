@@ -50,9 +50,9 @@ export function SiteHeader({
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-4"
+          className="mx-2 data-[orientation=vertical]:h-8"
         />
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1 font-medium">
           {breadcrumbs.map((breadcrumb, index) => {
             const isLast = index === breadcrumbs.length - 1
 
@@ -65,7 +65,7 @@ export function SiteHeader({
                   <span
                     className={
                       index === 0
-                        ? "font-semibold text-foreground"
+                        ? "font-medium text-foreground"
                         : "font-medium text-muted-foreground"
                     }
                   >

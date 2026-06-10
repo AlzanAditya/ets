@@ -8,6 +8,8 @@ import {
   useCreateClientMutation,
   useUpdateClientMutation,
 } from "@/hooks/use-clients";
+import { useTableSchema } from "@/hooks/use-table-schema";
+import { mergeDynamicColumns } from "@/lib/dynamic-columns";
 import { DataTable, type DataTableRow } from "@/components/data-table";
 import { TableDrawer } from "@/components/table-drawer";
 import { MetricCards } from "@/components/metric-cards";
@@ -23,20 +25,25 @@ function emptyFields(): ClientInsert {
   return {
     client_code: "",
     customer_name: "",
-    email: "",
-    phone_number: "",
-    whatsapp_number: "",
-    address: "",
-    city: "",
-    province: "",
-    postal_code: "",
-    notes: "",
+    customer_name_alias: null,
+    email: null,
+    phone_number: null,
+    whatsapp_number: null,
+    address: null,
+    city: null,
+    province: null,
+    postal_code: null,
+    notes: null,
   };
 }
 
-// ─── Columns Definition ────────────────────────────────────────────────────────
+// ─── Pinned Columns (rich renderers — always shown first) ─────────────────────
+// Columns here are matched by accessorKey/id and take priority over auto-generated
+// columns. Any DB column NOT listed here will be auto-added to the dropdown.
 
-const columns: ColumnDef<ClientRow & DataTableRow>[] = [
+type ClientRowWithId = ClientRow & DataTableRow;
+
+const PINNED_COLUMNS: ColumnDef<ClientRowWithId>[] = [
   {
     accessorKey: "client_code",
     header: "Kode Klien",
@@ -51,6 +58,15 @@ const columns: ColumnDef<ClientRow & DataTableRow>[] = [
     header: "Nama Pelanggan",
     cell: ({ row }) => (
       <span className="font-medium">{row.original.customer_name}</span>
+    ),
+  },
+  {
+    accessorKey: "customer_name_alias",
+    header: "Alias",
+    cell: ({ row }) => (
+      <span className="text-muted-foreground text-sm">
+        {row.original.customer_name_alias || "—"}
+      </span>
     ),
   },
   {
@@ -86,12 +102,28 @@ const columns: ColumnDef<ClientRow & DataTableRow>[] = [
   },
 ];
 
+// Columns that are never shown — they are system internals or covered by
+// composite pinned columns (e.g. province is part of the city/province cell).
+const EXCLUDED_COLUMNS = ["client_id", "deleted_at", "province"];
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function ClientPage() {
   const { data: allClients, loading, error, refetch } = useClients();
   const createMutation = useCreateClientMutation();
   const updateMutation = useUpdateClientMutation();
+
+  // ── Dynamic Schema ─────────────────────────────────────────────────────────
+  // Fetches real column list from Supabase information_schema at runtime.
+  // Any new column added to the `clients` table will automatically appear
+  // in the Columns dropdown on next page load (no code change needed).
+  const { columns: schemaColumns } = useTableSchema("clients");
+
+  // Merge: pinned columns (custom renderers) + any extra DB columns not pinned.
+  const columns = React.useMemo(
+    () => mergeDynamicColumns<ClientRowWithId>(PINNED_COLUMNS, schemaColumns, EXCLUDED_COLUMNS),
+    [schemaColumns],
+  );
 
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<ClientRow | null>(null);
@@ -378,10 +410,10 @@ export default function ClientPage() {
       <div className="grid grid-cols-1 gap-4">
         <DataTable
           addButtonLabel="Tambah"
-          columns={columns as any}
+          columns={columns}
           data={mappedClients}
           onAddClick={openForAdd}
-          onRowClick={(row) => openForEdit(row as any)}
+          onRowClick={(row) => openForEdit(row)}
           defaultTab="all"
           tabs={[
             { value: "all", label: "Semua Klien", badge: mappedClients.length },

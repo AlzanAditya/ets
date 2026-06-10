@@ -41,6 +41,7 @@ export type ClientRow = {
   client_id: string; // UUID
   client_code: string;
   customer_name: string;
+  customer_name_alias: string | null; // Alias/nickname for the customer — added in later migration
   email: string | null;
   phone_number: string | null;
   whatsapp_number: string | null;

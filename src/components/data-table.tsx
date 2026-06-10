@@ -54,6 +54,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -205,7 +206,7 @@ function DraggableRow<TData extends DataTableRow>({
       data-dragging={isDragging}
       ref={setNodeRef}
       className={cn(
-        "relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80",
+        "relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 transition-colors hover:bg-muted/50",
         onRowClick && "cursor-pointer",
       )}
       style={{
@@ -235,21 +236,6 @@ function DraggableRow<TData extends DataTableRow>({
 function createBaseColumns<TData extends DataTableRow>(): ColumnDef<TData>[] {
   return [
     {
-      id: "drag",
-      header: () => null,
-      cell: ({ row, table }) => {
-        const pageIndex = table.getState().pagination.pageIndex;
-        const pageSize = table.getState().pagination.pageSize;
-        return (
-          <span className="flex items-center justify-center font-mono text-xs text-muted-foreground w-7 select-none">
-            {pageIndex * pageSize + row.index + 1}
-          </span>
-        );
-      },
-      enableSorting: false,
-      enableHiding: false,
-    },
-    {
       id: "select",
       header: ({ table }) => (
         <div className="flex items-center justify-center">
@@ -275,7 +261,22 @@ function createBaseColumns<TData extends DataTableRow>(): ColumnDef<TData>[] {
         </div>
       ),
       enableSorting: false,
-      enableHiding: false,
+      enableHiding: true,
+    },
+    {
+      id: "drag",
+      header: () => null,
+      cell: ({ row, table }) => {
+        const pageIndex = table.getState().pagination.pageIndex;
+        const pageSize = table.getState().pagination.pageSize;
+        return (
+          <span className="flex items-center justify-center font-mono text-xs text-muted-foreground w-7 select-none">
+            {pageIndex * pageSize + row.index + 1}
+          </span>
+        );
+      },
+      enableSorting: false,
+      enableHiding: true,
     },
   ];
 }
@@ -326,15 +327,47 @@ export function DataTable<TData extends DataTableRow>({
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
+
+  React.useEffect(() => {
+    setColumnVisibility((prev) => {
+      const next = { ...prev };
+      let updated = false;
+      resolvedColumns.forEach((col) => {
+        const id = col.id || col.accessorKey;
+        if (id && typeof id === "string") {
+          if (next[id] === undefined) {
+            const defaultHidden = (col.meta as any)?.defaultHidden;
+            if (defaultHidden) {
+              next[id] = false;
+              updated = true;
+            }
+          }
+        }
+      });
+      return updated ? next : prev;
+    });
+  }, [resolvedColumns]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   );
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: pageSizeOptions[0] ?? 10,
+  const [pagination, setPagination] = React.useState(() => {
+    const savedPageSize = localStorage.getItem("data-table-page-size");
+    return {
+      pageIndex: 0,
+      pageSize: savedPageSize
+        ? Number(savedPageSize)
+        : (pageSizeOptions[0] ?? 10),
+    };
   });
+
+  React.useEffect(() => {
+    localStorage.setItem(
+      "data-table-page-size",
+      pagination.pageSize.toString(),
+    );
+  }, [pagination.pageSize]);
   const sortableId = React.useId();
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
@@ -486,13 +519,16 @@ export function DataTable<TData extends DataTableRow>({
                 <ChevronDownIcon data-icon="inline-end" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuContent
+              align="end"
+              className="w-56 max-h-[300px] overflow-y-auto"
+            >
               {table
                 .getAllColumns()
                 .filter(
                   (column) =>
-                    typeof column.accessorFn !== "undefined" &&
-                    column.getCanHide(),
+                    column.getCanHide() &&
+                    !["drag", "select", "actions"].includes(column.id)
                 )
                 .map((column) => {
                   return (
@@ -504,10 +540,44 @@ export function DataTable<TData extends DataTableRow>({
                         column.toggleVisibility(!!value)
                       }
                     >
-                      {column.id}
+                      {column.id.replace(/_/g, " ")}
                     </DropdownMenuCheckboxItem>
                   );
                 })}
+              {(() => {
+                const specialCols = table
+                  .getAllColumns()
+                  .filter(
+                    (column) =>
+                      column.getCanHide() &&
+                      ["drag", "select", "actions"].includes(column.id)
+                  );
+
+                if (specialCols.length === 0) return null;
+
+                const specialLabels: Record<string, string> = {
+                  drag: "Nomor Urut",
+                  select: "Checklistbox",
+                  actions: "Action",
+                };
+
+                return (
+                  <>
+                    <DropdownMenuSeparator />
+                    {specialCols.map((column) => (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) =>
+                          column.toggleVisibility(!!value)
+                        }
+                      >
+                        {specialLabels[column.id] ?? column.id}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </>
+                );
+              })()}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -563,7 +633,11 @@ export function DataTable<TData extends DataTableRow>({
                       <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map((header) => {
                           return (
-                            <TableHead key={header.id} colSpan={header.colSpan}>
+                            <TableHead
+                              key={header.id}
+                              colSpan={header.colSpan}
+                              className="border-r last:border-r-0"
+                            >
                               {header.isPlaceholder
                                 ? null
                                 : flexRender(

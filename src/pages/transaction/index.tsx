@@ -14,6 +14,8 @@ import {
 } from "@/hooks/use-transactions"
 import { useBranches } from "@/hooks/use-branches"
 import { useClients } from "@/hooks/use-clients"
+import { useTableSchema } from "@/hooks/use-table-schema"
+import { mergeDynamicColumns } from "@/lib/dynamic-columns"
 import { safeUUID } from "@/lib/utils"
 import { TableSkeleton } from "@/components/table-skeleton"
 import { ErrorState } from "@/components/error-state"
@@ -107,7 +109,8 @@ function formatIDR(value: number): string {
 
 // ─── Columns ──────────────────────────────────────────────────────────────────
 
-const columns: ColumnDef<TransactionRowWithId>[] = [
+// ─── Pinned Columns (rich renderers — always shown first) ─────────────────────
+const PINNED_COLUMNS: ColumnDef<TransactionRowWithId>[] = [
   {
     accessorKey: "transaction_code",
     header: "Kode Transaksi",
@@ -225,6 +228,16 @@ const columns: ColumnDef<TransactionRowWithId>[] = [
   },
 ]
 
+// FK UUID columns, relations (joined objects), and internal columns to exclude from auto-gen.
+const EXCLUDED_TX_COLUMNS = [
+  "transaction_id",  // PK UUID
+  "client_id",       // FK — shown via "route" column with joined name
+  "source_branch_id",       // FK
+  "destination_branch_id",  // FK
+  "created_by",      // FK — admin UUID
+  "approved_by",     // FK — admin UUID
+]
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TransactionPage() {
@@ -237,6 +250,16 @@ export default function TransactionPage() {
 
   const isLoading = loadingTxns || loadingStats || loadingTrend
   const hasError = errorTxns || errorStats || errorTrend
+
+  // ── Dynamic Schema ──────────────────────────────────────────────────────────
+  // Fetches real column list from Supabase information_schema at runtime.
+  // Any new column added to the `transactions` table will automatically appear
+  // in the Columns dropdown without code changes.
+  const { columns: schemaColumns } = useTableSchema("transactions")
+  const columns = React.useMemo(
+    () => mergeDynamicColumns<TransactionRowWithId>(PINNED_COLUMNS, schemaColumns, EXCLUDED_TX_COLUMNS),
+    [schemaColumns],
+  )
 
   const [drawerOpen, setDrawerOpen] = React.useState(false)
   const [editTarget, setEditTarget] = React.useState<TransactionWithRelations | null>(null)
