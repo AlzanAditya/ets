@@ -149,6 +149,7 @@ export default function ClientPage() {
     setFields({
       client_code: client.client_code,
       customer_name: client.customer_name,
+      customer_name_alias: client.customer_name_alias ?? null,
       email: client.email ?? "",
       phone_number: client.phone_number ?? "",
       whatsapp_number: client.whatsapp_number ?? "",
@@ -172,6 +173,7 @@ export default function ClientPage() {
       const clientData: ClientInsert = {
         client_code: fields.client_code.trim(),
         customer_name: fields.customer_name.trim(),
+        customer_name_alias: fields.customer_name_alias?.trim() || null,
         email: fields.email?.trim() || null,
         phone_number: fields.phone_number?.trim() || null,
         whatsapp_number: fields.whatsapp_number?.trim() || null,

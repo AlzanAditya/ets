@@ -18,6 +18,7 @@ import { useBranches } from "@/hooks/use-branches";
 import { useClients } from "@/hooks/use-clients";
 import { useTableSchema } from "@/hooks/use-table-schema";
 import { mergeDynamicColumns } from "@/lib/dynamic-columns";
+import { supabase } from "@/lib/supabase";
 import { safeUUID } from "@/lib/utils";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { ErrorState } from "@/components/error-state";
