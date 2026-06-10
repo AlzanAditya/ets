@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from "react";
 import {
   closestCenter,
   DndContext,
@@ -9,15 +9,15 @@ import {
   useSensors,
   type DragEndEvent,
   type UniqueIdentifier,
-} from "@dnd-kit/core"
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   arrayMove,
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   flexRender,
   getCoreRowModel,
@@ -32,7 +32,7 @@ import {
   type Row,
   type SortingState,
   type VisibilityState,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -44,20 +44,20 @@ import {
   GripVerticalIcon,
   PlusIcon,
   SearchIcon,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -65,7 +65,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -73,40 +73,35 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export interface DataTableRow {
-  id: UniqueIdentifier
+  id: UniqueIdentifier;
 }
 
 export interface DataTableTab {
-  value: string
-  label: string
-  badge?: string | number
-  content?: React.ReactNode
+  value: string;
+  label: string;
+  badge?: string | number;
+  content?: React.ReactNode;
 }
 
 export interface DataTableProps<TData extends DataTableRow> {
-  addButtonLabel?: string
-  columns?: ColumnDef<TData>[]
-  data?: TData[]
-  defaultTab?: string
-  activeTab?: string
-  emptyLabel?: string
-  pageSizeOptions?: number[]
-  tabs?: DataTableTab[]
-  searchPlaceholder?: string
-  csvFilename?: string
-  onAddClick?: () => void
+  addButtonLabel?: string;
+  columns?: ColumnDef<TData>[];
+  data?: TData[];
+  defaultTab?: string;
+  activeTab?: string;
+  emptyLabel?: string;
+  pageSizeOptions?: number[];
+  tabs?: DataTableTab[];
+  searchPlaceholder?: string;
+  csvFilename?: string;
+  onAddClick?: () => void;
   /** Called when a data row is clicked (excluding checkboxes, drag handles, buttons, links) */
-  onRowClick?: (row: TData) => void
-  onTabChange?: (tab: string) => void
+  onRowClick?: (row: TData) => void;
+  onTabChange?: (tab: string) => void;
 }
 
 const placeholderData = [
@@ -114,7 +109,7 @@ const placeholderData = [
     id: "sample-row",
     title: "Sample row",
   },
-]
+];
 
 const placeholderColumns: ColumnDef<DataTableRow>[] = [
   {
@@ -123,19 +118,19 @@ const placeholderColumns: ColumnDef<DataTableRow>[] = [
     cell: ({ row }) =>
       "title" in row.original ? String(row.original.title) : "Sample row",
   },
-]
+];
 
 const placeholderTabs = [
   {
     value: "table",
     label: "Table",
   },
-] satisfies DataTableTab[]
+] satisfies DataTableTab[];
 
 function DragHandle({ id }: { id: UniqueIdentifier }) {
   const { attributes, listeners } = useSortable({
     id,
-  })
+  });
 
   return (
     <Button
@@ -148,46 +143,64 @@ function DragHandle({ id }: { id: UniqueIdentifier }) {
       <GripVerticalIcon className="size-3 text-muted-foreground" />
       <span className="sr-only">Drag to reorder</span>
     </Button>
-  )
+  );
 }
 
 /** Tags that should NOT trigger a row-click (they handle their own click semantics) */
-const INTERACTIVE_TAGS = new Set(['INPUT', 'BUTTON', 'A', 'SELECT', 'LABEL'])
-const INTERACTIVE_ROLES = new Set(['checkbox', 'menuitem', 'option', 'switch'])
+const INTERACTIVE_TAGS = new Set(["INPUT", "BUTTON", "A", "SELECT", "LABEL"]);
+const INTERACTIVE_ROLES = new Set(["checkbox", "menuitem", "option", "switch"]);
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
-  let el = target as HTMLElement | null
+  let el = target as HTMLElement | null;
   while (el) {
-    if (INTERACTIVE_TAGS.has(el.tagName)) return true
-    const role = el.getAttribute('role')
-    if (role && INTERACTIVE_ROLES.has(role)) return true
-    if (el.dataset.dragHandle !== undefined) return true
+    if (INTERACTIVE_TAGS.has(el.tagName)) return true;
+    const role = el.getAttribute("role");
+    if (role && INTERACTIVE_ROLES.has(role)) return true;
+    if (el.dataset.dragHandle !== undefined) return true;
     // Stop walking at the table row itself
-    if (el.tagName === 'TR') break
-    el = el.parentElement
+    if (el.tagName === "TR") break;
+    el = el.parentElement;
   }
-  return false
+  return false;
 }
 
 function DraggableRow<TData extends DataTableRow>({
   row,
   onRowClick,
 }: {
-  row: Row<TData>
-  onRowClick?: (row: TData) => void
+  row: Row<TData>;
+  onRowClick?: (row: TData) => void;
 }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
-    disabled: true, // completely disable drag sensors/behavior
-  })
+    disabled: true,
+  });
+
+  const timerRef = React.useRef<NodeJS.Timeout>();
 
   function handleClick(e: React.MouseEvent<HTMLTableRowElement>) {
-    if (isInteractiveTarget(e.target)) return
-    onRowClick?.(row.original)
+    if (isInteractiveTarget(e.target)) return;
+    onRowClick?.(row.original);
+  }
+
+  function handleTouchStart() {
+    timerRef.current = setTimeout(() => {
+      // Find the actions button in this row and trigger it
+      const rowEl = document.getElementById(row.id);
+      const actionsBtn = rowEl?.querySelector(
+        '[role="menuitem"], button[aria-haspopup="menu"]',
+      ) as HTMLElement;
+      if (actionsBtn) actionsBtn.click();
+    }, 300);
+  }
+
+  function handleTouchEnd() {
+    if (timerRef.current) clearTimeout(timerRef.current);
   }
 
   return (
     <TableRow
+      id={row.id}
       data-state={row.getIsSelected() && "selected"}
       data-dragging={isDragging}
       ref={setNodeRef}
@@ -200,6 +213,15 @@ function DraggableRow<TData extends DataTableRow>({
         transition,
       }}
       onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        const actionsBtn = document
+          .getElementById(row.id)
+          ?.querySelector('button[aria-haspopup="menu"]') as HTMLElement;
+        if (actionsBtn) actionsBtn.click();
+      }}
     >
       {row.getVisibleCells().map((cell) => (
         <TableCell key={cell.id}>
@@ -207,7 +229,7 @@ function DraggableRow<TData extends DataTableRow>({
         </TableCell>
       ))}
     </TableRow>
-  )
+  );
 }
 
 function createBaseColumns<TData extends DataTableRow>(): ColumnDef<TData>[] {
@@ -216,13 +238,13 @@ function createBaseColumns<TData extends DataTableRow>(): ColumnDef<TData>[] {
       id: "drag",
       header: () => null,
       cell: ({ row, table }) => {
-        const pageIndex = table.getState().pagination.pageIndex
-        const pageSize = table.getState().pagination.pageSize
+        const pageIndex = table.getState().pagination.pageIndex;
+        const pageSize = table.getState().pagination.pageSize;
         return (
           <span className="flex items-center justify-center font-mono text-xs text-muted-foreground w-7 select-none">
             {pageIndex * pageSize + row.index + 1}
           </span>
-        )
+        );
       },
       enableSorting: false,
       enableHiding: false,
@@ -236,7 +258,9 @@ function createBaseColumns<TData extends DataTableRow>(): ColumnDef<TData>[] {
               table.getIsAllPageRowsSelected() ||
               (table.getIsSomePageRowsSelected() && "indeterminate")
             }
-            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
             aria-label="Select all"
           />
         </div>
@@ -253,7 +277,7 @@ function createBaseColumns<TData extends DataTableRow>(): ColumnDef<TData>[] {
       enableSorting: false,
       enableHiding: false,
     },
-  ]
+  ];
 }
 
 /**
@@ -282,46 +306,50 @@ export function DataTable<TData extends DataTableRow>({
       ...createBaseColumns<TData>(),
       ...((columns ?? placeholderColumns) as ColumnDef<TData>[]),
     ],
-    [columns]
-  )
-  const resolvedData = (initialData ?? placeholderData) as TData[]
-  const resolvedDefaultTab = defaultTab ?? tabs[0]?.value ?? "table"
-  const [internalActiveTab, setInternalActiveTab] = React.useState(resolvedDefaultTab)
-  const currentActiveTab = controlledActiveTab ?? internalActiveTab
+    [columns],
+  );
+  const resolvedData = (initialData ?? placeholderData) as TData[];
+  const resolvedDefaultTab = defaultTab ?? tabs[0]?.value ?? "table";
+  const [internalActiveTab, setInternalActiveTab] =
+    React.useState(resolvedDefaultTab);
+  const currentActiveTab = controlledActiveTab ?? internalActiveTab;
 
-  const handleTabChange = React.useCallback((value: string) => {
-    setInternalActiveTab(value)
-    onTabChange?.(value)
-  }, [onTabChange])
+  const handleTabChange = React.useCallback(
+    (value: string) => {
+      setInternalActiveTab(value);
+      onTabChange?.(value);
+    },
+    [onTabChange],
+  );
 
-  const [data, setData] = React.useState(() => resolvedData)
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [data, setData] = React.useState(() => resolvedData);
+  const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  )
-  const [globalFilter, setGlobalFilter] = React.useState("")
-  const [sorting, setSorting] = React.useState<SortingState>([])
+    [],
+  );
+  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: pageSizeOptions[0] ?? 10,
-  })
-  const sortableId = React.useId()
+  });
+  const sortableId = React.useId();
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
     useSensor(TouchSensor, {}),
-    useSensor(KeyboardSensor, {})
-  )
+    useSensor(KeyboardSensor, {}),
+  );
 
   React.useEffect(() => {
-    setData(resolvedData)
-  }, [resolvedData])
+    setData(resolvedData);
+  }, [resolvedData]);
 
   const dataIds = React.useMemo<UniqueIdentifier[]>(
     () => data.map(({ id }) => id),
-    [data]
-  )
+    [data],
+  );
 
   const table = useReactTable({
     data,
@@ -348,48 +376,50 @@ export function DataTable<TData extends DataTableRow>({
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-  })
+  });
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
+    const { active, over } = event;
     if (active && over && active.id !== over.id) {
       setData((currentData) => {
-        const oldIndex = dataIds.indexOf(active.id)
-        const newIndex = dataIds.indexOf(over.id)
-        return arrayMove(currentData, oldIndex, newIndex)
-      })
+        const oldIndex = dataIds.indexOf(active.id);
+        const newIndex = dataIds.indexOf(over.id);
+        return arrayMove(currentData, oldIndex, newIndex);
+      });
     }
   }
 
   function handleExportCsv() {
-    const filteredRows = table.getFilteredRowModel().rows
-    if (!filteredRows.length) return
+    const filteredRows = table.getFilteredRowModel().rows;
+    if (!filteredRows.length) return;
 
     // Collect visible accessor columns (skip drag/select)
     const visibleCols = table
       .getAllColumns()
-      .filter((col) => col.getIsVisible() && typeof col.accessorFn !== "undefined")
+      .filter(
+        (col) => col.getIsVisible() && typeof col.accessorFn !== "undefined",
+      );
 
-    const headers = visibleCols.map((col) => col.id)
+    const headers = visibleCols.map((col) => col.id);
     const rows = filteredRows.map((row) =>
       visibleCols.map((col) => {
-        const val = row.getValue(col.id)
-        const str = val === null || val === undefined ? "" : String(val)
+        const val = row.getValue(col.id);
+        const str = val === null || val === undefined ? "" : String(val);
         // Escape double quotes and wrap in quotes if needed
         return str.includes(",") || str.includes('"') || str.includes("\n")
           ? `"${str.replace(/"/g, '""')}"`
-          : str
-      })
-    )
+          : str;
+      }),
+    );
 
-    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${csvFilename}-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${csvFilename}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -426,7 +456,9 @@ export function DataTable<TData extends DataTableRow>({
             {tabs.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value}>
                 {tab.label}
-                {tab.badge ? <Badge variant="secondary">{tab.badge}</Badge> : null}
+                {tab.badge ? (
+                  <Badge variant="secondary">{tab.badge}</Badge>
+                ) : null}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -460,7 +492,7 @@ export function DataTable<TData extends DataTableRow>({
                 .filter(
                   (column) =>
                     typeof column.accessorFn !== "undefined" &&
-                    column.getCanHide()
+                    column.getCanHide(),
                 )
                 .map((column) => {
                   return (
@@ -474,7 +506,7 @@ export function DataTable<TData extends DataTableRow>({
                     >
                       {column.id}
                     </DropdownMenuCheckboxItem>
-                  )
+                  );
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -503,7 +535,7 @@ export function DataTable<TData extends DataTableRow>({
         </div>
       </div>
       {(() => {
-        const activeTabObj = tabs.find((t) => t.value === currentActiveTab)
+        const activeTabObj = tabs.find((t) => t.value === currentActiveTab);
         if (activeTabObj?.content) {
           return (
             <TabsContent
@@ -512,7 +544,7 @@ export function DataTable<TData extends DataTableRow>({
             >
               {activeTabObj.content}
             </TabsContent>
-          )
+          );
         }
         return (
           <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
@@ -535,10 +567,10 @@ export function DataTable<TData extends DataTableRow>({
                                 ? null
                                 : flexRender(
                                     header.column.columnDef.header,
-                                    header.getContext()
+                                    header.getContext(),
                                   )}
                             </TableHead>
-                          )
+                          );
                         })}
                       </TableRow>
                     ))}
@@ -550,7 +582,11 @@ export function DataTable<TData extends DataTableRow>({
                         strategy={verticalListSortingStrategy}
                       >
                         {table.getRowModel().rows.map((row) => (
-                          <DraggableRow key={row.id} row={row} onRowClick={onRowClick} />
+                          <DraggableRow
+                            key={row.id}
+                            row={row}
+                            onRowClick={onRowClick}
+                          />
                         ))}
                       </SortableContext>
                     ) : (
@@ -574,16 +610,23 @@ export function DataTable<TData extends DataTableRow>({
               </div>
               <div className="flex w-full items-center gap-8 lg:w-fit">
                 <div className="hidden items-center gap-2 lg:flex">
-                  <Label htmlFor="rows-per-page" className="text-sm font-medium">
+                  <Label
+                    htmlFor="rows-per-page"
+                    className="text-sm font-medium"
+                  >
                     Rows per page
                   </Label>
                   <Select
                     value={`${table.getState().pagination.pageSize}`}
                     onValueChange={(value) => {
-                      table.setPageSize(Number(value))
+                      table.setPageSize(Number(value));
                     }}
                   >
-                    <SelectTrigger size="sm" className="w-20" id="rows-per-page">
+                    <SelectTrigger
+                      size="sm"
+                      className="w-20"
+                      id="rows-per-page"
+                    >
                       <SelectValue
                         placeholder={table.getState().pagination.pageSize}
                       />
@@ -647,15 +690,19 @@ export function DataTable<TData extends DataTableRow>({
               </div>
             </div>
           </div>
-        )
+        );
       })()}
       {tabs
         .filter((tab) => tab.value !== currentActiveTab && tab.content)
         .map((tab) => (
-          <TabsContent key={tab.value} value={tab.value} className="flex flex-col px-4 lg:px-6">
+          <TabsContent
+            key={tab.value}
+            value={tab.value}
+            className="flex flex-col px-4 lg:px-6"
+          >
             {tab.content}
           </TabsContent>
         ))}
     </Tabs>
-  )
+  );
 }
