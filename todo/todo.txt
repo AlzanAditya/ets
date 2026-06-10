@@ -1,0 +1,14 @@
+1. di halaman login, tambahkan tombol "view" dan "hide" pada textfield password di sebelah kanan
+2. di semua headtable memiliki icon chevrons-up-down, dan ketika di klik berfungsi untuk memfilter berdasarkan kolom tersebut, misal kolom tersebut adalah kolom nama, maka akan descending atau ascending, namun ketika mengklik kolom waktu, maka akan memfilter dari terbaru atau terlama (jika di klik lagi), begitupun untuk status status tertentu, misal kolom status, maka akan memfilter berdasarkan status urutan status tertentu...
+3. tambahkan fitur untuk menambahkan photo profile (bisa foto langsung atau upload file)
+4. kembalikan warna chart nya agar kembali mengikuti warna hijau theme nya, bukan menjadi hitam putih
+5. di halaman produk tambahkan tombol "Tambah Produk", di halaman clients tambah "Tambah clients",
+6. perbaiki karena dari ketika mengklik tabs selain "Semua Asset" di table products malah muncul tombol tombol yang sudah ada seperti di tabs "semua asset".
+7. ketika user mengklik baris (terkecuali cell status yang ketika di klik statusnya akan berubah)
+8. hilangkan scrollbar pada main-contentnya
+9. tambahkan cache untuk menyimpan berapa data yang di tampilkan di table, karena ketika di setting untuk melihat 40 baris data, dan di refresh lagi, malah kembali ke 10
+10. terdapat masalah di bagian log qr statistik
+
+
+
+- ketika mengecek dengan masuk ke halaman produk, data qr statistik tidak langsung berubah, harus di restart dulu baru berubah, namun ini tidak terlalu di perlukan karena bagian statistik tidak terlalu krusial

@@ -43,7 +43,7 @@ export const clientsService = {
   async updateClient(client_id: string, data: ClientUpdate): Promise<ClientRow> {
     const { data: updated, error } = await supabase
       .from('clients')
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update({ ...data, updated_at: new Date().toISOString() } as any)
       .eq('client_id', client_id)
       .select()
       .single()
@@ -57,7 +57,7 @@ export const clientsService = {
   async deleteClient(client_id: string): Promise<void> {
     const { error } = await supabase
       .from('clients')
-      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() } as any)
       .eq('client_id', client_id)
 
     if (error) throw new Error(`Failed to delete client: ${error.message}`)

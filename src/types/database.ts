@@ -55,6 +55,27 @@ export type ClientRow = {
   deleted_at: string | null
 }
 
+// ─── Product Images ───────────────────────────────────────────────────────────
+// Generic image relation — reusable for maintenance docs, reports, audits etc.
+
+export type ProductImageRow = {
+  id: string                     // UUID PK
+  product_id: string             // FK → products.product_id
+  storage_path: string           // Path inside 'product-images' bucket (full resolution)
+  thumbnail_path: string | null  // Path inside 'product-images' bucket (max 400px)
+  file_name: string | null
+  file_size: number | null       // Bytes
+  mime_type: string              // Always 'image/webp' for new uploads
+  width: number | null           // Full image width in pixels
+  height: number | null          // Full image height in pixels
+  sort_order: number             // Ordering within the product gallery
+  uploaded_by: string | null     // FK → auth.users(id)
+  created_at: string
+}
+
+export type ProductImageInsert = Omit<ProductImageRow, 'id' | 'created_at'>
+export type ProductImageUpdate = Partial<Omit<ProductImageRow, 'id' | 'product_id' | 'created_at'>>
+
 export type ProductStatus = 'active' | 'deployed' | 'sold' | 'maintenance' | 'inactive' | 'retired'
 
 export type ProductRow = {
@@ -78,12 +99,11 @@ export type ProductRow = {
   current_branch_id: string | null  // FK → branches.branch_id
   current_client_id: string | null  // FK → clients.client_id
   status: ProductStatus
-  gambar_depan: string | null    // Supabase Storage URL
-  gambar_kanan: string | null
-  gambar_kiri: string | null
-  gambar_belakang: string | null
   created_at: string
   updated_at: string
+  // NOTE: Legacy positional image columns (gambar_depan/kanan/kiri/belakang)
+  // were removed in migration 013_refactor_product_images.sql.
+  // Images are now stored in the product_images table.
 }
 
 export type TransactionType = 'sale' | 'purchase' | 'return' | 'transfer'
@@ -160,7 +180,9 @@ export type ScanLogRow = {
 export type AdminInsert = Omit<AdminRow, 'created_at' | 'updated_at' | 'deleted_at' | 'last_login_at'>
 export type BranchInsert = Omit<BranchRow, 'branch_id' | 'created_at' | 'updated_at' | 'deleted_at'>
 export type ClientInsert = Omit<ClientRow, 'client_id' | 'created_at' | 'updated_at' | 'deleted_at'>
-export type ProductInsert = Omit<ProductRow, 'product_id' | 'created_at' | 'updated_at'>
+export type ProductInsert = Omit<ProductRow, 'product_id' | 'created_at' | 'updated_at'> & {
+  product_id?: string
+}
 export type TransactionInsert = Omit<TransactionRow, 'transaction_id' | 'created_at' | 'updated_at' | 'approved_by' | 'approved_at' | 'transaction_code'> & { transaction_code?: string }
 export type TransactionItemInsert = Omit<TransactionItemRow, 'transaction_item_id' | 'created_at'>
 export type InventoryMovementInsert = Omit<InventoryMovementRow, 'movement_id' | 'created_at'>
@@ -168,10 +190,10 @@ export type ScanLogInsert = Omit<ScanLogRow, 'id' | 'scanned_at'>
 
 // ─── Update Types (all fields optional) ───────────────────────────────────────
 
-export type ProductUpdate = Partial<Omit<ProductRow, 'product_id' | 'nomor_seri' | 'created_at'>>
-export type TransactionUpdate = Partial<Omit<TransactionRow, 'transaction_id' | 'created_at'>>
-export type BranchUpdate = Partial<Omit<BranchRow, 'branch_id' | 'created_at'>>
-export type ClientUpdate = Partial<Omit<ClientRow, 'client_id' | 'created_at'>>
+export type ProductUpdate = Partial<Omit<ProductRow, 'product_id' | 'nomor_seri' | 'created_at' | 'updated_at'>>
+export type TransactionUpdate = Partial<Omit<TransactionRow, 'transaction_id' | 'created_at' | 'updated_at'>>
+export type BranchUpdate = Partial<Omit<BranchRow, 'branch_id' | 'created_at' | 'updated_at'>>
+export type ClientUpdate = Partial<Omit<ClientRow, 'client_id' | 'created_at' | 'updated_at'>>
 
 // ─── View Row Types ───────────────────────────────────────────────────────────
 // Standalone types for Postgres views. NOT part of Database generic —
@@ -225,6 +247,12 @@ export interface Database {
         Row: ProductRow
         Insert: ProductInsert
         Update: ProductUpdate
+        Relationships: []
+      }
+      product_images: {
+        Row: ProductImageRow
+        Insert: ProductImageInsert
+        Update: ProductImageUpdate
         Relationships: []
       }
       transactions: {

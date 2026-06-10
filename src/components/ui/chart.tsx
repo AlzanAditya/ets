@@ -286,9 +286,9 @@ function ChartLegendContent({
         className
       )}
     >
-      {payload
-        .filter((item) => item.type !== "none")
-        .map((item, index) => {
+      {(payload as RechartsPrimitive.DefaultLegendContentProps['payload'] & any[])
+        ?.filter((item: { type?: string }) => item.type !== "none")
+        .map((item: { dataKey?: string; color?: string }, index: number) => {
           const key = `${nameKey ?? item.dataKey ?? "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
 

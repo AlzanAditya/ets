@@ -44,6 +44,9 @@ WHERE product_id IS NULL;
 ALTER TABLE products
   ALTER COLUMN product_id SET NOT NULL;
 
+ALTER TABLE products
+  ALTER COLUMN product_id SET DEFAULT gen_random_uuid();
+
 -- ── STEP 4e: Swap PRIMARY KEY ─────────────────────────────────────────────────
 -- Drop old PK on nomor_seri (and any auto-named variants)
 -- IF NOT EXISTS guards make this safe to re-run.

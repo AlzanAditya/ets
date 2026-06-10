@@ -43,7 +43,7 @@ export const branchesService = {
   async updateBranch(branch_id: string, data: BranchUpdate): Promise<BranchRow> {
     const { data: updated, error } = await supabase
       .from('branches')
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update({ ...data, updated_at: new Date().toISOString() } as any)
       .eq('branch_id', branch_id)
       .select()
       .single()
@@ -57,7 +57,7 @@ export const branchesService = {
   async deleteBranch(branch_id: string): Promise<void> {
     const { error } = await supabase
       .from('branches')
-      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() } as any)
       .eq('branch_id', branch_id)
 
     if (error) throw new Error(`Failed to delete branch: ${error.message}`)

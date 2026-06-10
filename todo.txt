@@ -1,2 +1,0 @@
-1. di halaman login, tambahkan tombol "view" dan "hide" pada textfield password di sebelah kanan
-2. 

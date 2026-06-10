@@ -48,6 +48,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
@@ -96,12 +97,16 @@ export interface DataTableProps<TData extends DataTableRow> {
   columns?: ColumnDef<TData>[]
   data?: TData[]
   defaultTab?: string
+  activeTab?: string
   emptyLabel?: string
   pageSizeOptions?: number[]
   tabs?: DataTableTab[]
   searchPlaceholder?: string
   csvFilename?: string
   onAddClick?: () => void
+  /** Called when a data row is clicked (excluding checkboxes, drag handles, buttons, links) */
+  onRowClick?: (row: TData) => void
+  onTabChange?: (tab: string) => void
 }
 
 const placeholderData = [
@@ -146,21 +151,54 @@ function DragHandle({ id }: { id: UniqueIdentifier }) {
   )
 }
 
-function DraggableRow<TData extends DataTableRow>({ row }: { row: Row<TData> }) {
+/** Tags that should NOT trigger a row-click (they handle their own click semantics) */
+const INTERACTIVE_TAGS = new Set(['INPUT', 'BUTTON', 'A', 'SELECT', 'LABEL'])
+const INTERACTIVE_ROLES = new Set(['checkbox', 'menuitem', 'option', 'switch'])
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  let el = target as HTMLElement | null
+  while (el) {
+    if (INTERACTIVE_TAGS.has(el.tagName)) return true
+    const role = el.getAttribute('role')
+    if (role && INTERACTIVE_ROLES.has(role)) return true
+    if (el.dataset.dragHandle !== undefined) return true
+    // Stop walking at the table row itself
+    if (el.tagName === 'TR') break
+    el = el.parentElement
+  }
+  return false
+}
+
+function DraggableRow<TData extends DataTableRow>({
+  row,
+  onRowClick,
+}: {
+  row: Row<TData>
+  onRowClick?: (row: TData) => void
+}) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
   })
+
+  function handleClick(e: React.MouseEvent<HTMLTableRowElement>) {
+    if (isInteractiveTarget(e.target)) return
+    onRowClick?.(row.original)
+  }
 
   return (
     <TableRow
       data-state={row.getIsSelected() && "selected"}
       data-dragging={isDragging}
       ref={setNodeRef}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
+      className={cn(
+        "relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80",
+        onRowClick && "cursor-pointer",
+      )}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
       }}
+      onClick={handleClick}
     >
       {row.getVisibleCells().map((cell) => (
         <TableCell key={cell.id}>
@@ -220,12 +258,15 @@ export function DataTable<TData extends DataTableRow>({
   columns,
   data: initialData,
   defaultTab,
+  activeTab: controlledActiveTab,
   emptyLabel = "No results.",
   pageSizeOptions = [10, 20, 30, 40, 50],
   tabs = placeholderTabs,
   searchPlaceholder = "Cari...",
   csvFilename = "export",
   onAddClick,
+  onRowClick,
+  onTabChange,
 }: DataTableProps<TData>) {
   const resolvedColumns = React.useMemo<ColumnDef<TData>[]>(
     () => [
@@ -236,6 +277,14 @@ export function DataTable<TData extends DataTableRow>({
   )
   const resolvedData = (initialData ?? placeholderData) as TData[]
   const resolvedDefaultTab = defaultTab ?? tabs[0]?.value ?? "table"
+  const [internalActiveTab, setInternalActiveTab] = React.useState(resolvedDefaultTab)
+  const currentActiveTab = controlledActiveTab ?? internalActiveTab
+
+  const handleTabChange = React.useCallback((value: string) => {
+    setInternalActiveTab(value)
+    onTabChange?.(value)
+  }, [onTabChange])
+
   const [data, setData] = React.useState(() => resolvedData)
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
@@ -326,9 +375,9 @@ export function DataTable<TData extends DataTableRow>({
 
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n")
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement("a")
-    a.href     = url
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
     a.download = `${csvFilename}-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
@@ -336,7 +385,8 @@ export function DataTable<TData extends DataTableRow>({
 
   return (
     <Tabs
-      defaultValue={resolvedDefaultTab}
+      value={currentActiveTab}
+      onValueChange={handleTabChange}
       className="w-full flex-col justify-start gap-6"
     >
       <div className="flex items-center justify-between px-4 lg:px-6">
@@ -345,7 +395,7 @@ export function DataTable<TData extends DataTableRow>({
           <Label htmlFor="view-selector" className="sr-only">
             View
           </Label>
-          <Select defaultValue={resolvedDefaultTab}>
+          <Select value={currentActiveTab} onValueChange={handleTabChange}>
             <SelectTrigger
               className="flex w-fit @4xl/main:hidden"
               size="sm"
@@ -443,148 +493,158 @@ export function DataTable<TData extends DataTableRow>({
           </Button>
         </div>
       </div>
-      <TabsContent
-        value={resolvedDefaultTab}
-        className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
-      >
-        <div className="overflow-hidden rounded-lg border">
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <TableHeader className="sticky top-0 z-10 bg-muted">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id} colSpan={header.colSpan}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      )
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:w-8">
-                {table.getRowModel().rows?.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
+      {(() => {
+        const activeTabObj = tabs.find((t) => t.value === currentActiveTab)
+        if (activeTabObj?.content) {
+          return (
+            <TabsContent
+              value={currentActiveTab}
+              className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
+            >
+              {activeTabObj.content}
+            </TabsContent>
+          )
+        }
+        return (
+          <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+            <div className="overflow-hidden rounded-lg border">
+              <DndContext
+                collisionDetection={closestCenter}
+                modifiers={[restrictToVerticalAxis]}
+                onDragEnd={handleDragEnd}
+                sensors={sensors}
+                id={sortableId}
+              >
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-muted">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => {
+                          return (
+                            <TableHead key={header.id} colSpan={header.colSpan}>
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                            </TableHead>
+                          )
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody className="**:data-[slot=table-cell]:first:w-8">
+                    {table.getRowModel().rows?.length ? (
+                      <SortableContext
+                        items={dataIds}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {table.getRowModel().rows.map((row) => (
+                          <DraggableRow key={row.id} row={row} onRowClick={onRowClick} />
+                        ))}
+                      </SortableContext>
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={resolvedColumns.length}
+                          className="h-24 text-center"
+                        >
+                          {emptyLabel}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </DndContext>
+            </div>
+            <div className="flex items-center justify-between px-4">
+              <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">
+                {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                {table.getFilteredRowModel().rows.length} row(s) selected.
+              </div>
+              <div className="flex w-full items-center gap-8 lg:w-fit">
+                <div className="hidden items-center gap-2 lg:flex">
+                  <Label htmlFor="rows-per-page" className="text-sm font-medium">
+                    Rows per page
+                  </Label>
+                  <Select
+                    value={`${table.getState().pagination.pageSize}`}
+                    onValueChange={(value) => {
+                      table.setPageSize(Number(value))
+                    }}
                   >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
-                    ))}
-                  </SortableContext>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={resolvedColumns.length}
-                      className="h-24 text-center"
-                    >
-                      {emptyLabel}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </DndContext>
-        </div>
-        <div className="flex items-center justify-between px-4">
-          <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
-          </div>
-          <div className="flex w-full items-center gap-8 lg:w-fit">
-            <div className="hidden items-center gap-2 lg:flex">
-              <Label htmlFor="rows-per-page" className="text-sm font-medium">
-                Rows per page
-              </Label>
-              <Select
-                value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => {
-                  table.setPageSize(Number(value))
-                }}
-              >
-                <SelectTrigger size="sm" className="w-20" id="rows-per-page">
-                  <SelectValue
-                    placeholder={table.getState().pagination.pageSize}
-                  />
-                </SelectTrigger>
-                <SelectContent side="top">
-                  <SelectGroup>
-                    {pageSizeOptions.map((pageSize) => (
-                      <SelectItem key={pageSize} value={`${pageSize}`}>
-                        {pageSize}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex w-fit items-center justify-center text-sm font-medium">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
-            </div>
-            <div className="ml-auto flex items-center gap-2 lg:ml-0">
-              <Button
-                variant="outline"
-                className="hidden h-8 w-8 p-0 lg:flex"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <span className="sr-only">Go to first page</span>
-                <ChevronsLeftIcon />
-              </Button>
-              <Button
-                variant="outline"
-                className="size-8"
-                size="icon"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <span className="sr-only">Go to previous page</span>
-                <ChevronLeftIcon />
-              </Button>
-              <Button
-                variant="outline"
-                className="size-8"
-                size="icon"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                <span className="sr-only">Go to next page</span>
-                <ChevronRightIcon />
-              </Button>
-              <Button
-                variant="outline"
-                className="hidden size-8 lg:flex"
-                size="icon"
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
-              >
-                <span className="sr-only">Go to last page</span>
-                <ChevronsRightIcon />
-              </Button>
+                    <SelectTrigger size="sm" className="w-20" id="rows-per-page">
+                      <SelectValue
+                        placeholder={table.getState().pagination.pageSize}
+                      />
+                    </SelectTrigger>
+                    <SelectContent side="top">
+                      <SelectGroup>
+                        {pageSizeOptions.map((pageSize) => (
+                          <SelectItem key={pageSize} value={`${pageSize}`}>
+                            {pageSize}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex w-fit items-center justify-center text-sm font-medium">
+                  Page {table.getState().pagination.pageIndex + 1} of{" "}
+                  {table.getPageCount()}
+                </div>
+                <div className="ml-auto flex items-center gap-2 lg:ml-0">
+                  <Button
+                    variant="outline"
+                    className="hidden h-8 w-8 p-0 lg:flex"
+                    onClick={() => table.setPageIndex(0)}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    <span className="sr-only">Go to first page</span>
+                    <ChevronsLeftIcon />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="size-8"
+                    size="icon"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    <span className="sr-only">Go to previous page</span>
+                    <ChevronLeftIcon />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="size-8"
+                    size="icon"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    <span className="sr-only">Go to next page</span>
+                    <ChevronRightIcon />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="hidden size-8 lg:flex"
+                    size="icon"
+                    onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    <span className="sr-only">Go to last page</span>
+                    <ChevronsRightIcon />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </TabsContent>
+        )
+      })()}
       {tabs
-        .filter((tab) => tab.value !== resolvedDefaultTab)
+        .filter((tab) => tab.value !== currentActiveTab && tab.content)
         .map((tab) => (
           <TabsContent key={tab.value} value={tab.value} className="flex flex-col px-4 lg:px-6">
-            {tab.content ?? (
-              <div className="aspect-video w-full flex-1 rounded-lg border border-dashed" />
-            )}
+            {tab.content}
           </TabsContent>
         ))}
     </Tabs>

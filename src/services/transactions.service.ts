@@ -130,7 +130,7 @@ export const transactionsService = {
       .update({
         status: 'pending',
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq('transaction_id', transaction_id)
       .eq('status', 'draft')
       .select()
@@ -147,7 +147,7 @@ export const transactionsService = {
   async updateTransaction(transaction_id: string, data: TransactionUpdate): Promise<TransactionRow> {
     const { data: updated, error } = await supabase
       .from('transactions')
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update({ ...data, updated_at: new Date().toISOString() } as any)
       .eq('transaction_id', transaction_id)
       .select()
       .single()

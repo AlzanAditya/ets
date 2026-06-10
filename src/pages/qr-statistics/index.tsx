@@ -1,3 +1,4 @@
+import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 import { BarChart3Icon, ActivityIcon, QrCodeIcon, GlobeIcon, LaptopIcon } from "lucide-react"
 import { useScanStats, useScanTrend, useRecentScanLogs } from "@/hooks/use-scan-logs"
@@ -103,6 +104,7 @@ export default function QRStatisticsPage() {
   const { stats, loading: loadingStats, error: errorStats } = useScanStats()
   const { data: trend, loading: loadingTrend, error: errorTrend } = useScanTrend(30)
   const { data: logs, loading: loadingLogs, error: errorLogs, refetch } = useRecentScanLogs(50)
+  const [activeTab, setActiveTab] = React.useState("all")
 
   const isLoading = loadingStats || loadingTrend || loadingLogs
   const hasError = errorStats || errorTrend || errorLogs
@@ -221,20 +223,13 @@ export default function QRStatisticsPage() {
           addButtonLabel="Ekspor Log"
           columns={columns}
           data={mappedLogs}
-          defaultTab="all"
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
           tabs={[
             {
               value: "all",
               label: "Log Scan QR",
               badge: mappedLogs.length,
-              content: (
-                <DataTable
-                  addButtonLabel="Ekspor Log"
-                  columns={columns}
-                  data={mappedLogs}
-                  defaultTab="all"
-                />
-              ),
             },
           ]}
         />
