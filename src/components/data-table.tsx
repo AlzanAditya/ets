@@ -128,6 +128,25 @@ const placeholderTabs = [
   },
 ] satisfies DataTableTab[];
 
+export function DragHandle({ id }: { id: UniqueIdentifier }) {
+  const { attributes, listeners } = useSortable({
+    id,
+  });
+
+  return (
+    <Button
+      {...attributes}
+      {...listeners}
+      variant="ghost"
+      size="icon"
+      className="size-7 text-muted-foreground hover:bg-transparent"
+    >
+      <GripVerticalIcon className="size-3 text-muted-foreground" />
+      <span className="sr-only">Drag to reorder</span>
+    </Button>
+  );
+}
+
 /** Tags that should NOT trigger a row-click (they handle their own click semantics) */
 const INTERACTIVE_TAGS = new Set(["INPUT", "BUTTON", "A", "SELECT", "LABEL"]);
 const INTERACTIVE_ROLES = new Set(["checkbox", "menuitem", "option", "switch"]);
