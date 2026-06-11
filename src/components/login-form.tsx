@@ -1,17 +1,22 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { supabase } from "@/lib/supabase"
-import { useNavigate } from "react-router-dom"
-import { AlertCircleIcon, LockKeyholeIcon } from "lucide-react"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertCircleIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LockKeyholeIcon,
+} from "lucide-react";
 
 /**
  * Purpose: email/password login form wired to Supabase Auth.
@@ -23,36 +28,37 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const [email, setEmail]       = React.useState("")
-  const [password, setPassword] = React.useState("")
-  const [loading, setLoading]   = React.useState(false)
-  const [error, setError]       = React.useState<string | null>(null)
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
     const { error: authError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
-    })
+    });
 
-    setLoading(false)
+    setLoading(false);
 
     if (authError) {
       setError(
         authError.message.includes("Invalid login credentials")
           ? "Email atau password salah. Silakan coba lagi."
-          : authError.message
-      )
-      return
+          : authError.message,
+      );
+      return;
     }
 
     // Auth state change will propagate through AuthContext automatically
-    navigate("/dashboard", { replace: true })
+    navigate("/dashboard", { replace: true });
   }
 
   return (
@@ -68,7 +74,9 @@ export function LoginForm({
                   <LockKeyholeIcon className="size-5 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight">Selamat Datang</h1>
+                  <h1 className="text-2xl font-bold tracking-tight">
+                    Selamat Datang
+                  </h1>
                   <p className="text-sm text-muted-foreground mt-0.5">
                     Masuk ke ETS Asset Tracking Platform
                   </p>
@@ -103,15 +111,31 @@ export function LoginForm({
                 <div className="flex items-center justify-between">
                   <FieldLabel htmlFor="login-password">Password</FieldLabel>
                 </div>
-                <Input
-                  id="login-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    disabled={loading}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 size-10"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOffIcon className="size-4" />
+                    ) : (
+                      <EyeIcon className="size-4" />
+                    )}
+                  </Button>
+                </div>
               </Field>
 
               {/* Submit */}
@@ -137,15 +161,15 @@ export function LoginForm({
                 src="/ets-logo.png"
                 alt="ETS Logo"
                 className="h-16 w-16 object-contain brightness-0 invert"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
               />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40 mb-1">
                   Protecting &amp; Improving
                 </p>
-                <p className="text-lg font-bold text-white/90">
-                  Electricity
-                </p>
+                <p className="text-lg font-bold text-white/90">Electricity</p>
               </div>
               <div className="mt-4 grid gap-2 w-full">
                 {[
@@ -153,7 +177,10 @@ export function LoginForm({
                   "Tracking QR Code",
                   "Laporan Transaksi",
                 ].map((f) => (
-                  <div key={f} className="flex items-center gap-2 text-xs text-white/50">
+                  <div
+                    key={f}
+                    className="flex items-center gap-2 text-xs text-white/50"
+                  >
                     <div className="size-1.5 rounded-full bg-primary/60" />
                     {f}
                   </div>
@@ -168,5 +195,5 @@ export function LoginForm({
         Platform dikhususkan untuk administrator internal.
       </FieldDescription>
     </div>
-  )
+  );
 }

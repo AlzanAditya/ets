@@ -159,7 +159,7 @@ function emptyFields(): ProductDraftFields {
 
 // ─── Row Type ─────────────────────────────────────────────────────────────────
 
-interface ProductRowWithId extends DataTableRow, ProductWithRelations {}
+interface ProductRowWithId extends DataTableRow, ProductWithRelations { }
 
 // ─── Pinned Columns (rich renderers — always shown first) ─────────────────────
 // Any DB column not listed here will be auto-added to the Columns dropdown.
@@ -1063,7 +1063,7 @@ export default function ProductsPage() {
         </div>
       ) : (
         <DataTable
-          addButtonLabel="Tambah Aset"
+          addButtonLabel="Tambah"
           columns={columns}
           data={filteredProducts}
           activeTab={activeTab}

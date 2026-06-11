@@ -19,7 +19,13 @@ import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { DataTableRow } from "@/components/data-table";
 import type { ColumnSchema } from "@/hooks/use-table-schema";
-import { isComplexType, isDateColumn, isUuidColumn } from "@/hooks/use-table-schema";
+import {
+  ArrowUpDownIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ChevronsUpDownIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // ─── Safe Cell Renderer ───────────────────────────────────────────────────────
 
@@ -86,7 +92,8 @@ function DateCellValue({ value }: { value: unknown }): React.ReactElement {
   }
   try {
     const d = new Date(value);
-    if (isNaN(d.getTime())) return <span className="text-muted-foreground">{value}</span>;
+    if (isNaN(d.getTime()))
+      return <span className="text-muted-foreground">{value}</span>;
     return (
       <span className="text-muted-foreground text-sm">
         {d.toLocaleDateString("id-ID", {
@@ -159,7 +166,12 @@ export function mergeDynamicColumns<TData extends DataTableRow>(
 ): ColumnDef<TData>[] {
   // Build a set of column IDs that are already handled by pinned columns.
   const pinnedIds = new Set<string>(
-    pinnedColumns.map((c) => (c as { id?: string; accessorKey?: string }).id ?? (c as { accessorKey?: string }).accessorKey ?? ""),
+    pinnedColumns.map(
+      (c) =>
+        (c as { id?: string; accessorKey?: string }).id ??
+        (c as { accessorKey?: string }).accessorKey ??
+        "",
+    ),
   );
 
   const excludeSet = new Set(exclude);
@@ -167,9 +179,7 @@ export function mergeDynamicColumns<TData extends DataTableRow>(
   // Generate dynamic columns for any schema column not already pinned or excluded.
   const dynamicCols: ColumnDef<TData>[] = schema
     .filter(
-      (s) =>
-        !pinnedIds.has(s.column_name) &&
-        !excludeSet.has(s.column_name),
+      (s) => !pinnedIds.has(s.column_name) && !excludeSet.has(s.column_name),
     )
     .map((s) => buildColumnDefFromSchema<TData>(s));
 
