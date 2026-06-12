@@ -26,30 +26,54 @@ const placeholderCards = [
  * Purpose: render a responsive row of metric summary cards.
  * Responsibilities: display labels, values, trend badges, and short summaries.
  * Expected props: metric card items supplied by a page or feature.
- * Usage notes: falls back to generic placeholder data for isolated previews.
+ * Usage notes:
+ *   – Falls back to generic placeholder data for isolated previews.
+ *   – On mobile: 2-column grid, CardFooter (summary + description) is hidden
+ *     to keep cards compact.
  */
 export function MetricCards({ items = placeholderCards }: { items?: MetricCardItem[] }) {
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
+    <div
+      className={[
+        // Mobile: 2 columns, tighter gap
+        "grid grid-cols-2 gap-2",
+        // sm+: revert to 1 column, normal gap (container queries take over)
+        "sm:grid-cols-1 sm:gap-4",
+        "px-4",
+        "*:data-[slot=card]:bg-gradient-to-t",
+        "*:data-[slot=card]:from-primary/5",
+        "*:data-[slot=card]:to-card",
+        "*:data-[slot=card]:shadow-xs",
+        "lg:px-6",
+        "@xl/main:grid-cols-2",
+        "@5xl/main:grid-cols-4",
+        "dark:*:data-[slot=card]:bg-card",
+      ].join(" ")}
+    >
       {items.map((item) => {
         const TrendIcon =
           item.icon ?? (item.trend === "down" ? TrendingDownIcon : TrendingUpIcon)
 
         return (
           <Card className="@container/card" key={item.label}>
-            <CardHeader>
-              <CardDescription>{item.label}</CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+            <CardHeader className="gap-1 pb-2 sm:pb-4">
+              {/* Label — slightly smaller on mobile */}
+              <CardDescription className="text-xs sm:text-sm">
+                {item.label}
+              </CardDescription>
+              {/* Value — smaller on mobile to fit 2-column layout */}
+              <CardTitle className="text-lg font-semibold tabular-nums sm:text-2xl @[250px]/card:text-3xl">
                 {item.value}
               </CardTitle>
               <CardAction>
-                <Badge variant="outline">
-                  <TrendIcon />
+                <Badge variant="outline" className="text-[10px] sm:text-xs gap-0.5 px-1.5 py-0.5">
+                  <TrendIcon className="size-3" />
                   {item.delta}
                 </Badge>
               </CardAction>
             </CardHeader>
-            <CardFooter className="flex-col items-start gap-1.5 text-sm">
+            {/* CardFooter: hidden on mobile to keep cards compact */}
+            <CardFooter className="hidden sm:flex flex-col items-start gap-1.5 text-sm">
               <div className="line-clamp-1 flex gap-2 font-medium">
                 {item.summary} <TrendIcon className="size-4" />
               </div>

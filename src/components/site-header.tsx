@@ -1,6 +1,9 @@
 import * as React from "react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { useNavMode } from "@/contexts/nav-mode-context"
+import { cn } from "@/lib/utils"
 
 function getBreadcrumbs(
   activeUrl: string,
@@ -23,6 +26,35 @@ function getBreadcrumbs(
   })
 }
 
+// ── Mobile nav-mode pill ─────────────────────────────────────────────────────
+
+/**
+ * Purpose: single cycling toggle visible only on mobile.
+ * Displays the current navMode; clicking cycles to the next mode.
+ */
+function MobileNavToggle() {
+  const { navMode, setNavMode } = useNavMode()
+
+  const handleToggleNavMode = () => {
+    setNavMode(navMode === "navbar" ? "sidebar" : "navbar")
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={handleToggleNavMode}
+      className="md:hidden h-6 px-2 text-[12px] font-normal leading-none"
+      aria-label={`Mode navigasi aktif: ${navMode}. Klik untuk berganti.`}
+    >
+      {navMode}
+    </Button>
+  )
+}
+
+// ── SiteHeader ────────────────────────────────────────────────────────────────
+
 /**
  * Purpose: render the page header with sidebar trigger, breadcrumbs, and optional action slot.
  * Responsibilities: derive breadcrumb items from the active URL and labels.
@@ -42,15 +74,25 @@ export function SiteHeader({
   onNavigate?: (url: string, title: string) => void
   actions?: React.ReactNode
 }) {
+  const { navMode } = useNavMode()
   const breadcrumbs = getBreadcrumbs(activeUrl, breadcrumbLabels, defaultUrl)
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        <SidebarTrigger className="-ml-1" />
+        {/* SidebarTrigger: hidden on mobile when navbar mode is active */}
+        <SidebarTrigger
+          className={cn(
+            "-ml-1 transition-opacity",
+            navMode === "navbar" && "max-md:pointer-events-none max-md:opacity-0 max-md:w-0 max-md:overflow-hidden max-md:mr-0 max-md:-ml-0"
+          )}
+        />
         <Separator
           orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-8"
+          className={cn(
+            "mx-2 data-[orientation=vertical]:h-8 transition-opacity",
+            navMode === "navbar" && "max-md:hidden"
+          )}
         />
         <nav aria-label="Breadcrumb" className="flex items-center gap-1 font-medium">
           {breadcrumbs.map((breadcrumb, index) => {
@@ -84,11 +126,11 @@ export function SiteHeader({
             )
           })}
         </nav>
-        {actions ? (
-          <div className="ml-auto flex items-center gap-2">
-            {actions}
-          </div>
-        ) : null}
+        {/* Right side: actions + mobile nav toggle */}
+        <div className="ml-auto flex items-center gap-2">
+          <MobileNavToggle />
+          {actions}
+        </div>
       </div>
     </header>
   )

@@ -10,6 +10,7 @@ import {
 } from "react-router-dom"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { MobileNavbar } from "@/components/mobile-navbar"
 import { SiteHeader } from "@/components/site-header"
 import { NotificationBell } from "@/components/notification-bell"
 import { ProtectedRoute } from "@/components/protected-route"
@@ -17,6 +18,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { appNavigation } from "@/config/navigation"
 import { AuthProvider } from "@/contexts/auth-context"
 import { AnimationProvider } from "@/contexts/animation-context"
+import { NavModeProvider, useNavMode } from "@/contexts/nav-mode-context"
 import { useTransactionStats } from "@/hooks/use-transactions"
 import LoginPage from "@/pages/auth/login"
 import ClientPage from "@/pages/client"
@@ -32,6 +34,64 @@ import BranchesPage from "@/pages/branches"
 import ImagesPage from "@/pages/images"
 import QrStatisticsPage from "@/pages/qr-statistics"
 import { useRealtimeSync } from "@/hooks/use-realtime-sync"
+import { cn } from "@/lib/utils"
+
+// ─── Inner layout content (reads NavModeContext) ──────────────────────────────
+
+function AppLayoutContent({
+  activeUrl,
+  mainItems,
+  handleNavigate,
+}: {
+  activeUrl: string
+  mainItems: typeof appNavigation.mainItems
+  handleNavigate: (url: string) => void
+}) {
+  const { navMode } = useNavMode()
+
+  return (
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar
+        activeUrl={activeUrl}
+        brand={appNavigation.brand}
+        mainItems={mainItems}
+        onNavigate={handleNavigate}
+        planSections={appNavigation.planSections}
+        quickActions={appNavigation.quickActions}
+        secondaryItems={appNavigation.secondaryItems}
+        user={appNavigation.user}
+        variant="inset"
+      />
+      <SidebarInset>
+        <SiteHeader
+          activeUrl={activeUrl}
+          breadcrumbLabels={appNavigation.breadcrumbLabels}
+          onNavigate={handleNavigate}
+          actions={<NotificationBell onNavigate={handleNavigate} />}
+        />
+        {/* Main content area — adds bottom padding on mobile when navbar is active
+            so page content is never obscured by the two-row navbar (~96px)        */}
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 flex-col",
+            navMode === "navbar" ? "max-md:pb-24" : ""
+          )}
+        >
+          <Outlet />
+        </div>
+        {/* Mobile bottom navbar — only renders when navMode === "navbar" */}
+        <MobileNavbar />
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
 
 // ─── Inner layout (rendered only when authenticated) ─────────────────────────
 
@@ -66,35 +126,13 @@ function AppLayout() {
   }, [pendingCount])
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar
+    <NavModeProvider>
+      <AppLayoutContent
         activeUrl={activeUrl}
-        brand={appNavigation.brand}
         mainItems={mainItems}
-        onNavigate={handleNavigate}
-        planSections={appNavigation.planSections}
-        quickActions={appNavigation.quickActions}
-        secondaryItems={appNavigation.secondaryItems}
-        user={appNavigation.user}
-        variant="inset"
+        handleNavigate={handleNavigate}
       />
-      <SidebarInset>
-        <SiteHeader
-          activeUrl={activeUrl}
-          breadcrumbLabels={appNavigation.breadcrumbLabels}
-          onNavigate={handleNavigate}
-          actions={<NotificationBell onNavigate={handleNavigate} />}
-        />
-        <Outlet />
-      </SidebarInset>
-    </SidebarProvider>
+    </NavModeProvider>
   )
 }
 

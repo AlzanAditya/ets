@@ -16,6 +16,7 @@ import {
   EyeIcon,
   EyeOffIcon,
   LockKeyholeIcon,
+  ArrowLeftIcon,
 } from "lucide-react";
 
 /**
@@ -78,7 +79,7 @@ export function LoginForm({
                     Selamat Datang
                   </h1>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Masuk ke ETS Asset Tracking Platform
+                    Masuk ke Dashboard ETS Tracking
                   </p>
                 </div>
               </div>
@@ -103,6 +104,7 @@ export function LoginForm({
                   required
                   autoComplete="email"
                   disabled={loading}
+                  className="h-[40px]"
                 />
               </Field>
 
@@ -120,13 +122,13 @@ export function LoginForm({
                     required
                     autoComplete="current-password"
                     disabled={loading}
-                    className="pr-10"
+                    className="h-[40px]"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-0 top-0 size-10"
+                    className="absolute right-0 top-0 size-10 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
@@ -138,17 +140,26 @@ export function LoginForm({
                 </div>
               </Field>
 
+
               {/* Submit */}
-              <Field>
+              <div className="flex flex-row gap-2 mt-4">
                 <Button
-                  id="login-submit"
+                  type="button"
+                  variant="outline"
+                  className="h-10"
+                  onClick={() => navigate("/")}
+                >
+                  <ArrowLeftIcon className="size-4" />
+                </Button>
+
+                <Button
                   type="submit"
-                  className="w-full"
+                  className="h-10 flex-1"
                   disabled={loading || !email || !password}
                 >
                   {loading ? "Sedang masuk..." : "Masuk"}
                 </Button>
-              </Field>
+              </div>
             </FieldGroup>
           </form>
 
@@ -192,7 +203,7 @@ export function LoginForm({
       </Card>
 
       <FieldDescription className="px-6 text-center text-xs text-muted-foreground">
-        Platform dikhususkan untuk administrator internal.
+        Copyright © 2026 ETS
       </FieldDescription>
     </div>
   );
