@@ -1,0 +1,27 @@
+# workers/qr-worker/wrangler.toml
+name       = "zanxa-qr"
+main       = "index.js"
+compatibility_date = "2024-09-01"
+
+# Routes are MORE SPECIFIC than router's *.zanxa.studio/*
+# so Cloudflare matches them first — no conflict with the main router.
+routes = [
+  # Public QR / product lookup
+  { pattern = "qr.zanxa.studio/p/*",              zone_name = "zanxa.studio" },
+  { pattern = "qr.zanxa.studio/products*",         zone_name = "zanxa.studio" },
+  { pattern = "qr.zanxa.studio/scan",              zone_name = "zanxa.studio" },
+  { pattern = "qr.zanxa.studio/qr/*",              zone_name = "zanxa.studio" },
+
+  # Analytics
+  { pattern = "qr.zanxa.studio/analytics*",        zone_name = "zanxa.studio" },
+
+  # Transactions (approval workflow)
+  { pattern = "qr.zanxa.studio/transactions*",     zone_name = "zanxa.studio" },
+]
+
+[vars]
+SUPABASE_URL = "https://cxtmilenczpjetlnqiwo.supabase.co"
+
+# Secrets (set via Wrangler CLI):
+#   wrangler secret put SUPABASE_ANON_KEY
+#   wrangler secret put SUPABASE_SERVICE_KEY
