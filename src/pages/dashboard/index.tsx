@@ -205,8 +205,8 @@ export default function DashboardPage() {
       },
     },
     ranges: [
-      { value: "30d", label: "30 Hari Terakhir", days: 30 },
-      { value: "7d", label: "7 Hari Terakhir", days: 7 },
+      { value: "30d", label: "30 Hari", days: 30 },
+      { value: "7d", label: "7 Hari", days: 7 },
     ],
     defaultRange: "30d",
     mobileRange: "7d",
@@ -226,7 +226,7 @@ export default function DashboardPage() {
 
   return (
     <PageContent
-      actions={null}
+      actions={<Badge variant="outline">Development Preview</Badge>}
       description="Overview module untuk memantau ringkasan performa, aktivitas, dan daftar kerja utama."
       eyebrow="Overview"
       title="Dashboard"

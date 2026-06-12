@@ -666,7 +666,7 @@ export default function ProductsPage() {
 
   const metrics: MetricCardItem[] = [
     {
-      label: "Total Katalog Aset",
+      label: "Total Katalog",
       value: totalCount.toLocaleString("id-ID"),
       delta: "+0%",
       trend: "up",
@@ -675,7 +675,7 @@ export default function ProductsPage() {
       icon: PackageIcon,
     },
     {
-      label: "Aset Aktif di Gudang",
+      label: "Stock",
       value: activeCount.toLocaleString("id-ID"),
       delta: "+0%",
       trend: "up",
@@ -684,7 +684,7 @@ export default function ProductsPage() {
       icon: LandmarkIcon,
     },
     {
-      label: "Aset Terpasang (Client)",
+      label: "Terjual",
       value: deployedCount.toLocaleString("id-ID"),
       delta: "+0%",
       trend: "up",
@@ -693,7 +693,7 @@ export default function ProductsPage() {
       icon: UserCheckIcon,
     },
     {
-      label: "Aset Sedang Servis",
+      label: "Diservis",
       value: maintenanceCount.toLocaleString("id-ID"),
       delta: "+0%",
       trend: "up",

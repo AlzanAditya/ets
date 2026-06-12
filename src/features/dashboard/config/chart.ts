@@ -113,9 +113,9 @@ export const dashboardAreaChart = {
     },
   },
   ranges: [
-    { value: "90d", label: "Last 3 months", days: 90 },
-    { value: "30d", label: "Last 30 days", days: 30 },
-    { value: "7d", label: "Last 7 days", days: 7 },
+    { value: "90d", label: "3 Bulan", days: 90 },
+    { value: "30d", label: "30 Hari", days: 30 },
+    { value: "7d", label: "7 Hari", days: 7 },
   ],
   defaultRange: "90d",
   mobileRange: "7d",

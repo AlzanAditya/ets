@@ -38,7 +38,7 @@ export function PageContent({
               <p className="text-sm text-muted-foreground">{description}</p>
             </div>
             {actions ? (
-              <div className="flex items-center gap-2">{actions}</div>
+              <div className="flex items-center gap-2 hidden md:block">{actions}</div>
             ) : null}
           </div>
           {children}

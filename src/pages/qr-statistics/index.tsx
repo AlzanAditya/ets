@@ -194,8 +194,8 @@ export default function QRStatisticsPage() {
       mobile: { label: "Scan Unik", color: "var(--)" },
     },
     ranges: [
-      { value: "30d", label: "30 Hari Terakhir", days: 30 },
-      { value: "7d", label: "7 Hari Terakhir", days: 7 },
+      { value: "30d", label: "30 Hari", days: 30 },
+      { value: "7d", label: "7 Hari", days: 7 },
     ],
     defaultRange: "30d",
     mobileRange: "7d",

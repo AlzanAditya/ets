@@ -34,8 +34,8 @@ const chart = {
     mobile: { label: "Secondary", color: "var(--primary)" },
   },
   ranges: [
-    { value: "7d", label: "Last 7 days", days: 7 },
-    { value: "30d", label: "Last 30 days", days: 30 },
+    { value: "7d", label: "7 Hari", days: 7 },
+    { value: "30d", label: "30 Hari", days: 30 },
   ],
   defaultRange: "7d",
   mobileRange: "7d",
