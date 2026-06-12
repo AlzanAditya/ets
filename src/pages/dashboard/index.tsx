@@ -242,6 +242,8 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-lg">Transaksi Terbaru</h3>
           </div>
           <DataTable
+            persistenceKey="dashboard"
+            onRefresh={refetch}
             addButtonLabel="Transaksi Baru"
             columns={transactionColumns}
             data={tableData}

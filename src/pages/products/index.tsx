@@ -1063,11 +1063,12 @@ export default function ProductsPage() {
         </div>
       ) : (
         <DataTable
+          persistenceKey="products"
+          onRefresh={refetch}
           addButtonLabel="Tambah"
           columns={columns}
           data={filteredProducts}
           activeTab={activeTab}
-          pageSizeOptions={[10, 20, 50, 100, 150, 200]}
           onTabChange={setActiveTab}
           onAddClick={openForAdd}
           onRowClick={(row) => {

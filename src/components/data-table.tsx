@@ -40,10 +40,10 @@ import {
   ChevronsLeftIcon,
   ChevronsRightIcon,
   Columns3Icon,
-  DownloadIcon,
   GripVerticalIcon,
   PlusIcon,
   SearchIcon,
+  MoreHorizontal,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +54,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -76,6 +77,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { useTableDensity } from "@/contexts/table-density-context";
+import { DENSITY_CONFIG } from "@/lib/table-density";
+
+export const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export interface DataTableRow {
   id: UniqueIdentifier;
@@ -99,7 +105,9 @@ export interface DataTableProps<TData extends DataTableRow> {
   tabs?: DataTableTab[];
   searchPlaceholder?: string;
   csvFilename?: string;
+  persistenceKey?: string;
   onAddClick?: () => void;
+  onRefresh?: () => void;
   /** Called when a data row is clicked (excluding checkboxes, drag handles, buttons, links) */
   onRowClick?: (row: TData) => void;
   onTabChange?: (tab: string) => void;
@@ -172,6 +180,8 @@ function DraggableRow<TData extends DataTableRow>({
   row: Row<TData>;
   onRowClick?: (row: TData) => void;
 }) {
+  const { density } = useTableDensity();
+  const densityConfig = DENSITY_CONFIG[density];
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
     disabled: true,
@@ -225,7 +235,10 @@ function DraggableRow<TData extends DataTableRow>({
       }}
     >
       {row.getVisibleCells().map((cell) => (
-        <TableCell key={cell.id}>
+        <TableCell
+          key={cell.id}
+          className={cn(densityConfig.cellPaddingX, densityConfig.cellPaddingY)}
+        >
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
         </TableCell>
       ))}
@@ -294,14 +307,44 @@ export function DataTable<TData extends DataTableRow>({
   defaultTab,
   activeTab: controlledActiveTab,
   emptyLabel = "No results.",
-  pageSizeOptions = [10, 20, 30, 40, 50],
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   tabs = placeholderTabs,
   searchPlaceholder = "Cari...",
   csvFilename = "export",
+  persistenceKey,
   onAddClick,
+  onRefresh,
   onRowClick,
   onTabChange,
 }: DataTableProps<TData>) {
+  const { density } = useTableDensity();
+  const densityConfig = DENSITY_CONFIG[density];
+  const resolvedKey = persistenceKey || csvFilename || "default";
+  const storageKey = `table_preferences_${resolvedKey}`;
+
+  // Helper to load preferences
+  const loadPreferences = React.useCallback(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      console.error("Error loading table preferences for key:", storageKey, e);
+      return {};
+    }
+  }, [storageKey]);
+
+  // Helper to save preferences
+  const savePreferences = React.useCallback((prefs: any) => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      const current = saved ? JSON.parse(saved) : {};
+      const updated = { ...current, ...prefs };
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+    } catch (e) {
+      console.error("Error saving table preferences for key:", storageKey, e);
+    }
+  }, [storageKey]);
+
   const resolvedColumns = React.useMemo<ColumnDef<TData>[]>(
     () => [
       ...createBaseColumns<TData>(),
@@ -325,8 +368,14 @@ export function DataTable<TData extends DataTableRow>({
 
   const [data, setData] = React.useState(() => resolvedData);
   const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
+    const prefs = loadPreferences();
+    return prefs.columnVisibility || {};
+  });
+
+  React.useEffect(() => {
+    savePreferences({ columnVisibility });
+  }, [columnVisibility, savePreferences]);
 
   React.useEffect(() => {
     setColumnVisibility((prev) => {
@@ -353,21 +402,16 @@ export function DataTable<TData extends DataTableRow>({
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState(() => {
-    const savedPageSize = localStorage.getItem("data-table-page-size");
+    const prefs = loadPreferences();
     return {
       pageIndex: 0,
-      pageSize: savedPageSize
-        ? Number(savedPageSize)
-        : (pageSizeOptions[0] ?? 10),
+      pageSize: prefs.pageSize || (pageSizeOptions[0] ?? 10),
     };
   });
 
   React.useEffect(() => {
-    localStorage.setItem(
-      "data-table-page-size",
-      pagination.pageSize.toString(),
-    );
-  }, [pagination.pageSize]);
+    savePreferences({ pageSize: pagination.pageSize });
+  }, [pagination.pageSize, savePreferences]);
   const sortableId = React.useId();
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
@@ -455,6 +499,73 @@ export function DataTable<TData extends DataTableRow>({
     URL.revokeObjectURL(url);
   }
 
+  function handleExportJson() {
+    const filteredRows = table.getFilteredRowModel().rows;
+    if (!filteredRows.length) return;
+
+    const visibleCols = table
+      .getAllColumns()
+      .filter(
+        (col) => col.getIsVisible() && typeof col.accessorFn !== "undefined"
+      );
+
+    const dataToExport = filteredRows.map((row) => {
+      const obj: Record<string, any> = {};
+      visibleCols.forEach((col) => {
+        obj[col.id] = row.getValue(col.id);
+      });
+      return obj;
+    });
+
+    const json = JSON.stringify(dataToExport, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${csvFilename}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleCopyData() {
+    const filteredRows = table.getFilteredRowModel().rows;
+    if (!filteredRows.length) return;
+
+    const visibleCols = table
+      .getAllColumns()
+      .filter(
+        (col) => col.getIsVisible() && typeof col.accessorFn !== "undefined"
+      );
+
+    const headers = visibleCols.map((col) => col.id);
+    const rows = filteredRows.map((row) =>
+      visibleCols.map((col) => {
+        const val = row.getValue(col.id);
+        return val === null || val === undefined ? "" : String(val);
+      })
+    );
+
+    const text = [headers.join("\t"), ...rows.map((r) => r.join("\t"))].join("\n");
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        toast.success("Data copied to clipboard");
+      })
+      .catch((err) => {
+        console.error("Failed to copy data:", err);
+        toast.error("Failed to copy data");
+      });
+  }
+
+  function handlePrintTable() {
+    window.print();
+  }
+
+  function handleRefreshData() {
+    if (onRefresh) {
+      onRefresh();
+    }
+  }
+
   return (
     <Tabs
       value={currentActiveTab}
@@ -500,14 +611,14 @@ export function DataTable<TData extends DataTableRow>({
         {/* Right: search + column toggle + export + add */}
         <div className="flex items-center gap-2">
           {/* Global search */}
-          <div className="relative hidden sm:block">
+          <div className="relative">
             <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="data-table-search"
               placeholder={searchPlaceholder}
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="h-8 w-44 pl-8 text-sm lg:w-56"
+              className="h-8 w-28 pl-8 text-sm transition-all focus:w-36 sm:w-44 sm:focus:w-44 lg:w-56"
             />
           </div>
 
@@ -527,8 +638,8 @@ export function DataTable<TData extends DataTableRow>({
                 .getAllColumns()
                 .filter(
                   (column) =>
-                    column.getCanHide() &&
-                    !["drag", "select", "actions"].includes(column.id)
+                     column.getCanHide() &&
+                     !["drag", "select", "actions"].includes(column.id)
                 )
                 .map((column) => {
                   return (
@@ -581,17 +692,58 @@ export function DataTable<TData extends DataTableRow>({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button
-            id="data-table-export-csv"
-            variant="outline"
-            size="sm"
-            onClick={handleExportCsv}
-            disabled={table.getFilteredRowModel().rows.length === 0}
-            title="ekspor"
-          >
-            <DownloadIcon />
-            <span className="hidden lg:inline">Ekspor</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                id="data-table-actions-dropdown"
+                variant="outline"
+                size="sm"
+                title="Aksi & Ekspor"
+                className="h-8 px-2 flex items-center gap-1"
+              >
+                <MoreHorizontal className="size-4" />
+                <span className="hidden sm:inline">Aksi</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={handleExportCsv}
+                disabled={table.getFilteredRowModel().rows.length === 0}
+              >
+                Ekspor CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleExportJson}
+                disabled={table.getFilteredRowModel().rows.length === 0}
+              >
+                Ekspor JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled
+              >
+                Ekspor Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleCopyData}
+                disabled={table.getFilteredRowModel().rows.length === 0}
+              >
+                Salin Data
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handlePrintTable}
+                disabled={table.getFilteredRowModel().rows.length === 0}
+              >
+                Cetak Tabel
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleRefreshData}
+                disabled={!onRefresh}
+              >
+                Muat Ulang Data
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button
             id="data-table-add"
@@ -619,7 +771,7 @@ export function DataTable<TData extends DataTableRow>({
         }
         return (
           <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
-            <div className="overflow-hidden rounded-lg border">
+            <div className="-mx-4 overflow-hidden rounded-none border-y md:mx-0 md:rounded-lg md:border">
               <DndContext
                 collisionDetection={closestCenter}
                 modifiers={[restrictToVerticalAxis]}
@@ -627,7 +779,7 @@ export function DataTable<TData extends DataTableRow>({
                 sensors={sensors}
                 id={sortableId}
               >
-                <Table>
+                <Table style={{ zoom: densityConfig.scale }}>
                   <TableHeader className="sticky top-0 z-10 bg-muted">
                     {table.getHeaderGroups().map((headerGroup) => (
                       <TableRow key={headerGroup.id}>
@@ -636,7 +788,11 @@ export function DataTable<TData extends DataTableRow>({
                             <TableHead
                               key={header.id}
                               colSpan={header.colSpan}
-                              className="border-r last:border-r-0"
+                              className={cn(
+                                "border-r last:border-r-0 h-auto",
+                                densityConfig.cellPaddingX,
+                                densityConfig.cellPaddingY
+                              )}
                             >
                               {header.isPlaceholder
                                 ? null
@@ -683,11 +839,11 @@ export function DataTable<TData extends DataTableRow>({
                 {table.getFilteredSelectedRowModel().rows.length} of{" "}
                 {table.getFilteredRowModel().rows.length} row(s) selected.
               </div>
-              <div className="flex w-full items-center gap-8 lg:w-fit">
-                <div className="hidden items-center gap-2 lg:flex">
+              <div className="flex w-full items-center justify-between gap-3 sm:gap-8 lg:w-fit">
+                <div className="flex items-center gap-1.5">
                   <Label
                     htmlFor="rows-per-page"
-                    className="text-sm font-medium"
+                    className="hidden text-xs text-muted-foreground sm:inline sm:text-sm sm:font-medium"
                   >
                     Rows per page
                   </Label>
@@ -699,7 +855,7 @@ export function DataTable<TData extends DataTableRow>({
                   >
                     <SelectTrigger
                       size="sm"
-                      className="w-20"
+                      className="w-16 sm:w-20 h-8 text-xs sm:text-sm"
                       id="rows-per-page"
                     >
                       <SelectValue
@@ -717,11 +873,11 @@ export function DataTable<TData extends DataTableRow>({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex w-fit items-center justify-center text-sm font-medium">
+                <div className="flex w-fit items-center justify-center text-xs sm:text-sm font-medium">
                   Page {table.getState().pagination.pageIndex + 1} of{" "}
                   {table.getPageCount()}
                 </div>
-                <div className="ml-auto flex items-center gap-2 lg:ml-0">
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     className="hidden h-8 w-8 p-0 lg:flex"

@@ -79,6 +79,7 @@ export default function InvoicePage() {
         </Card>
         <div className="lg:col-span-2">
           <DataTable
+            persistenceKey="invoices"
             addButtonLabel="Invoice"
             columns={columns}
             data={rows}

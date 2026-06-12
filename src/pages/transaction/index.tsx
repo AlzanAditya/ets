@@ -643,6 +643,8 @@ export default function TransactionPage() {
         </div>
       ) : (
         <DataTable
+          persistenceKey="transactions"
+          onRefresh={refetchTxns}
           addButtonLabel="Transaksi Baru"
           columns={columns}
           data={filteredTxns}
@@ -653,7 +655,7 @@ export default function TransactionPage() {
           tabs={[
             {
               value: "all",
-              label: "Semua Transaksi",
+              label: "Semua",
               badge: mappedAll.length,
             },
             {

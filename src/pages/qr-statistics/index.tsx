@@ -229,6 +229,8 @@ export default function QRStatisticsPage() {
         </div>
       ) : (
         <DataTable
+          persistenceKey="qr-statistics"
+          onRefresh={refetch}
           addButtonLabel="Ekspor Log"
           columns={columns}
           data={mappedLogs}

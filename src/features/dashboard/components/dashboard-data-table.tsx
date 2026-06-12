@@ -421,6 +421,7 @@ export function DashboardDataTable({
 }) {
   return (
     <DataTable
+      persistenceKey="dashboard-feature"
       addButtonLabel="Add Section"
       columns={dashboardColumns}
       data={data}

@@ -10,7 +10,7 @@ interface NavModeContextValue {
 }
 
 const NavModeContext = React.createContext<NavModeContextValue>({
-  navMode: "sidebar",
+  navMode: "navbar",
   setNavMode: () => {},
   topRowVisible: true,
   toggleTopRow: () => {},
@@ -22,8 +22,16 @@ const NavModeContext = React.createContext<NavModeContextValue>({
  * Usage notes: wrap AppLayout or App root — must be ancestor of SiteHeader and MobileNavbar.
  */
 export function NavModeProvider({ children }: { children: React.ReactNode }) {
-  const [navMode, setNavMode] = React.useState<NavMode>("sidebar")
+  const [navMode, setNavModeState] = React.useState<NavMode>(() => {
+    const saved = localStorage.getItem("mobile-nav-mode")
+    return (saved === "navbar" || saved === "sidebar") ? saved : "navbar"
+  })
   const [topRowVisible, setTopRowVisible] = React.useState(true)
+
+  const setNavMode = React.useCallback((mode: NavMode) => {
+    setNavModeState(mode)
+    localStorage.setItem("mobile-nav-mode", mode)
+  }, [])
 
   const toggleTopRow = React.useCallback(() => {
     setTopRowVisible((prev) => !prev)

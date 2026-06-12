@@ -12,6 +12,9 @@ import { useAuth } from "@/contexts/auth-context"
 import { useAnimation } from "@/contexts/animation-context"
 import { useTheme } from "next-themes"
 import { supabase } from "@/lib/supabase"
+import { useTableDensity } from "@/contexts/table-density-context"
+import { DENSITY_CONFIG, ALL_DENSITIES } from "@/lib/table-density"
+import { AlignJustify, List, Rows3 } from "lucide-react"
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super Admin",
@@ -29,6 +32,7 @@ export default function SettingsPage() {
   const { admin, user } = useAuth()
   const { animationsEnabled, toggleAnimations } = useAnimation()
   const { theme, setTheme } = useTheme()
+  const { density, setDensity } = useTableDensity()
 
   const [fullName, setFullName] = React.useState(admin?.full_name ?? "")
   const [saving, setSaving] = React.useState(false)
@@ -156,6 +160,35 @@ export default function SettingsPage() {
                     >
                       <Icon className="size-4" />
                       {labels[t]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Table Density */}
+            <div className="grid gap-2">
+              <Label className="text-xs text-muted-foreground">Kerapatan Tabel (Density)</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {ALL_DENSITIES.map((d) => {
+                  const icons = { spacious: AlignJustify, normal: List, compact: Rows3 }
+                  const Icon = icons[d]
+                  const config = DENSITY_CONFIG[d]
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDensity(d)}
+                      className={`flex flex-col items-center gap-1.5 rounded-lg border p-2.5 text-xs transition-colors ${
+                        density === d
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-border/80 hover:bg-muted/50"
+                      }`}
+                    >
+                      <Icon className="size-4" />
+                      <span className="font-medium">{config.label}</span>
                     </button>
                   )
                 })}

@@ -18,6 +18,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { appNavigation } from "@/config/navigation"
 import { AuthProvider } from "@/contexts/auth-context"
 import { AnimationProvider } from "@/contexts/animation-context"
+import { TableDensityProvider } from "@/contexts/table-density-context"
 import { NavModeProvider, useNavMode } from "@/contexts/nav-mode-context"
 import { useTransactionStats } from "@/hooks/use-transactions"
 import LoginPage from "@/pages/auth/login"
@@ -143,34 +144,36 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <AnimationProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
+          <TableDensityProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
 
-            {/* Protected routes */}
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard"      element={<DashboardPage />} />
-              <Route path="products"       element={<ProductsPage />} />
-              <Route path="tax"            element={<TaxPage />} />
-              <Route path="ai-agent"       element={<AIAgentPage />} />
-              <Route path="branches"       element={<BranchesPage />} />
-              <Route path="images"         element={<ImagesPage />} />
-              <Route path="qr-statistics"  element={<QrStatisticsPage />} />
-              <Route path="transaction"    element={<TransactionPage />} />
-              <Route path="invoice"        element={<InvoicePage />} />
-              <Route path="client"         element={<ClientPage />} />
-              <Route path="reports"        element={<ReportsPage />} />
-              <Route path="settings"       element={<SettingsPage />} />
-              <Route path="*"              element={<Navigate to="/dashboard" replace />} />
-            </Route>
-          </Routes>
+              {/* Protected routes */}
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard"      element={<DashboardPage />} />
+                <Route path="products"       element={<ProductsPage />} />
+                <Route path="tax"            element={<TaxPage />} />
+                <Route path="ai-agent"       element={<AIAgentPage />} />
+                <Route path="branches"       element={<BranchesPage />} />
+                <Route path="images"         element={<ImagesPage />} />
+                <Route path="qr-statistics"  element={<QrStatisticsPage />} />
+                <Route path="transaction"    element={<TransactionPage />} />
+                <Route path="invoice"        element={<InvoicePage />} />
+                <Route path="client"         element={<ClientPage />} />
+                <Route path="reports"        element={<ReportsPage />} />
+                <Route path="settings"       element={<SettingsPage />} />
+                <Route path="*"              element={<Navigate to="/dashboard" replace />} />
+              </Route>
+            </Routes>
+          </TableDensityProvider>
         </AnimationProvider>
       </AuthProvider>
     </BrowserRouter>

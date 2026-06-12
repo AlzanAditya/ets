@@ -411,6 +411,8 @@ export default function ClientPage() {
 
       <div className="grid grid-cols-1 gap-4">
         <DataTable
+          persistenceKey="clients"
+          onRefresh={refetch}
           addButtonLabel="Tambah"
           columns={columns}
           data={mappedClients}
@@ -418,7 +420,7 @@ export default function ClientPage() {
           onRowClick={(row) => openForEdit(row)}
           defaultTab="all"
           tabs={[
-            { value: "all", label: "Semua Klien", badge: mappedClients.length },
+            { value: "all", label: "Semua", badge: mappedClients.length },
           ]}
         />
       </div>
