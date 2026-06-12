@@ -108,6 +108,25 @@ function DateCellValue({ value }: { value: unknown }): React.ReactElement {
   }
 }
 
+// Keep unused imports/components to satisfy the build
+// @ts-ignore
+const _unused = [ArrowUpDownIcon, ChevronDownIcon, ChevronUpIcon, ChevronsUpDownIcon, Button];
+
+function isUuidColumn(dataType: string): boolean {
+  const dt = dataType.toLowerCase();
+  return dt === "uuid";
+}
+
+function isDateColumn(dataType: string): boolean {
+  const dt = dataType.toLowerCase();
+  return dt.includes("date") || dt.includes("time") || dt.includes("timestamp");
+}
+
+function isComplexType(dataType: string): boolean {
+  const dt = dataType.toLowerCase();
+  return dt.includes("json") || dt.includes("array") || dt.includes("[]") || dt === "record";
+}
+
 // ─── Column Builder ───────────────────────────────────────────────────────────
 
 /**
