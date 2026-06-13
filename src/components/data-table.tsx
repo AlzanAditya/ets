@@ -609,7 +609,7 @@ export function DataTable<TData extends DataTableRow>({
         </div>
 
         {/* Right: search + column toggle + export + add */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 md:gap-2">
           {/* Global search */}
           <div className="relative">
             <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />

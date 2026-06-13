@@ -56,7 +56,7 @@ export function MetricCards({ items = placeholderCards }: { items?: MetricCardIt
 
         return (
           <Card className="@container/card" key={item.label}>
-            <CardHeader className="gap-1 pb-2 sm:pb-4">
+            <CardHeader className="gap-1 pb-2">
               {/* Label — slightly smaller on mobile */}
               <CardDescription className="text-xs sm:text-sm">
                 {item.label}

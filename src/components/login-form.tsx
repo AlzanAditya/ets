@@ -31,8 +31,8 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
 
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
+  const [email, setEmail] = React.useState("admin@ets.co.id");
+  const [password, setPassword] = React.useState("Admin123!");
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
