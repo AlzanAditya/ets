@@ -570,7 +570,7 @@ export function DataTable<TData extends DataTableRow>({
     <Tabs
       value={currentActiveTab}
       onValueChange={handleTabChange}
-      className="w-full flex-col justify-start gap-6"
+      className="w-full flex-col justify-start gap-4"
     >
       <div className="flex items-center justify-between px-4 lg:px-6">
         {/* Left: tabs (desktop) + view selector (mobile) */}
@@ -609,16 +609,16 @@ export function DataTable<TData extends DataTableRow>({
         </div>
 
         {/* Right: search + column toggle + export + add */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {/* Global search */}
           <div className="relative">
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="data-table-search"
               placeholder={searchPlaceholder}
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="h-8 w-28 pl-8 text-sm transition-all focus:w-36 sm:w-44 sm:focus:w-44 lg:w-56"
+              className="h-7 w-20 pl-8 text-xs transition-all focus:w-36 sm:w-44 sm:focus:w-44 lg:w-56"
             />
           </div>
 
@@ -638,8 +638,8 @@ export function DataTable<TData extends DataTableRow>({
                 .getAllColumns()
                 .filter(
                   (column) =>
-                     column.getCanHide() &&
-                     !["drag", "select", "actions"].includes(column.id)
+                    column.getCanHide() &&
+                    !["drag", "select", "actions"].includes(column.id)
                 )
                 .map((column) => {
                   return (
@@ -699,10 +699,10 @@ export function DataTable<TData extends DataTableRow>({
                 variant="outline"
                 size="sm"
                 title="Aksi & Ekspor"
-                className="h-8 px-2 flex items-center gap-1"
+                className="h-7 px-2 flex items-center gap-1"
               >
                 <MoreHorizontal className="size-4" />
-                <span className="hidden sm:inline">Aksi</span>
+                <span className="hidden text-xs sm:inline">Aksi</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -770,7 +770,7 @@ export function DataTable<TData extends DataTableRow>({
           );
         }
         return (
-          <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+          <div className="relative flex flex-col gap-3 overflow-auto px-4 lg:px-6">
             <div className="-mx-4 overflow-hidden rounded-none border-y md:mx-0 md:rounded-lg md:border">
               <DndContext
                 collisionDetection={closestCenter}
@@ -834,7 +834,7 @@ export function DataTable<TData extends DataTableRow>({
                 </Table>
               </DndContext>
             </div>
-            <div className="flex items-center justify-between px-4">
+            <div className="flex items-center justify-between">
               <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">
                 {table.getFilteredSelectedRowModel().rows.length} of{" "}
                 {table.getFilteredRowModel().rows.length} row(s) selected.
@@ -873,7 +873,7 @@ export function DataTable<TData extends DataTableRow>({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex w-fit items-center justify-center text-xs sm:text-sm font-medium">
+                <div className="flex w-fit items-center justify-center text-xs sm:text-sm font-medium text-muted-foreground">
                   Page {table.getState().pagination.pageIndex + 1} of{" "}
                   {table.getPageCount()}
                 </div>

@@ -152,11 +152,10 @@ export default function SettingsPage() {
                       key={t}
                       type="button"
                       onClick={() => setTheme(t)}
-                      className={`flex flex-col items-center gap-1.5 rounded-lg border p-2.5 text-xs transition-colors ${
-                        theme === t
+                      className={`flex flex-col items-center gap-1.5 rounded-lg border p-2.5 text-xs transition-colors ${theme === t
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border text-muted-foreground hover:border-border/80 hover:bg-muted/50"
-                      }`}
+                        }`}
                     >
                       <Icon className="size-4" />
                       {labels[t]}
@@ -181,11 +180,10 @@ export default function SettingsPage() {
                       key={d}
                       type="button"
                       onClick={() => setDensity(d)}
-                      className={`flex flex-col items-center gap-1.5 rounded-lg border p-2.5 text-xs transition-colors ${
-                        density === d
+                      className={`flex flex-col items-center gap-1.5 rounded-lg border p-2.5 text-xs transition-colors ${density === d
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border text-muted-foreground hover:border-border/80 hover:bg-muted/50"
-                      }`}
+                        }`}
                     >
                       <Icon className="size-4" />
                       <span className="font-medium">{config.label}</span>

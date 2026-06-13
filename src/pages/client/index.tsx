@@ -14,6 +14,7 @@ import { DataTable, type DataTableRow } from "@/components/data-table";
 import { TableDrawer } from "@/components/table-drawer";
 import { MetricCards } from "@/components/metric-cards";
 import { PageContent } from "@/components/page-content";
+import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { MetricCardItem } from "@/types/metrics";
@@ -217,7 +218,16 @@ export default function ClientPage() {
 
   const metrics: MetricCardItem[] = [
     {
-      label: "Total Klien Terdaftar",
+      label: "Klien Terdaftar",
+      value: allClients.length.toLocaleString("id-ID"),
+      delta: "+0%",
+      trend: "up",
+      summary: "Semua akun klien",
+      description: "Jumlah total relasi klien aktif",
+      icon: UsersIcon,
+    },
+    {
+      label: "Maintenance",
       value: allClients.length.toLocaleString("id-ID"),
       delta: "+0%",
       trend: "up",
@@ -409,6 +419,8 @@ export default function ClientPage() {
         {FormFields}
       </TableDrawer>
 
+      <Separator className="my-2" />
+
       <div className="grid grid-cols-1 gap-4">
         <DataTable
           persistenceKey="clients"
@@ -421,6 +433,7 @@ export default function ClientPage() {
           defaultTab="all"
           tabs={[
             { value: "all", label: "Semua", badge: mappedClients.length },
+            { value: "maintenance", label: "Maintenance", badge: mappedClients.length },
           ]}
         />
       </div>

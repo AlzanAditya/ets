@@ -10,12 +10,12 @@ import type { MetricCardItem } from "@/types/metrics"
 import type { InteractiveAreaChartConfig } from "@/types/charts"
 import type { ColumnDef } from "@tanstack/react-table"
 import type { TransactionRow } from "@/types/database"
+import { Separator } from "@/components/ui/separator"
 import {
   TrendingUpIcon,
   BarChart3Icon,
   PackageIcon,
   ClipboardListIcon,
-  ClockIcon,
 } from "lucide-react"
 
 // Helper to format IDR Currency
@@ -234,24 +234,22 @@ export default function DashboardPage() {
       <MetricCards items={metrics} />
       <div className="px-4 lg:px-6">
         <ChartAreaInteractive config={chartConfig} />
+        <Separator className="my-4" />
+        <h3 className="font-semibold text-lg">Aktifitas Terbaru</h3>
       </div>
-      <div className="px-4 lg:px-6">
-        <div className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-2">
-            <ClockIcon className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-semibold text-lg">Transaksi Terbaru</h3>
-          </div>
-          <DataTable
-            persistenceKey="dashboard"
-            onRefresh={refetch}
-            addButtonLabel="Transaksi Baru"
-            columns={transactionColumns}
-            data={tableData}
-            defaultTab="recent"
-            tabs={[{ value: "recent", label: "Transaksi Terbaru" }]}
-          />
-        </div>
-      </div>
+      <DataTable
+        persistenceKey="dashboard"
+        onRefresh={refetch}
+        addButtonLabel="Transaksi Baru"
+        columns={transactionColumns}
+        data={tableData}
+        defaultTab="recent"
+        tabs={[
+          { value: "recent", label: "Transaksi" },
+          { value: "active", label: "Produk" },
+          { value: "low-stock", label: "Klien" }
+        ]}
+      />
     </PageContent>
   )
 }

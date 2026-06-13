@@ -10,6 +10,7 @@ import { DataTable, type DataTableRow } from "@/components/data-table"
 import { MetricCards } from "@/components/metric-cards"
 import { PageContent } from "@/components/page-content"
 import { useTableSchema } from "@/hooks/use-table-schema"
+import { Separator } from "@/components/ui/separator"
 import { mergeDynamicColumns } from "@/lib/dynamic-columns"
 import type { InteractiveAreaChartConfig } from "@/types/charts"
 import type { MetricCardItem } from "@/types/metrics"
@@ -219,6 +220,8 @@ export default function QRStatisticsPage() {
       <div className="px-4 lg:px-6">
         <ChartAreaInteractive config={chartConfig} />
       </div>
+
+      <Separator className="my-2" />
 
       {logs.length === 0 ? (
         <div className="px-4 lg:px-6">
