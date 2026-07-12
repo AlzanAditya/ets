@@ -278,6 +278,13 @@ function ChartLegendContent({
     return null
   }
 
+  const legendPayload = payload as RechartsPrimitive.DefaultLegendContentProps['payload']
+  const filteredPayload = ((legendPayload ?? []) as Array<
+    RechartsPrimitive.DefaultLegendContentProps['payload'] extends Array<infer U>
+      ? U
+      : never
+  >).filter((item: any) => item.type !== "none")
+
   return (
     <div
       className={cn(
@@ -286,10 +293,8 @@ function ChartLegendContent({
         className
       )}
     >
-      {(payload as RechartsPrimitive.DefaultLegendContentProps['payload'] & any[])
-        ?.filter((item: { type?: string }) => item.type !== "none")
-        .map((item: { dataKey?: string; color?: string }, index: number) => {
-          const key = `${nameKey ?? item.dataKey ?? "value"}`
+      {filteredPayload.map((item, index) => {
+          const key = `${nameKey ?? (item as any).dataKey ?? "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
 
           return (
@@ -305,7 +310,7 @@ function ChartLegendContent({
                 <div
                   className="h-2 w-2 shrink-0 rounded-[2px]"
                   style={{
-                    backgroundColor: item.color,
+                    backgroundColor: (item as any).color,
                   }}
                 />
               )}
