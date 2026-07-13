@@ -55,10 +55,10 @@ export const appNavigation = {
       icon: <ScanQrCodeIcon />,
     },
     {
-      title: "Transaction",
-      url: "/transaction",
+      title: "Clients",
+      url: "/client",
       plan: plan.free,
-      icon: <Wallet2Icon />,
+      icon: <UsersIcon />,
     },
     {
       title: "Images",
@@ -86,6 +86,12 @@ export const appNavigation = {
       label: "Coming Soon",
       items: [
         {
+          name: "Transaction",
+          url: "/transaction",
+          plan: plan.pro,
+          icon: <Wallet2Icon />,
+        },
+        {
           name: "Invoice",
           url: "/invoice",
           plan: plan.pro,
@@ -96,13 +102,7 @@ export const appNavigation = {
           url: "/reports",
           plan: plan.pro,
           icon: <FileChartColumnIcon />,
-        },
-        {
-          name: "Clients",
-          url: "/client",
-          plan: plan.pro,
-          icon: <UsersIcon />,
-        },
+        }
       ],
     },
     {

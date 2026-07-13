@@ -1,0 +1,271 @@
+Implementasikan perbaikan berikut pada seluruh halaman yang memiliki table
+
+## 1. Mobile Table Full Width (Prioritas Tinggi)
+
+Saat ini table masih mengikuti padding container halaman sehingga area tampil data terlalu sempit pada mobile.
+
+Ubah layout table agar pada viewport mobile:
+
+* Table dapat memanfaatkan lebar layar secara maksimal.
+* Gunakan pendekatan "mobile breakout" (negative horizontal margin / full-width mobile container).
+* Header halaman, statistik, filter, dan komponen lain tetap mengikuti padding normal halaman.
+* Hanya area table yang boleh keluar dari padding parent.
+* Tetap aman terhadap horizontal scrolling.
+* Desktop dan tablet tetap menggunakan layout normal saat ini.
+
+Selain itu:
+
+* Pada mobile, hilangkan border radius luar table container.
+* Table mobile harus terlihat edge-to-edge dan memanfaatkan ruang horizontal sebanyak mungkin.
+* Border radius desktop/tablet tetap dipertahankan.
+
+Target UX:
+
+* Header tetap rapi mengikuti padding halaman.
+* Table memanjang hampir dari sisi kiri layar hingga sisi kanan layar.
+* Data lebih mudah dibaca tanpa membuang ruang horizontal.
+
+---
+
+## 2. GitHub Pages SPA Fallback (404.html)
+
+Buat halaman `404.html` untuk mendukung SPA routing pada GitHub Pages.
+
+Requirements:
+
+* Tambahkan file `404.html`.
+* Ketika user membuka route yang tidak ditemukan secara langsung (refresh atau direct URL), jangan tampilkan error GitHub Pages.
+* Redirect otomatis ke /dashboard.
+* Dashboard merupakan fallback utama.
+---
+
+## 3. Konsolidasi Tombol Export Menjadi Action Menu
+
+Saat ini tombol export pada table terlalu memakan ruang, terutama pada mobile.
+
+Ubah seluruh aksi export menjadi dropdown action menu yang dibuka dari tombol icon tiga titik horizontal.
+
+Gunakan pattern:
+
+[ ⋯ ]
+
+atau equivalent action menu dari komponen UI yang sudah digunakan project.
+
+Semua export dan utility action dipindahkan ke dalam menu tersebut.
+
+Contoh menu:
+
+* Export CSV
+* Export Excel (.xlsx)
+* Export JSON
+* Copy Data (sangat lengkap)
+* Print Table
+* Refresh Data
+
+Jika ada fitur yang belum tersedia, tampilkan disabled state atau placeholder yang konsisten.
+
+Tujuan:
+
+* Mengurangi clutter toolbar.
+* Menghemat ruang horizontal mobile.
+* Menyeragamkan UX seluruh table.
+
+---
+
+## 4. Mobile Search Button
+
+Pada mobile:
+
+* Selalu tampilkan tombol Search pada toolbar table.
+* Search tidak boleh tersembunyi.
+* Jika ruang terbatas:
+
+  * gunakan icon search saja,
+* User harus dapat melakukan pencarian tanpa perlu membuka menu lain.
+
+---
+
+## 5. Rows Per Page di Mobile
+
+Saat ini informasi Rows Per Page / Page Size tidak tampil pada mobile.
+
+Perbaiki pagination agar:
+
+* Rows Per Page tetap tersedia di mobile.
+* User dapat mengganti jumlah data per halaman.
+* Tidak disembunyikan oleh breakpoint responsive.
+* Tetap ringkas dan tidak mengganggu layout.
+
+Contoh opsi:
+
+* 10 rows
+* 25 rows
+* 50 rows
+* 100 rows
+
+Jika ruang tidak cukup:
+
+* gunakan compact dropdown,
+* atau gabungkan ke pagination toolbar mobile.
+
+Target UX:
+
+Rows per page harus memiliki fitur yang sama antara desktop dan mobile.
+
+---
+
+## Catatan Penting
+
+Prioritaskan pengalaman mobile karena sebagian besar table memiliki banyak kolom dan ruang horizontal sangat terbatas.
+
+Gunakan pola yang konsisten untuk seluruh table dalam aplikasi agar behavior, toolbar, pagination, export menu, search, dan responsive layout terasa seragam di semua halaman.
+
+
+
+## 6. Persistensi Pengaturan Table & UI (Local Cache)
+
+Implementasikan local persistence untuk seluruh preferensi tampilan yang diubah oleh user.
+
+PENTING:
+
+* Simpan seluruh preferensi di local storage/browser storage.
+* Jangan simpan ke Supabase.
+* Jangan buat tabel database baru.
+* Setting bersifat per-device dan per-browser.
+
+### Column Visibility Persistence
+
+Saat user:
+
+* menampilkan kolom
+* menyembunyikan kolom
+* mengubah kombinasi kolom yang tampil
+
+maka konfigurasi tersebut harus otomatis tersimpan secara lokal.
+
+Ketika halaman dibuka kembali:
+
+* state column visibility harus dipulihkan otomatis.
+* tidak boleh kembali ke default setiap refresh.
+
+Contoh:
+
+User menyembunyikan:
+
+* checkbox column
+* created at
+* updated at
+
+Maka saat kembali ke halaman yang sama, kolom tersebut tetap tersembunyi.
+
+### Table-Specific Persistence
+
+Persistensi harus bersifat per table.
+
+Contoh:
+
+* Products memiliki konfigurasi sendiri.
+* Clients memiliki konfigurasi sendiri.
+* Transactions memiliki konfigurasi sendiri.
+
+Perubahan pada satu table tidak boleh memengaruhi table lain.
+
+---
+
+### Rows Per Page Persistence
+
+Saat user mengubah Rows Per Page:
+
+* simpan pilihan tersebut secara lokal.
+* pulihkan kembali saat halaman dibuka ulang.
+
+Contoh:
+
+Products:
+
+* user memilih 50 rows
+
+Maka saat kembali ke Products:
+
+* tetap menggunakan 50 rows.
+
+---
+
+### Standarisasi Rows Per Page
+
+Saat ini beberapa table memiliki pilihan Rows Per Page yang berbeda.
+
+Samakan seluruh table agar menggunakan standar yang sama dengan table Products.
+
+Gunakan satu sumber konfigurasi global.
+
+Contoh:
+
+* 10
+* 25
+* 50
+* 100
+
+atau gunakan persis konfigurasi yang saat ini dipakai Products.
+
+Jangan biarkan setiap table memiliki daftar opsi yang berbeda.
+
+---
+
+### Future-Proof Table Preferences
+
+Rancang storage agar mudah diperluas untuk menyimpan:
+
+* column visibility
+* rows per page
+* sorting
+* filter preferences
+* search preferences
+* density/view mode
+
+tanpa perlu redesign ulang arsitektur nantinya.
+
+Gunakan namespace/key yang jelas per table.
+
+Contoh konsep:
+
+table_preferences.products
+table_preferences.clients
+table_preferences.transactions
+
+atau pola serupa yang scalable.
+
+---
+
+## 7. Default Mobile Navigation Mode
+
+Saat ini default mobile navigation menggunakan:
+
+sidebar
+
+Ubah default menjadi:
+
+navbar
+
+Requirements:
+
+* navbar menjadi default state awal untuk seluruh user.
+* state awal provider harus mengikuti navbar.
+* jika nanti user mengubah mode nav, perubahan tersebut juga disimpan secara lokal.
+* saat aplikasi dibuka kembali, mode terakhir yang dipilih user harus dipulihkan dari local storage.
+
+Contoh:
+
+Default pertama kali:
+navbar
+
+User mengganti:
+sidebar
+
+Tutup aplikasi.
+
+Buka kembali:
+sidebar tetap aktif.
+
+Jika belum ada preferensi tersimpan:
+gunakan navbar sebagai default.
