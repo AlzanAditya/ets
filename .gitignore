@@ -3,8 +3,5 @@ dist
 .qwen
 .obsidian
 
-.env*
-.env
-.env.local
-.env.*.local
+.env.example
 *.log
