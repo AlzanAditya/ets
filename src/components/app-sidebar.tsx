@@ -60,17 +60,18 @@ export function AppSidebar({
   user?: UserProfile
 }) {
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="h-[45px] data-[slot=sidebar-menu-button]:p-1!"
+              tooltip={brand.title}
+              className="h-[45px] data-[slot=sidebar-menu-button]:p-1! group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0!"
             >
               <a
                 href={brand.href}
-                className="items-center"
+                className="flex items-center gap-2"
                 onClick={(event) => {
                   event.preventDefault()
                   onNavigate?.(brand.href, brand.title)
@@ -80,10 +81,10 @@ export function AppSidebar({
                   <img
                     src={brand.logoSrc}
                     alt={brand.logoAlt ?? brand.title}
-                    className="h-16 w-16 shrink-0 object-contain brightness-0 invert"
+                    className="h-8 w-8 shrink-0 object-contain brightness-0 invert"
                   />
                 ) : null}
-                <span className="flex flex-col text-[0.6rem] font-medium uppercase leading-tight tracking-[0.05em] text-white/40">
+                <span className="flex flex-col text-[0.6rem] font-medium uppercase leading-tight tracking-[0.05em] text-white/40 group-data-[collapsible=icon]:hidden">
                   {(brand.tagline ?? [brand.title]).map((line) => (
                     <span key={line}>{line}</span>
                   ))}
@@ -116,7 +117,7 @@ export function AppSidebar({
           className="mt-auto"
         />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="md:hidden">
         <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>

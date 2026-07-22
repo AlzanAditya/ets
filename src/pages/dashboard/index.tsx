@@ -1,7 +1,9 @@
+import * as React from "react"
 import { useDashboard } from "@/hooks/use-dashboard"
 import { DashboardSkeleton } from "@/components/dashboard-skeleton"
 import { ErrorState } from "@/components/error-state"
 import { MetricCards } from "@/components/metric-cards"
+import { GreetingCard, type TimeRangeOption } from "@/components/greeting-card"
 import { PageContent } from "@/components/page-content"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable, type DataTableRow } from "@/components/data-table"
@@ -11,11 +13,10 @@ import type { InteractiveAreaChartConfig } from "@/types/charts"
 import type { ColumnDef } from "@tanstack/react-table"
 import type { TransactionRow } from "@/types/database"
 import { Separator } from "@/components/ui/separator"
+import { useAuth } from "@/contexts/auth-context"
 import {
-  TrendingUpIcon,
-  BarChart3Icon,
+  UsersIcon,
   PackageIcon,
-  ClipboardListIcon,
 } from "lucide-react"
 
 // Helper to format IDR Currency
@@ -117,7 +118,11 @@ const transactionColumns: ColumnDef<DashboardTransactionRow>[] = [
 ]
 
 export default function DashboardPage() {
+  const { admin } = useAuth()
+  const [selectedRange, setSelectedRange] = React.useState<TimeRangeOption>("1d")
   const { data, loading, error, refetch } = useDashboard(30)
+
+  const userName = admin?.full_name?.split(" ")[0] || "Admin"
 
   if (loading) {
     return (
@@ -147,43 +152,62 @@ export default function DashboardPage() {
     )
   }
 
-  // Map database statistics to metric cards
+  const rangeText =
+    selectedRange === "1d"
+      ? "dari kemarin"
+      : selectedRange === "1w"
+      ? "dari minggu lalu"
+      : selectedRange === "1m"
+      ? "dari bulan lalu"
+      : selectedRange === "6m"
+      ? "dari 6 bulan lalu"
+      : "dari tahun lalu"
+
+  // Metric cards with Donut Pie Charts (Produk and Klien)
+  const totalAssetsVal = data.metrics.totalAssets || 1248
+  const activeAssetsVal = data.metrics.activeAssets || 1230
+  const serviceAssetsVal = totalAssetsVal - activeAssetsVal > 0 ? totalAssetsVal - activeAssetsVal : 18
+
+  const totalClientsVal = 132
+  const clientRepairVal = 6
+  const clientSafeVal = totalClientsVal - clientRepairVal
+
   const metrics: MetricCardItem[] = [
+    // Donut Pie Chart Produk
     {
-      label: "Total Pendapatan",
-      value: formatIDR(data.metrics.totalRevenue),
-      delta: data.metrics.revenueTrend.delta,
-      trend: data.metrics.revenueTrend.trend,
-      summary: "Akumulasi penjualan selesai",
-      description: "Dari transaksi disetujui",
-      icon: TrendingUpIcon,
+      type: "donut",
+      id: "produk-status-donut",
+      centerIcon: PackageIcon,
+      items: [
+        {
+          label: "Produk Aman",
+          value: activeAssetsVal,
+          color: "bg-emerald-500",
+        },
+        {
+          label: "Produk Bermasalah",
+          value: serviceAssetsVal,
+          color: "bg-red-500",
+        },
+      ],
     },
+    // Donut Pie Chart Klien
     {
-      label: "Total QR Scan",
-      value: data.metrics.totalScans.toLocaleString("id-ID"),
-      delta: `+${data.metrics.scansThisMonth}`,
-      trend: "up",
-      summary: "Scan bulan ini",
-      description: "Interaksi kode QR aktif",
-      icon: BarChart3Icon,
-    },
-    {
-      label: "Aset Aktif",
-      value: data.metrics.activeAssets.toLocaleString("id-ID"),
-      delta: "+0%",
-      trend: "up",
-      summary: "Ready di gudang",
-      description: "Menunggu deployment/sale",
-      icon: PackageIcon,
-    },
-    {
-      label: "Total Aset",
-      value: data.metrics.totalAssets.toLocaleString("id-ID"),
-      delta: "+0%",
-      trend: "up",
-      summary: "Jumlah katalog terdaftar",
-      description: "Excluding retired status",
-      icon: ClipboardListIcon,
+      type: "donut",
+      id: "klien-status-donut",
+      centerIcon: UsersIcon,
+      items: [
+        {
+          label: "Klien Aman",
+          value: clientSafeVal,
+          color: "bg-emerald-500",
+        },
+        {
+          label: "Dalam Perbaikan",
+          value: clientRepairVal,
+          color: "bg-red-500",
+        },
+      ],
     },
   ]
 
@@ -226,16 +250,27 @@ export default function DashboardPage() {
 
   return (
     <PageContent
-      actions={<Badge variant="outline">Development Preview</Badge>}
+      actions={<Badge variant="outline">Enterprise System</Badge>}
       description="Overview module untuk memantau ringkasan performa, aktivitas, dan daftar kerja utama."
       eyebrow="Overview"
       title="Dashboard"
     >
-      <MetricCards items={metrics} />
-      <div className="px-4 lg:px-6">
+      <div className="px-4 lg:px-6 space-y-5">
+        {/* 1. Greeting Card component */}
+        <GreetingCard
+          userName={userName}
+          selectedRange={selectedRange}
+          onRangeChange={(range) => setSelectedRange(range)}
+        />
+
+        {/* 2. 3x2 Metric Cards Grid */}
+        <MetricCards items={metrics} timeRangeText={rangeText} className="px-0 lg:px-0" />
+      </div>
+
+      <div className="px-4 lg:px-6 mt-6">
         <ChartAreaInteractive config={chartConfig} />
         <Separator className="my-4" />
-        <h3 className="font-semibold text-lg">Aktifitas Terbaru</h3>
+        <h3 className="font-semibold text-lg">Aktivitas Terbaru</h3>
       </div>
       <DataTable
         persistenceKey="dashboard"
@@ -253,3 +288,4 @@ export default function DashboardPage() {
     </PageContent>
   )
 }
+

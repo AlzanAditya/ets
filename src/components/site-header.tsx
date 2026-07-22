@@ -1,9 +1,11 @@
 import * as React from "react"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
+import { useBreadcrumb } from "@/contexts/breadcrumb-context"
 import { useNavMode } from "@/contexts/nav-mode-context"
 import { cn } from "@/lib/utils"
+import { appNavigation } from "@/config/navigation"
+import { HeaderUser } from "@/components/header-user"
 
 function getBreadcrumbs(
   activeUrl: string,
@@ -26,41 +28,6 @@ function getBreadcrumbs(
   })
 }
 
-// ── Mobile nav-mode pill ─────────────────────────────────────────────────────
-
-/**
- * Purpose: single cycling toggle visible only on mobile.
- * Displays the current navMode; clicking cycles to the next mode.
- */
-function MobileNavToggle() {
-  const { navMode, setNavMode } = useNavMode()
-
-  const handleToggleNavMode = () => {
-    setNavMode(navMode === "navbar" ? "sidebar" : "navbar")
-  }
-
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      onClick={handleToggleNavMode}
-      className="md:hidden h-6 px-2 text-[12px] font-normal leading-none"
-      aria-label={`Mode navigasi aktif: ${navMode}. Klik untuk berganti.`}
-    >
-      {navMode}
-    </Button>
-  )
-}
-
-// ── SiteHeader ────────────────────────────────────────────────────────────────
-
-/**
- * Purpose: render the page header with sidebar trigger, breadcrumbs, and optional action slot.
- * Responsibilities: derive breadcrumb items from the active URL and labels.
- * Expected props: active URL, optional label map, navigation callback, and optional actions node.
- * Usage notes: generic fallback labels allow standalone development rendering.
- */
 export function SiteHeader({
   activeUrl = "/dashboard",
   breadcrumbLabels = { dashboard: "Dashboard" },
@@ -74,49 +41,53 @@ export function SiteHeader({
   onNavigate?: (url: string, title: string) => void
   actions?: React.ReactNode
 }) {
-  const { navMode } = useNavMode()
+  const { subLabel } = useBreadcrumb()
+  const { sidebarEnabled } = useNavMode()
   const breadcrumbs = getBreadcrumbs(activeUrl, breadcrumbLabels, defaultUrl)
+
+  // If dynamic subLabel is set, replace the last breadcrumb segment
+  if (subLabel && breadcrumbs.length > 1) {
+    breadcrumbs[breadcrumbs.length - 1].label = subLabel
+  }
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        {/* SidebarTrigger: hidden on mobile when navbar mode is active */}
-        <SidebarTrigger
-          className={cn(
-            "-ml-1 transition-opacity",
-            navMode === "navbar" && "max-md:pointer-events-none max-md:opacity-0 max-md:w-0 max-md:overflow-hidden max-md:mr-0 max-md:-ml-0"
-          )}
-        />
-        <Separator
-          orientation="vertical"
-          className={cn(
-            "mx-2 data-[orientation=vertical]:h-8 transition-opacity",
-            navMode === "navbar" && "max-md:hidden"
-          )}
-        />
+        {sidebarEnabled && (
+          <>
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="mx-2 data-[orientation=vertical]:h-8"
+            />
+          </>
+        )}
         <nav aria-label="Breadcrumb" className="flex items-center gap-1 font-medium">
           {breadcrumbs.map((breadcrumb, index) => {
             const isLast = index === breadcrumbs.length - 1
+            const isSub = index > 0
 
             return (
               <div key={breadcrumb.url} className="flex items-center gap-1">
                 {index > 0 ? (
-                  <span className="text-muted-foreground/60">/</span>
+                  <span className="text-muted-foreground/30 font-light">/</span>
                 ) : null}
                 {isLast ? (
-                  <span
-                    className={
-                      index === 0
-                        ? "font-medium text-foreground"
-                        : "font-medium text-muted-foreground"
-                    }
-                  >
-                    {breadcrumb.label}
-                  </span>
+                  <div className="flex flex-col items-center">
+                    <span
+                      className={cn(
+                        isSub
+                          ? "font-semibold text-foreground/80 text-xs md:text-sm"
+                          : "font-medium text-foreground text-sm md:text-base"
+                      )}
+                    >
+                      {breadcrumb.label}
+                    </span>
+                  </div>
                 ) : (
                   <button
                     type="button"
-                    className="font-semibold text-foreground transition-colors hover:text-primary"
+                    className="font-semibold text-foreground text-sm md:text-base transition-colors hover:text-primary"
                     onClick={() => onNavigate?.(breadcrumb.url, breadcrumb.label)}
                   >
                     {breadcrumb.label}
@@ -126,10 +97,10 @@ export function SiteHeader({
             )
           })}
         </nav>
-        {/* Right side: actions + mobile nav toggle */}
+        {/* Right side: actions + profile icon */}
         <div className="ml-auto flex items-center gap-2">
-          <MobileNavToggle />
           {actions}
+          <HeaderUser user={appNavigation.user} />
         </div>
       </div>
     </header>

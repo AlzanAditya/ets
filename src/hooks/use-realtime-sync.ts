@@ -65,13 +65,15 @@ export function useRealtimeSync() {
       )
       .subscribe()
 
-    // 2. Products channel: listen to UPDATE events only
+    // 2. Products channel: listen to all events (INSERT, UPDATE, DELETE)
     const productsChannel = supabase
       .channel('app-products')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'products' },
+        { event: '*', schema: 'public', table: 'products' },
         (payload) => {
+          const eventType = payload.eventType
+          const oldRow = payload.old as Partial<ProductRow>
           const newRow = payload.new as ProductRow
 
           // Invalidate product counts and dashboard metrics
@@ -88,9 +90,17 @@ export function useRealtimeSync() {
             const queryKey = query.queryKey
             queryClient.setQueryData(queryKey, (oldData: any) => {
               if (!Array.isArray(oldData)) return oldData
-              return oldData.map((item: any) =>
-                item.product_id === newRow.product_id ? { ...item, ...newRow } : item
-              )
+              
+              if (eventType === 'INSERT') {
+                return [newRow, ...oldData]
+              } else if (eventType === 'UPDATE') {
+                return oldData.map((item: any) =>
+                  item.product_id === newRow.product_id ? { ...item, ...newRow } : item
+                )
+              } else if (eventType === 'DELETE') {
+                return oldData.filter((item: any) => item.product_id !== oldRow.product_id)
+              }
+              return oldData
             })
           }
         }

@@ -75,32 +75,43 @@ export function NavPlanSection({
 }) {
   const [showAll, setShowAll] = useState(false)
   const hasMoreItems = items.length > 3
-  const visibleItems = showAll || !hasMoreItems ? items : items.slice(0, 3)
 
   return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
+    <SidebarGroup>
+      <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">{label}</SidebarGroupLabel>
       <SidebarMenu>
-        {visibleItems.map((item) => (
-          <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild isActive={activeUrl === item.url}>
-              <a
-                href={item.url}
-                onClick={(event) => {
-                  event.preventDefault()
-                  onNavigate?.(item.url, item.name)
-                }}
+        {items.map((item, index) => {
+          const isHiddenInExpanded = !showAll && hasMoreItems && index >= 3
+          return (
+            <SidebarMenuItem
+              key={item.name}
+              className={isHiddenInExpanded ? "hidden group-data-[collapsible=icon]:block" : ""}
+            >
+              <SidebarMenuButton
+                asChild
+                isActive={activeUrl === item.url}
+                tooltip={item.name}
               >
-                {item.icon}
-                <span className="flex-1">{item.name}</span>
-                <PlanBadge plan={item.plan} />
-                <MenuBadge badge={item.badge} variant={item.badgeVariant} />
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
+                <a
+                  href={item.url}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    onNavigate?.(item.url, item.name)
+                  }}
+                >
+                  {item.icon}
+                  <span className="flex-1 group-data-[collapsible=icon]:hidden">{item.name}</span>
+                  <span className="group-data-[collapsible=icon]:hidden flex items-center gap-1">
+                    <PlanBadge plan={item.plan} />
+                    <MenuBadge badge={item.badge} variant={item.badgeVariant} />
+                  </span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )
+        })}
         {hasMoreItems ? (
-          <SidebarMenuItem>
+          <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
             <SidebarMenuButton
               className="text-sidebar-foreground/70 hover:bg-white/10 hover:text-white"
               onClick={() => setShowAll((value) => !value)}

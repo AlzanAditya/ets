@@ -123,13 +123,14 @@ function NavItem({ title, icon: Icon, active, onClick }: NavItemProps) {
  * Usage notes: only visible on mobile (md:hidden); only rendered when navMode === "navbar".
  */
 export function MobileNavbar() {
-  const { navMode, topRowVisible, toggleTopRow } = useNavMode()
+  const { navbarEnabled, topRowVisible, toggleTopRow } = useNavMode()
   const navigate = useNavigate()
   const location = useLocation()
   const kbHeight = useKeyboardHeight()
 
-  // Don't render at all in sidebar mode
-  if (navMode !== "navbar") return null
+  if (!navbarEnabled) {
+    return null
+  }
 
   const active = (url: string) =>
     location.pathname === url || (url === "/dashboard" && location.pathname === "/")
@@ -145,7 +146,7 @@ export function MobileNavbar() {
   return (
     <div
       aria-label="Mobile navigation"
-      className="fixed left-0 right-0 z-50 md:hidden select-none"
+      className="fixed left-0 right-0 z-40 md:hidden select-none"
       style={{ bottom: kbHeight }}
     >
       {/* ── Outer shell (position:relative so absolute children are anchored) */}

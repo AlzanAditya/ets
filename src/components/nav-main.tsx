@@ -82,8 +82,8 @@ export function NavMain({
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
         {quickActions.length ? (
-          <SidebarMenu>
-            <SidebarMenuItem className="grid grid-cols-2 gap-2 group-data-[collapsible=icon]:grid-cols-1">
+          <SidebarMenu className="group-data-[collapsible=icon]:hidden">
+            <SidebarMenuItem className="grid grid-cols-2 gap-2">
               {quickActions.map((action) => (
                 <SidebarMenuButton
                   asChild
@@ -102,8 +102,8 @@ export function NavMain({
                       onNavigate?.(action.url, action.title)
                     }}
                   >
-                    {action.icon ?? <PlusIcon />}
-                    <span>{action.label}</span>
+                    {action.icon ?? <PlusIcon className="size-4 shrink-0" />}
+                    <span className="group-data-[collapsible=icon]:hidden">{action.label}</span>
                   </a>
                 </SidebarMenuButton>
               ))}
@@ -126,9 +126,11 @@ export function NavMain({
                   }}
                 >
                   {item.icon}
-                  <span className="flex-1">{item.title}</span>
-                  <PlanBadge plan={item.plan} />
-                  <MenuBadge badge={item.badge} variant={item.badgeVariant} />
+                  <span className="flex-1 group-data-[collapsible=icon]:hidden">{item.title}</span>
+                  <span className="group-data-[collapsible=icon]:hidden flex items-center gap-1">
+                    <PlanBadge plan={item.plan} />
+                    <MenuBadge badge={item.badge} variant={item.badgeVariant} />
+                  </span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>

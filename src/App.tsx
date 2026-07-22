@@ -21,6 +21,8 @@ import { AnimationProvider } from "@/contexts/animation-context"
 import { TableDensityProvider } from "@/contexts/table-density-context"
 import { NavModeProvider, useNavMode } from "@/contexts/nav-mode-context"
 import { useTransactionStats } from "@/hooks/use-transactions"
+import { BreadcrumbProvider } from "@/contexts/breadcrumb-context"
+import { cn } from "@/lib/utils"
 import LoginPage from "@/pages/auth/login"
 import ClientPage from "@/pages/client"
 import DashboardPage from "@/pages/dashboard"
@@ -35,9 +37,8 @@ import BranchesPage from "@/pages/branches"
 import ImagesPage from "@/pages/images"
 import QrStatisticsPage from "@/pages/qr-statistics"
 import { useRealtimeSync } from "@/hooks/use-realtime-sync"
-import { cn } from "@/lib/utils"
 
-// ─── Inner layout content (reads NavModeContext) ──────────────────────────────
+// ─── Inner layout content ──────────────────────────────
 
 function AppLayoutContent({
   activeUrl,
@@ -48,7 +49,7 @@ function AppLayoutContent({
   mainItems: typeof appNavigation.mainItems
   handleNavigate: (url: string) => void
 }) {
-  const { navMode } = useNavMode()
+  const { sidebarEnabled, navbarEnabled } = useNavMode()
 
   return (
     <SidebarProvider
@@ -59,17 +60,19 @@ function AppLayoutContent({
         } as React.CSSProperties
       }
     >
-      <AppSidebar
-        activeUrl={activeUrl}
-        brand={appNavigation.brand}
-        mainItems={mainItems}
-        onNavigate={handleNavigate}
-        planSections={appNavigation.planSections}
-        quickActions={appNavigation.quickActions}
-        secondaryItems={appNavigation.secondaryItems}
-        user={appNavigation.user}
-        variant="inset"
-      />
+      {sidebarEnabled && (
+        <AppSidebar
+          activeUrl={activeUrl}
+          brand={appNavigation.brand}
+          mainItems={mainItems}
+          onNavigate={handleNavigate}
+          planSections={appNavigation.planSections}
+          quickActions={appNavigation.quickActions}
+          secondaryItems={appNavigation.secondaryItems}
+          user={appNavigation.user}
+          variant="inset"
+        />
+      )}
       <SidebarInset>
         <SiteHeader
           activeUrl={activeUrl}
@@ -79,15 +82,10 @@ function AppLayoutContent({
         />
         {/* Main content area — adds bottom padding on mobile when navbar is active
             so page content is never obscured by the two-row navbar (~96px)        */}
-        <div
-          className={cn(
-            "flex min-w-0 flex-1 flex-col",
-            navMode === "navbar" ? "max-md:pb-24" : ""
-          )}
-        >
+        <div className={cn("flex min-w-0 flex-1 flex-col", navbarEnabled && "max-md:pb-24")}>
           <Outlet />
         </div>
-        {/* Mobile bottom navbar — only renders when navMode === "navbar" */}
+        {/* Mobile bottom navbar */}
         <MobileNavbar />
       </SidebarInset>
     </SidebarProvider>
@@ -145,34 +143,41 @@ export default function App() {
       <AuthProvider>
         <AnimationProvider>
           <TableDensityProvider>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={<LoginPage />} />
+            <BreadcrumbProvider>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<LoginPage />} />
 
-              {/* Protected routes */}
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard"      element={<DashboardPage />} />
-                <Route path="products"       element={<ProductsPage />} />
-                <Route path="tax"            element={<TaxPage />} />
-                <Route path="ai-agent"       element={<AIAgentPage />} />
-                <Route path="branches"       element={<BranchesPage />} />
-                <Route path="images"         element={<ImagesPage />} />
-                <Route path="qr-statistics"  element={<QrStatisticsPage />} />
-                <Route path="transaction"    element={<TransactionPage />} />
-                <Route path="invoice"        element={<InvoicePage />} />
-                <Route path="client"         element={<ClientPage />} />
-                <Route path="reports"        element={<ReportsPage />} />
-                <Route path="settings"       element={<SettingsPage />} />
-                <Route path="*"              element={<Navigate to="/dashboard" replace />} />
-              </Route>
-            </Routes>
+                {/* Protected routes */}
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Navigate to="/dashboard" replace />} />
+                  <Route path="dashboard"       element={<DashboardPage />} />
+                  <Route path="products"        element={<ProductsPage />} />
+                  <Route path="products/add"    element={<ProductsPage />} />
+                  <Route path="products/:id"    element={<ProductsPage />} />
+                  <Route path="tax"             element={<TaxPage />} />
+                  <Route path="ai-agent"        element={<AIAgentPage />} />
+                  <Route path="branches"        element={<BranchesPage />} />
+                  <Route path="images"          element={<ImagesPage />} />
+                  <Route path="qr-statistics"   element={<QrStatisticsPage />} />
+                  <Route path="transaction"     element={<TransactionPage />} />
+                  <Route path="transaction/add" element={<TransactionPage />} />
+                  <Route path="invoice"         element={<InvoicePage />} />
+                  <Route path="client"          element={<ClientPage />} />
+                  <Route path="client/add"      element={<ClientPage />} />
+                  <Route path="client/:id"      element={<ClientPage />} />
+                  <Route path="reports"         element={<ReportsPage />} />
+                  <Route path="settings"        element={<SettingsPage />} />
+                  <Route path="*"               element={<Navigate to="/dashboard" replace />} />
+                </Route>
+              </Routes>
+            </BreadcrumbProvider>
           </TableDensityProvider>
         </AnimationProvider>
       </AuthProvider>

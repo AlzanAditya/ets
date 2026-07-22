@@ -39,11 +39,13 @@ import {
   ChevronRightIcon,
   ChevronsLeftIcon,
   ChevronsRightIcon,
-  Columns3Icon,
   GripVerticalIcon,
   PlusIcon,
   SearchIcon,
   MoreHorizontal,
+  FilterIcon,
+  XIcon,
+  EyeIcon,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -55,7 +57,11 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -76,7 +82,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useTableDensity } from "@/contexts/table-density-context";
 import { DENSITY_CONFIG } from "@/lib/table-density";
@@ -187,27 +193,43 @@ function DraggableRow<TData extends DataTableRow>({
     disabled: true,
   });
 
-  const timerRef = React.useRef<any>(null);
+  const isSwipingRef = React.useRef(false);
+  const touchPosRef = React.useRef({ x: 0, y: 0 });
 
   function handleClick(e: React.MouseEvent<HTMLTableRowElement>) {
+    if (isSwipingRef.current) {
+      isSwipingRef.current = false;
+      return;
+    }
     if (isInteractiveTarget(e.target)) return;
     onRowClick?.(row.original);
   }
 
-  function handleTouchStart() {
-    timerRef.current = setTimeout(() => {
-      // Find the actions button in this row and trigger it
-      const rowEl = document.getElementById(row.id);
-      const actionsBtn = rowEl?.querySelector(
-        '[role="menuitem"], button[aria-haspopup="menu"]',
-      ) as HTMLElement;
-      if (actionsBtn) actionsBtn.click();
-    }, 300);
+  function handleTouchStart(e: React.TouchEvent<HTMLTableRowElement>) {
+    isSwipingRef.current = false;
+    if (e.touches[0]) {
+      touchPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  }
+
+  function handleTouchMove(e: React.TouchEvent<HTMLTableRowElement>) {
+    if (e.touches[0]) {
+      const dx = Math.abs(e.touches[0].clientX - touchPosRef.current.x);
+      const dy = Math.abs(e.touches[0].clientY - touchPosRef.current.y);
+      if (dx > 6 || dy > 6) {
+        isSwipingRef.current = true;
+      }
+    }
   }
 
   function handleTouchEnd() {
-    if (timerRef.current) clearTimeout(timerRef.current);
+    setTimeout(() => {
+      isSwipingRef.current = false;
+    }, 150);
   }
+
+  const isEven = row.index % 2 === 0;
+  const zebraClass = isEven ? "bg-background" : "bg-muted/25 dark:bg-muted/15";
 
   return (
     <TableRow
@@ -217,6 +239,7 @@ function DraggableRow<TData extends DataTableRow>({
       ref={setNodeRef}
       className={cn(
         "relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 transition-colors hover:bg-muted/50",
+        zebraClass,
         onRowClick && "cursor-pointer",
       )}
       style={{
@@ -225,24 +248,81 @@ function DraggableRow<TData extends DataTableRow>({
       }}
       onClick={handleClick}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        const actionsBtn = document
-          .getElementById(row.id)
-          ?.querySelector('button[aria-haspopup="menu"]') as HTMLElement;
-        if (actionsBtn) actionsBtn.click();
-      }}
     >
       {row.getVisibleCells().map((cell) => (
         <TableCell
           key={cell.id}
-          className={cn(densityConfig.cellPaddingX, densityConfig.cellPaddingY)}
+          className={cn(
+            densityConfig.cellPaddingX,
+            densityConfig.cellPaddingY,
+            (cell.column.id === "select" || cell.column.id === "drag") && "w-10 min-w-10 max-w-10 p-0 text-center"
+          )}
         >
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
         </TableCell>
       ))}
     </TableRow>
+  );
+}
+
+function SortableColumnItem({
+  id,
+  label,
+  isVisible,
+  onToggle,
+}: {
+  id: string;
+  label: string;
+  isVisible: boolean;
+  onToggle: (visible: boolean) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-muted/60 transition-colors select-none group",
+        isDragging && "opacity-60 bg-accent z-20 shadow-xs"
+      )}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-muted-foreground/50 group-hover:text-muted-foreground p-0.5 rounded touch-none hover:bg-muted shrink-0"
+        title="Geser untuk mengatur urutan kolom"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVerticalIcon className="size-3.5" />
+      </button>
+      <label
+        className="flex items-center gap-2 cursor-pointer truncate flex-1 py-0.5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Checkbox
+          checked={isVisible}
+          onCheckedChange={(checked) => onToggle(!!checked)}
+          className="size-3.5 rounded shrink-0"
+        />
+        <span className="capitalize truncate text-foreground/90 font-medium">{label}</span>
+      </label>
+    </div>
   );
 }
 
@@ -370,7 +450,10 @@ export function DataTable<TData extends DataTableRow>({
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
     const prefs = loadPreferences();
-    return prefs.columnVisibility || {};
+    return {
+      select: false,
+      ...prefs.columnVisibility,
+    };
   });
 
   React.useEffect(() => {
@@ -409,6 +492,25 @@ export function DataTable<TData extends DataTableRow>({
     };
   });
 
+  const [columnOrder, setColumnOrder] = React.useState<string[]>(() => {
+    return resolvedColumns.map((c) => c.id || (c as any).accessorKey || "").filter(Boolean);
+  });
+
+  React.useEffect(() => {
+    const colIds = resolvedColumns.map((c) => c.id || (c as any).accessorKey || "").filter(Boolean);
+    setColumnOrder((prev) => {
+      if (prev.length === 0) return colIds;
+      const existing = prev.filter((id) => colIds.includes(id));
+      const newCols = colIds.filter((id) => !existing.includes(id));
+      if (existing.includes("actions")) {
+        const actionsIdx = existing.indexOf("actions");
+        const beforeActions = existing.slice(0, actionsIdx);
+        return [...beforeActions, ...newCols, "actions"];
+      }
+      return [...existing, ...newCols];
+    });
+  }, [resolvedColumns]);
+
   React.useEffect(() => {
     savePreferences({ pageSize: pagination.pageSize });
   }, [pagination.pageSize, savePreferences]);
@@ -417,6 +519,21 @@ export function DataTable<TData extends DataTableRow>({
     useSensor(MouseSensor, {}),
     useSensor(TouchSensor, {}),
     useSensor(KeyboardSensor, {}),
+  );
+
+  const columnSensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 3,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {})
   );
 
   React.useEffect(() => {
@@ -438,6 +555,7 @@ export function DataTable<TData extends DataTableRow>({
       columnFilters,
       globalFilter,
       pagination,
+      columnOrder,
     },
     getRowId: (row) => String(row.id),
     enableRowSelection: true,
@@ -446,6 +564,7 @@ export function DataTable<TData extends DataTableRow>({
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -454,6 +573,36 @@ export function DataTable<TData extends DataTableRow>({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
+
+  const allLeafColumns = table.getAllLeafColumns();
+
+  const reorderableColumns = allLeafColumns.filter(
+    (col) => col.getCanHide() && !["drag", "select", "actions"].includes(col.id)
+  );
+
+  const reorderableColIds = React.useMemo(
+    () => reorderableColumns.map((c) => c.id),
+    [reorderableColumns]
+  );
+
+  function handleColumnDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (active && over && active.id !== over.id) {
+      const oldIndex = reorderableColIds.indexOf(String(active.id));
+      const newIndex = reorderableColIds.indexOf(String(over.id));
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newReorderedIds = arrayMove(reorderableColIds, oldIndex, newIndex);
+        const currentOrder = table.getState().columnOrder.length > 0
+          ? table.getState().columnOrder
+          : allLeafColumns.map((c) => c.id);
+
+        const frontSpecial = currentOrder.filter((id) => ["drag", "select"].includes(id));
+        const endSpecial = currentOrder.filter((id) => ["actions"].includes(id));
+
+        setColumnOrder([...frontSpecial, ...newReorderedIds, ...endSpecial]);
+      }
+    }
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -573,39 +722,116 @@ export function DataTable<TData extends DataTableRow>({
       className="w-full flex-col justify-start gap-4"
     >
       <div className="flex items-center justify-between px-4 lg:px-6">
-        {/* Left: tabs (desktop) + view selector (mobile) */}
-        <div className="flex items-center gap-3">
-          <Label htmlFor="view-selector" className="sr-only">
-            View
-          </Label>
-          <Select value={currentActiveTab} onValueChange={handleTabChange}>
-            <SelectTrigger
-              className="flex w-fit @4xl/main:hidden"
-              size="sm"
-              id="view-selector"
-            >
-              <SelectValue placeholder="Select a view" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {tabs.map((tab) => (
-                  <SelectItem key={tab.value} value={tab.value}>
-                    {tab.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <TabsList className="hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 @4xl/main:flex">
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value}>
-                {tab.label}
-                {tab.badge ? (
-                  <Badge variant="secondary">{tab.badge}</Badge>
-                ) : null}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        {/* Left: View selector & Filter Dropdown (top-left button) */}
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-medium border-border/80 px-2.5">
+                <FilterIcon className="size-3.5 text-emerald-500" />
+                <span>
+                  {tabs.find((t) => t.value === currentActiveTab)?.label || "Tampilan & Filter"}
+                </span>
+                <ChevronDownIcon className="size-3 text-muted-foreground opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-52 rounded-xl">
+              {/* Views section */}
+              <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Tampilan / Tab
+              </DropdownMenuLabel>
+              {tabs.map((tab) => (
+                <DropdownMenuCheckboxItem
+                  key={tab.value}
+                  checked={currentActiveTab === tab.value}
+                  onSelect={(e) => e.preventDefault()}
+                  onCheckedChange={() => handleTabChange(tab.value)}
+                  className="text-xs cursor-pointer"
+                >
+                  {tab.label}
+                  {tab.badge ? (
+                    <span className="ml-auto text-[10px] bg-muted px-1.5 py-0.5 rounded-full font-semibold">
+                      {tab.badge}
+                    </span>
+                  ) : null}
+                </DropdownMenuCheckboxItem>
+              ))}
+
+              <DropdownMenuSeparator />
+
+              {/* Column Filters Section */}
+              <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Filter Kolom
+              </DropdownMenuLabel>
+              {table
+                .getAllColumns()
+                .filter(
+                  (col) =>
+                    !["select", "drag", "actions"].includes(col.id) &&
+                    col.getCanFilter()
+                )
+                .map((col) => {
+                  const uniqueValuesMap = col.getFacetedUniqueValues();
+                  const uniqueValues = Array.from(uniqueValuesMap.keys()).filter(
+                    (v) => v !== null && v !== undefined && String(v).trim() !== ""
+                  );
+
+                  // Label formatting for columns
+                  let colLabel = col.id.replace(/_/g, " ");
+                  if (col.id === "current_client_name" || col.id === "klien_pemegang" || col.id === "pemegang") {
+                    colLabel = "pemegang";
+                  } else if (col.id === "cabang" || col.id === "branch_name") {
+                    colLabel = "cabang";
+                  } else if (col.id === "status") {
+                    colLabel = "status";
+                  } else if (col.id === "kategori" || col.id === "category_name") {
+                    colLabel = "kategori";
+                  }
+
+                  if (uniqueValues.length === 0) return null;
+
+                  const currentFilterVal = col.getFilterValue();
+
+                  return (
+                    <DropdownMenuSub key={col.id}>
+                      <DropdownMenuSubTrigger className="capitalize text-xs cursor-pointer">
+                        <span>{colLabel} &gt;</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="w-52 max-h-60 overflow-y-auto rounded-xl">
+                        <DropdownMenuItem
+                          onSelect={(e) => e.preventDefault()}
+                          onClick={() => col.setFilterValue(undefined)}
+                          className="text-xs text-muted-foreground italic cursor-pointer"
+                        >
+                          Semua {colLabel}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {uniqueValues.map((rawVal) => {
+                          const valStr = String(rawVal);
+                          const isChecked = currentFilterVal === rawVal || currentFilterVal === valStr;
+                          return (
+                            <DropdownMenuCheckboxItem
+                              key={valStr}
+                              checked={isChecked}
+                              onSelect={(e) => e.preventDefault()}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  col.setFilterValue(rawVal);
+                                } else {
+                                  col.setFilterValue(undefined);
+                                }
+                              }}
+                              className="text-xs capitalize cursor-pointer"
+                            >
+                              {valStr}
+                            </DropdownMenuCheckboxItem>
+                          );
+                        })}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  );
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Right: search + column toggle + export + add */}
@@ -624,45 +850,52 @@ export function DataTable<TData extends DataTableRow>({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Columns3Icon data-icon="inline-start" />
-                Kolom
-                <ChevronDownIcon data-icon="inline-end" />
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-8 border-border/80 shrink-0"
+                title="Visibilitas & Urutan Kolom"
+                aria-label="Visibilitas & Urutan Kolom"
+              >
+                <EyeIcon className="size-4 text-white" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-56 max-h-[300px] overflow-y-auto"
+              className="w-60 max-h-[380px] overflow-y-auto p-2 rounded-xl"
             >
-              {table
-                .getAllColumns()
-                .filter(
-                  (column) =>
-                    column.getCanHide() &&
-                    !["drag", "select", "actions"].includes(column.id)
-                )
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id.replace(/_/g, " ")}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
+              <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
+                Atur Urutan & Visibilitas
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="my-1" />
+
+              <DndContext
+                sensors={columnSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleColumnDragEnd}
+              >
+                <SortableContext
+                  items={reorderableColIds}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="flex flex-col gap-0.5">
+                    {reorderableColumns.map((column) => (
+                      <SortableColumnItem
+                        key={column.id}
+                        id={column.id}
+                        label={column.id.replace(/_/g, " ")}
+                        isVisible={column.getIsVisible()}
+                        onToggle={(value) => column.toggleVisibility(value)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+
               {(() => {
-                const specialCols = table
-                  .getAllColumns()
-                  .filter(
-                    (column) =>
-                      column.getCanHide() &&
-                      ["drag", "select", "actions"].includes(column.id)
-                  );
+                const specialCols = allLeafColumns.filter((column) =>
+                  ["drag", "select", "actions"].includes(column.id)
+                );
 
                 if (specialCols.length === 0) return null;
 
@@ -674,18 +907,30 @@ export function DataTable<TData extends DataTableRow>({
 
                 return (
                   <>
-                    <DropdownMenuSeparator />
-                    {specialCols.map((column) => (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {specialLabels[column.id] ?? column.id}
-                      </DropdownMenuCheckboxItem>
-                    ))}
+                    <DropdownMenuSeparator className="my-1.5" />
+                    <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-0.5">
+                      Kolom Khusus
+                    </DropdownMenuLabel>
+                    <div className="flex flex-col gap-0.5 mt-0.5">
+                      {specialCols.map((column) => (
+                        <div
+                          key={column.id}
+                          className="flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-muted/60 transition-colors select-none"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Checkbox
+                            checked={column.getIsVisible()}
+                            onCheckedChange={(value) =>
+                              column.toggleVisibility(!!value)
+                            }
+                            className="size-3.5 rounded ml-6 shrink-0"
+                          />
+                          <span className="capitalize font-medium text-foreground/90">
+                            {specialLabels[column.id] ?? column.id}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </>
                 );
               })()}
@@ -771,6 +1016,46 @@ export function DataTable<TData extends DataTableRow>({
         }
         return (
           <div className="relative flex flex-col gap-3 overflow-auto px-4 lg:px-6">
+            {columnFilters.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                <span className="text-xs text-emerald-700 dark:text-emerald-300 font-medium flex items-center gap-1 mr-1">
+                  <FilterIcon className="size-3 text-emerald-500" />
+                  Filter Aktif:
+                </span>
+                {columnFilters.map((filter) => {
+                  const col = table.getColumn(filter.id);
+                  let label = filter.id.replace(/_/g, " ");
+                  if (filter.id === "current_client_name" || filter.id === "klien_pemegang" || filter.id === "pemegang") {
+                    label = "pemegang";
+                  }
+                  return (
+                    <Badge
+                      key={filter.id}
+                      variant="secondary"
+                      className="text-xs flex items-center gap-1.5 py-0.5 px-2.5 bg-background text-foreground border border-emerald-500/30 rounded-md shadow-2xs"
+                    >
+                      <span className="capitalize text-muted-foreground">{label}:</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">{String(filter.value)}</span>
+                      <button
+                        onClick={() => col?.setFilterValue(undefined)}
+                        className="ml-1 text-muted-foreground hover:text-destructive transition-colors rounded-full"
+                        title="Hapus filter"
+                      >
+                        <XIcon className="size-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setColumnFilters([])}
+                  className="h-6 text-xs px-2 text-muted-foreground hover:text-destructive"
+                >
+                  Hapus Semua
+                </Button>
+              </div>
+            )}
             <div className="-mx-4 overflow-hidden rounded-none border-y md:mx-0 md:rounded-lg md:border">
               <DndContext
                 collisionDetection={closestCenter}
@@ -791,7 +1076,8 @@ export function DataTable<TData extends DataTableRow>({
                               className={cn(
                                 "border-r last:border-r-0 h-auto",
                                 densityConfig.cellPaddingX,
-                                densityConfig.cellPaddingY
+                                densityConfig.cellPaddingY,
+                                (header.column.id === "select" || header.column.id === "drag") && "w-10 min-w-10 max-w-10 p-0 text-center"
                               )}
                             >
                               {header.isPlaceholder

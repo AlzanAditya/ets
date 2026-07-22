@@ -1,5 +1,5 @@
 import * as React from "react"
-import { SettingsIcon, UserIcon, PaletteIcon, ShieldIcon, SaveIcon, MonitorIcon, MoonIcon, SunIcon, ZapIcon, ZapOffIcon } from "lucide-react"
+import { SettingsIcon, UserIcon, PaletteIcon, ShieldIcon, SaveIcon, MonitorIcon, MoonIcon, SunIcon, ZapIcon, ZapOffIcon, PanelLeftIcon, NavigationIcon, CompassIcon, AlertCircleIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,7 @@ import { useAnimation } from "@/contexts/animation-context"
 import { useTheme } from "next-themes"
 import { supabase } from "@/lib/supabase"
 import { useTableDensity } from "@/contexts/table-density-context"
+import { useNavMode } from "@/contexts/nav-mode-context"
 import { DENSITY_CONFIG, ALL_DENSITIES } from "@/lib/table-density"
 import { AlignJustify, List, Rows3 } from "lucide-react"
 
@@ -33,10 +34,30 @@ export default function SettingsPage() {
   const { animationsEnabled, toggleAnimations } = useAnimation()
   const { theme, setTheme } = useTheme()
   const { density, setDensity } = useTableDensity()
+  const { sidebarEnabled, navbarEnabled, setSidebarEnabled, setNavbarEnabled } = useNavMode()
 
   const [fullName, setFullName] = React.useState(admin?.full_name ?? "")
   const [saving, setSaving] = React.useState(false)
   const [saveMsg, setSaveMsg] = React.useState<string | null>(null)
+  const [navErrorMsg, setNavErrorMsg] = React.useState<string | null>(null)
+
+  const handleToggleSidebar = (checked: boolean) => {
+    setNavErrorMsg(null)
+    const success = setSidebarEnabled(checked)
+    if (!success) {
+      setNavErrorMsg("Tidak dapat menonaktifkan semua opsi. Minimal 1 opsi navigasi (Sidebar atau Navbar) harus tetap aktif.")
+      setTimeout(() => setNavErrorMsg(null), 4000)
+    }
+  }
+
+  const handleToggleNavbar = (checked: boolean) => {
+    setNavErrorMsg(null)
+    const success = setNavbarEnabled(checked)
+    if (!success) {
+      setNavErrorMsg("Tidak dapat menonaktifkan semua opsi. Minimal 1 opsi navigasi (Sidebar atau Navbar) harus tetap aktif.")
+      setTimeout(() => setNavErrorMsg(null), 4000)
+    }
+  }
 
   // Sync form when admin loads
   React.useEffect(() => {
@@ -217,6 +238,88 @@ export default function SettingsPage() {
                 onCheckedChange={toggleAnimations}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* ── Navigation Options ────────────────────────────────────────── */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary/15">
+                <CompassIcon className="size-4 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-semibold">Navigasi Layout</CardTitle>
+                <CardDescription className="text-xs">Atur opsi tampilan Sidebar dan Navbar</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-5">
+            {/* Sidebar option */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-2.5">
+                <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md ${sidebarEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  <PanelLeftIcon className="size-3.5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Navigasi Sidebar</p>
+                    <Badge variant="outline" className={`text-[0.6rem] px-1.5 py-0 ${sidebarEnabled ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-border text-muted-foreground"}`}>
+                      {sidebarEnabled ? "Aktif" : "Nonaktif"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Menu navigasi sidebar di sebelah kiri
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="settings-sidebar-toggle"
+                checked={sidebarEnabled}
+                disabled={sidebarEnabled && !navbarEnabled}
+                onCheckedChange={handleToggleSidebar}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Navbar option */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-2.5">
+                <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md ${navbarEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  <NavigationIcon className="size-3.5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Navigasi Navbar</p>
+                    <Badge variant="outline" className={`text-[0.6rem] px-1.5 py-0 ${navbarEnabled ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-border text-muted-foreground"}`}>
+                      {navbarEnabled ? "Aktif" : "Nonaktif"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Menu navigasi navbar di bagian bawah (mobile)
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="settings-navbar-toggle"
+                checked={navbarEnabled}
+                disabled={navbarEnabled && !sidebarEnabled}
+                onCheckedChange={handleToggleNavbar}
+              />
+            </div>
+
+            {navErrorMsg ? (
+              <div className="flex items-center gap-2 rounded-md bg-destructive/15 p-2.5 text-xs text-destructive">
+                <AlertCircleIcon className="size-4 shrink-0" />
+                <span>{navErrorMsg}</span>
+              </div>
+            ) : (
+              <div className="mt-1 rounded-md bg-muted/40 p-2.5 text-xs text-muted-foreground">
+                <AlertCircleIcon className="mb-0.5 inline size-3 mr-1" />
+                Minimal harus ada 1 opsi navigasi yang tetap aktif.
+              </div>
+            )}
           </CardContent>
         </Card>
 

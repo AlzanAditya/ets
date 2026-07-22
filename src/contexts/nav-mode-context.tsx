@@ -1,44 +1,84 @@
 import * as React from "react"
 
-type NavMode = "navbar" | "sidebar"
-
 interface NavModeContextValue {
-  navMode: NavMode
-  setNavMode: (mode: NavMode) => void
+  sidebarEnabled: boolean
+  navbarEnabled: boolean
+  setSidebarEnabled: (enabled: boolean) => boolean
+  setNavbarEnabled: (enabled: boolean) => boolean
   topRowVisible: boolean
   toggleTopRow: () => void
 }
 
 const NavModeContext = React.createContext<NavModeContextValue>({
-  navMode: "navbar",
-  setNavMode: () => {},
+  sidebarEnabled: true,
+  navbarEnabled: true,
+  setSidebarEnabled: () => true,
+  setNavbarEnabled: () => true,
   topRowVisible: true,
   toggleTopRow: () => {},
 })
 
 /**
- * Purpose: provide global state for mobile nav mode (navbar vs sidebar) and top-row visibility.
- * Responsibilities: store navMode, topRowVisible; expose setters.
- * Usage notes: wrap AppLayout or App root — must be ancestor of SiteHeader and MobileNavbar.
+ * Purpose: provide global state for navigation options (Sidebar and Navbar).
+ * Responsibilities: store sidebarEnabled and navbarEnabled, enforce minimal 1 active rule, expose setters.
+ * Usage notes: wrap AppLayout or App root — must be ancestor of SiteHeader, AppSidebar, and MobileNavbar.
  */
 export function NavModeProvider({ children }: { children: React.ReactNode }) {
-  const [navMode, setNavModeState] = React.useState<NavMode>(() => {
-    const saved = localStorage.getItem("mobile-nav-mode")
-    return (saved === "navbar" || saved === "sidebar") ? saved : "navbar"
+  const [sidebarEnabled, setSidebarEnabledState] = React.useState<boolean>(() => {
+    const saved = localStorage.getItem("sidebar-enabled")
+    if (saved !== null) return saved === "true"
+    return true
   })
+
+  const [navbarEnabled, setNavbarEnabledState] = React.useState<boolean>(() => {
+    const saved = localStorage.getItem("navbar-enabled")
+    if (saved !== null) return saved === "true"
+    return true
+  })
+
   const [topRowVisible, setTopRowVisible] = React.useState(true)
 
-  const setNavMode = React.useCallback((mode: NavMode) => {
-    setNavModeState(mode)
-    localStorage.setItem("mobile-nav-mode", mode)
-  }, [])
+  const setSidebarEnabled = React.useCallback(
+    (enabled: boolean): boolean => {
+      if (!enabled && !navbarEnabled) {
+        // Minimal 1 option must remain enabled
+        return false
+      }
+      setSidebarEnabledState(enabled)
+      localStorage.setItem("sidebar-enabled", String(enabled))
+      return true
+    },
+    [navbarEnabled]
+  )
+
+  const setNavbarEnabled = React.useCallback(
+    (enabled: boolean): boolean => {
+      if (!enabled && !sidebarEnabled) {
+        // Minimal 1 option must remain enabled
+        return false
+      }
+      setNavbarEnabledState(enabled)
+      localStorage.setItem("navbar-enabled", String(enabled))
+      return true
+    },
+    [sidebarEnabled]
+  )
 
   const toggleTopRow = React.useCallback(() => {
     setTopRowVisible((prev) => !prev)
   }, [])
 
   return (
-    <NavModeContext.Provider value={{ navMode, setNavMode, topRowVisible, toggleTopRow }}>
+    <NavModeContext.Provider
+      value={{
+        sidebarEnabled,
+        navbarEnabled,
+        setSidebarEnabled,
+        setNavbarEnabled,
+        topRowVisible,
+        toggleTopRow,
+      }}
+    >
       {children}
     </NavModeContext.Provider>
   )

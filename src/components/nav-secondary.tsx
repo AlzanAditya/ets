@@ -20,10 +20,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { LanguagesIcon, MoonIcon, SunIcon } from "lucide-react"
+import { LanguagesIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react"
 import type { NavigationItem } from "@/types/navigation"
-
-type Theme = "light" | "dark"
+import { useTheme } from "next-themes"
 
 const placeholderItems = [
   {
@@ -31,21 +30,6 @@ const placeholderItems = [
     url: "/settings",
   },
 ] satisfies NavigationItem[]
-
-function getInitialTheme(storageKey: string): Theme {
-  if (typeof window === "undefined") {
-    return "light"
-  }
-
-  const savedTheme = window.localStorage.getItem(storageKey)
-  if (savedTheme === "dark" || savedTheme === "light") {
-    return savedTheme
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light"
-}
 
 /**
  * Purpose: render secondary sidebar navigation and lightweight preferences.
@@ -57,25 +41,14 @@ export function NavSecondary({
   items = placeholderItems,
   activeUrl,
   onNavigate,
-  themeStorageKey = "app-theme",
   ...props
 }: {
   items?: NavigationItem[]
   activeUrl?: string
   onNavigate?: (url: string, title: string) => void
-  themeStorageKey?: string
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   const { isMobile } = useSidebar()
-  const [theme, setTheme] = React.useState<Theme>(() =>
-    getInitialTheme(themeStorageKey)
-  )
-
-  React.useEffect(() => {
-    const root = document.documentElement
-
-    root.classList.toggle("dark", theme === "dark")
-    window.localStorage.setItem(themeStorageKey, theme)
-  }, [theme, themeStorageKey])
+  const { theme, setTheme } = useTheme()
 
   return (
     <SidebarGroup {...props}>
@@ -88,10 +61,11 @@ export function NavSecondary({
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton
                       isActive={activeUrl === item.url}
+                      tooltip={item.title}
                       onClick={() => onNavigate?.(item.url, item.title)}
                     >
                       {item.icon}
-                      <span>{item.title}</span>
+                      <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
@@ -102,7 +76,7 @@ export function NavSecondary({
                     <DropdownMenuLabel>Appearance</DropdownMenuLabel>
                     <DropdownMenuRadioGroup
                       value={theme}
-                      onValueChange={(value) => setTheme(value as Theme)}
+                      onValueChange={(value) => setTheme(value)}
                     >
                       <DropdownMenuRadioItem value="light">
                         <SunIcon />
@@ -111,6 +85,10 @@ export function NavSecondary({
                       <DropdownMenuRadioItem value="dark">
                         <MoonIcon />
                         Dark mode
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="system">
+                        <MonitorIcon />
+                        System
                       </DropdownMenuRadioItem>
                     </DropdownMenuRadioGroup>
                     <DropdownMenuSeparator />
@@ -133,7 +111,7 @@ export function NavSecondary({
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild tooltip={item.title}>
                   <a
                     href={item.url}
                     onClick={(event) => {
@@ -142,7 +120,7 @@ export function NavSecondary({
                     }}
                   >
                     {item.icon}
-                    <span>{item.title}</span>
+                    <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                   </a>
                 </SidebarMenuButton>
               )}

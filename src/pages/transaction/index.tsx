@@ -2,9 +2,12 @@ import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
   Wallet2Icon, CheckCircle2Icon, ClipboardIcon,
-  ArrowRightLeftIcon, ArrowRightIcon,
+  ArrowRightLeftIcon, ArrowRightIcon, Loader2Icon,
 } from "lucide-react"
 import { toast } from "sonner"
+import { useParams, useNavigate, useLocation } from "react-router-dom"
+import { useBreadcrumb } from "@/contexts/breadcrumb-context"
+import { Button } from "@/components/ui/button"
 
 import {
   useTransactions,
@@ -16,13 +19,11 @@ import { useBranches } from "@/hooks/use-branches"
 import { useClients } from "@/hooks/use-clients"
 import { useTableSchema } from "@/hooks/use-table-schema"
 import { mergeDynamicColumns } from "@/lib/dynamic-columns"
-import { safeUUID } from "@/lib/utils"
 import { TableSkeleton } from "@/components/table-skeleton"
 import { ErrorState } from "@/components/error-state"
 import { EmptyState } from "@/components/empty-state"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable, type DataTableRow } from "@/components/data-table"
-import { TableDrawer } from "@/components/table-drawer"
 import { MetricCards } from "@/components/metric-cards"
 import { PageContent } from "@/components/page-content"
 import { Badge } from "@/components/ui/badge"
@@ -261,10 +262,15 @@ export default function TransactionPage() {
     [schemaColumns],
   )
 
-  const [drawerOpen, setDrawerOpen] = React.useState(false)
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { setBreadcrumb } = useBreadcrumb()
+
+  const isFormActive = location.pathname.endsWith("/add") || !!id
+
   const [editTarget, setEditTarget] = React.useState<TransactionWithRelations | null>(null)
   const [activeTab, setActiveTab] = React.useState("all")
-  const sessionId = React.useMemo(() => safeUUID(), [])
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
 
@@ -273,16 +279,32 @@ export default function TransactionPage() {
     setFields((prev) => ({ ...prev, [key]: value }))
   }
 
-  function openForEdit(txn: TransactionWithRelations) {
-    setEditTarget(txn)
-    setFields(fromTransaction(txn))
-    setDrawerOpen(true)
-  }
+  // ── Route and Breadcrumb Synchronization ─────────────────────────────────────
+  React.useEffect(() => {
+    if (!isFormActive) {
+      setBreadcrumb(null, null)
+      setEditTarget(null)
+      return
+    }
 
-  function openForAdd() {
-    setEditTarget(null)
-    setFields(emptyTxnFields())
-    setDrawerOpen(true)
+    if (location.pathname.endsWith("/transaction/add") || location.pathname.endsWith("/add")) {
+      setBreadcrumb("Add", null)
+      setFields(emptyTxnFields())
+      setEditTarget(null)
+    } else if (id) {
+      const txn = txns.find((t) => t.transaction_id === id)
+      if (txn) {
+        setBreadcrumb(`Transaksi ${txn.transaction_code}`, txn.transaction_type)
+        setEditTarget(txn)
+        setFields(fromTransaction(txn))
+      } else if (!loadingTxns && txns.length > 0) {
+        navigate("/transaction")
+      }
+    }
+  }, [id, location.pathname, isFormActive, txns, loadingTxns, setBreadcrumb, navigate])
+
+  const handleCancel = () => {
+    navigate("/transaction")
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────────
@@ -309,8 +331,8 @@ export default function TransactionPage() {
         })
         toast.success("Transaksi berhasil dibuat dan disubmit")
       }
-      setDrawerOpen(false)
       refetchTxns()
+      navigate("/transaction")
     } catch (err: any) {
       toast.error(err?.message ?? "Terjadi kesalahan")
     } finally {
@@ -338,8 +360,8 @@ export default function TransactionPage() {
         created_by: null,
       })
       toast.success("Transaksi disimpan sebagai draft")
-      setDrawerOpen(false)
       refetchTxns()
+      navigate("/transaction")
     } catch (err: any) {
       toast.error(err?.message ?? "Gagal menyimpan draft")
     } finally {
@@ -603,6 +625,84 @@ export default function TransactionPage() {
     </div>
   )
 
+  if (isFormActive) {
+    return (
+      <PageContent>
+        <div className="max-w-4xl mx-auto px-4 lg:px-6 w-full space-y-6">
+          <div className="flex items-center justify-between border-b pb-4">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                {editTarget ? `Detail Transaksi: ${editTarget.transaction_code}` : "Tambah Transaksi Baru"}
+              </h2>
+              {editTarget && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Status: {editTarget.status} · Jenis: {editTarget.transaction_type}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancel}
+              >
+                Kembali
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6 bg-card border rounded-lg p-6 shadow-sm">
+              {FormFields}
+            </div>
+
+            <div className="space-y-6">
+              {/* Action Buttons Card */}
+              <div className="bg-card border rounded-lg p-6 shadow-sm space-y-3">
+                <Button
+                  className="w-full"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2Icon className="mr-1.5 size-3.5 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    "Submit Transaksi"
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleDraft}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2Icon className="mr-1.5 size-3.5 animate-spin" />
+                      Menyimpan Draft...
+                    </>
+                  ) : (
+                    "Simpan Draft"
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-destructive hover:bg-destructive/10"
+                  onClick={handleCancel}
+                >
+                  Batal
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </PageContent>
+    )
+  }
+
   return (
     <PageContent
       description="Ruang kerja untuk melacak antrean mutasi barang, penjualan, pembelian, retur, dan persetujuan."
@@ -615,30 +715,13 @@ export default function TransactionPage() {
         <ChartAreaInteractive config={chartConfig} />
       </div>
 
-      {/* ── Table Drawer ──────────────────────────────────────────────────────── */}
-      <TableDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        title={editTarget ? `Transaksi ${editTarget.transaction_code}` : "Transaksi Baru"}
-        subtitle={editTarget ? `${editTarget.transaction_type} · ${editTarget.status}` : undefined}
-        sessionId={sessionId}
-        onSubmit={handleSubmit}
-        onDraft={handleDraft}
-        showImages={false}
-        isSubmitting={isSubmitting}
-        isSaving={isSaving}
-        isEditMode={!!editTarget}
-      >
-        {FormFields}
-      </TableDrawer>
-
       {txns.length === 0 ? (
         <div className="px-4 lg:px-6">
           <EmptyState
             title="Belum Ada Transaksi"
             description="Tidak ada catatan transaksi terdaftar di database."
             actionLabel="Buat Transaksi Baru"
-            onAction={openForAdd}
+            onAction={() => navigate("/transaction/add")}
           />
         </div>
       ) : (
@@ -650,8 +733,8 @@ export default function TransactionPage() {
           data={filteredTxns}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          onAddClick={openForAdd}
-          onRowClick={(row) => openForEdit(row)}
+          onAddClick={() => navigate("/transaction/add")}
+          onRowClick={(row) => navigate(`/transaction/${row.transaction_id}`)}
           tabs={[
             {
               value: "all",
