@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
+import { PackageIcon, UsersIcon } from "lucide-react"
 
-import { useIsMobile } from "@/hooks/use-mobile"
 import {
   Card,
   CardAction,
@@ -27,136 +27,245 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
 import type { InteractiveAreaChartConfig } from "@/types/charts"
+import type { TimeRangeOption } from "@/components/greeting-card"
 
-export const description = "A reusable interactive area chart"
+export const description = "A reusable interactive area chart with category selection and dynamic time ranges"
 
-const placeholderConfig = {
-  title: "Sample Chart",
-  description: "Sample range description",
-  compactDescription: "Sample range",
-  data: [
-    { date: "2024-01-01", desktop: 10, mobile: 8 },
-    { date: "2024-01-02", desktop: 14, mobile: 12 },
-    { date: "2024-01-03", desktop: 11, mobile: 16 },
-  ],
-  chartConfig: {
-    desktop: {
-      label: "Desktop",
-      color: "var(--primary)",
-    },
-    mobile: {
-      label: "Mobile",
-      color: "var(--primary)",
-    },
-  },
-  ranges: [
-    { value: "7d", label: "7 Hari", days: 7 },
-    { value: "30d", label: "30 Hari", days: 30 },
-  ],
-  defaultRange: "30d",
-  mobileRange: "7d",
-  referenceDate: "2024-01-03",
-} satisfies InteractiveAreaChartConfig
+/** Generates dynamic datasets based on time range and category */
+function generateRangeData(range: TimeRangeOption, category: "produk" | "klien") {
+  const isProduk = category === "produk"
+  const now = new Date()
 
-/**
- * Purpose: display a configurable responsive area chart with range controls.
- * Responsibilities: filter chart data by selected range and render chart UI.
- * Expected props: chart config from a page or feature.
- * Usage notes: includes generic placeholder values for development preview.
- */
-export function ChartAreaInteractive({
-  config = placeholderConfig,
-}: {
+  if (range === "1d") {
+    const hours = ["06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"]
+    return hours.map((h, i) => ({
+      date: h,
+      desktop: isProduk ? 1210 + i * 4 + (i % 2 === 0 ? 5 : -3) : 124 + (i % 3),
+      mobile: isProduk ? 12 + (i % 4) : 4 + (i % 2),
+    }))
+  }
+
+  if (range === "1w") {
+    const list = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      const dateStr = d.toISOString().split("T")[0]
+      const step = 6 - i
+      list.push({
+        date: dateStr,
+        desktop: isProduk ? 1190 + step * 8 + ((step * 7) % 15) : 120 + step + (step % 2),
+        mobile: isProduk ? 10 + (step % 5) : 3 + (step % 3),
+      })
+    }
+    return list
+  }
+
+  if (range === "1m") {
+    const list = []
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      const dateStr = d.toISOString().split("T")[0]
+      const step = 29 - i
+      list.push({
+        date: dateStr,
+        desktop: isProduk ? 1150 + Math.round(step * 3.2) + ((step * 11) % 20) : 110 + Math.floor(step / 3) + (step % 2),
+        mobile: isProduk ? 8 + (step % 7) : 2 + (step % 4),
+      })
+    }
+    return list
+  }
+
+  if (range === "6m") {
+    const list = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const dateStr = d.toISOString().split("T")[0]
+      const step = 5 - i
+      list.push({
+        date: dateStr,
+        desktop: isProduk ? 980 + step * 52 + (step % 2 === 0 ? 30 : -15) : 95 + step * 6 + (step % 2),
+        mobile: isProduk ? 28 - step * 2 + (step % 3) : 12 - Math.floor(step / 2),
+      })
+    }
+    return list
+  }
+
+  // 1y (12 Months)
+  const list = []
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const dateStr = d.toISOString().split("T")[0]
+    const step = 11 - i
+    list.push({
+      date: dateStr,
+      desktop: isProduk ? 820 + step * 38 + ((step * 17) % 40) : 80 + step * 4 + (step % 3),
+      mobile: isProduk ? 35 - Math.floor(step * 1.5) + (step % 4) : 15 - Math.floor(step / 2),
+    })
+  }
+  return list
+}
+
+interface ChartAreaInteractiveProps {
   config?: InteractiveAreaChartConfig
-}) {
-  const isMobile = useIsMobile()
-  const [timeRange, setTimeRange] = React.useState(config.defaultRange)
+  selectedRange?: TimeRangeOption
+}
 
-  React.useEffect(() => {
-    setTimeRange(isMobile ? config.mobileRange : config.defaultRange)
-  }, [config.defaultRange, config.mobileRange, isMobile])
+export function ChartAreaInteractive({
+  selectedRange = "1m",
+}: ChartAreaInteractiveProps) {
+  const [category, setCategory] = React.useState<"produk" | "klien">("produk")
 
-  const selectedRange =
-    config.ranges.find((range) => range.value === timeRange) ??
-    config.ranges[0]
+  // Generate dynamic data according to selected time range & category
+  const chartData = React.useMemo(() => {
+    return generateRangeData(selectedRange, category)
+  }, [selectedRange, category])
 
-  const filteredData = config.data.filter((item) => {
-    const date = new Date(item.date)
-    const referenceDate = new Date(config.referenceDate)
-    const startDate = new Date(referenceDate)
-    startDate.setDate(startDate.getDate() - selectedRange.days)
-    return date >= startDate
-  })
+  const categoryConfigs = {
+    produk: {
+      title: "Tren Aktivitas Produk",
+      description:
+        selectedRange === "1d"
+          ? "Tren aktivitas scan dan kondisi produk hari ini"
+          : selectedRange === "1w"
+          ? "Tren aktivitas scan dan kondisi produk 1 minggu terakhir"
+          : selectedRange === "1m"
+          ? "Tren aktivitas scan dan kondisi produk 1 bulan terakhir"
+          : selectedRange === "6m"
+          ? "Tren aktivitas scan dan kondisi produk 6 bulan terakhir"
+          : "Tren aktivitas scan dan kondisi produk 1 tahun terakhir",
+      chartConfig: {
+        desktop: {
+          label: "Produk Aman",
+          color: "#10b981",
+        },
+        mobile: {
+          label: "Produk Bermasalah",
+          color: "#ef4444",
+        },
+      },
+    },
+    klien: {
+      title: "Tren Aktivitas Klien",
+      description:
+        selectedRange === "1d"
+          ? "Tren performa layanan dan status perbaikan klien hari ini"
+          : selectedRange === "1w"
+          ? "Tren performa layanan dan status perbaikan klien 1 minggu terakhir"
+          : selectedRange === "1m"
+          ? "Tren performa layanan dan status perbaikan klien 1 bulan terakhir"
+          : selectedRange === "6m"
+          ? "Tren performa layanan dan status perbaikan klien 6 bulan terakhir"
+          : "Tren performa layanan dan status perbaikan klien 1 tahun terakhir",
+      chartConfig: {
+        desktop: {
+          label: "Klien Aman",
+          color: "#10b981",
+        },
+        mobile: {
+          label: "Dalam Perbaikan",
+          color: "#f59e0b",
+        },
+      },
+    },
+  }
+
+  const currentCategory = categoryConfigs[category]
+
+  // Formatters for X-Axis and Tooltip
+  const formatXAxis = (value: string) => {
+    if (selectedRange === "1d") return value
+    const date = new Date(value)
+    if (selectedRange === "6m" || selectedRange === "1y") {
+      return date.toLocaleDateString("id-ID", { month: "short" })
+    }
+    return date.toLocaleDateString("id-ID", { month: "short", day: "numeric" })
+  }
+
+  const formatTooltipLabel = (value: string) => {
+    if (selectedRange === "1d") return `Hari Ini, ${value}`
+    const date = new Date(value)
+    if (selectedRange === "6m" || selectedRange === "1y") {
+      return date.toLocaleDateString("id-ID", { month: "long", year: "numeric" })
+    }
+    return date.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    })
+  }
 
   return (
     <Card className="@container/card">
-      <CardHeader>
-        <CardTitle>{config.title}</CardTitle>
-        <CardDescription>
-          <span className="hidden @[540px]/card:block">
-            {config.description}
-          </span>
-          <span className="@[540px]/card:hidden">
-            {config.compactDescription}
-          </span>
-        </CardDescription>
-        <CardAction>
+      <CardHeader className="flex flex-col @[540px]/card:flex-row items-start @[540px]/card:items-center justify-between gap-2 pb-2 sm:pb-4">
+        <div>
+          <CardTitle className="text-base sm:text-lg font-bold">
+            {currentCategory.title}
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm mt-0.5">
+            {currentCategory.description}
+          </CardDescription>
+        </div>
+        <CardAction className="self-end @[540px]/card:self-auto shrink-0 mt-1 @[540px]/card:mt-0">
           <ToggleGroup
             type="single"
-            value={timeRange}
+            value={category}
             onValueChange={(value) => {
               if (value) {
-                setTimeRange(value)
+                setCategory(value as "produk" | "klien")
               }
             }}
             variant="outline"
-            className="hidden *:data-[slot=toggle-group-item]:px-4! @[767px]/card:flex"
+            className="hidden *:data-[slot=toggle-group-item]:px-3.5! @[540px]/card:flex border-border/80 rounded-xl"
           >
-            {config.ranges.map((range) => (
-              <ToggleGroupItem key={range.value} value={range.value}>
-                {range.label}
-              </ToggleGroupItem>
-            ))}
+            <ToggleGroupItem value="produk" className="gap-1.5 text-xs font-semibold">
+              <PackageIcon className="size-3.5 text-emerald-500" />
+              <span>Produk</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="klien" className="gap-1.5 text-xs font-semibold">
+              <UsersIcon className="size-3.5 text-emerald-500" />
+              <span>Klien</span>
+            </ToggleGroupItem>
           </ToggleGroup>
-          <Select value={timeRange} onValueChange={setTimeRange}>
+
+          <Select value={category} onValueChange={(val) => setCategory(val as "produk" | "klien")}>
             <SelectTrigger
-              className="flex w-auto **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
+              className="flex w-auto @[540px]/card:hidden h-8 text-xs font-semibold rounded-xl"
               size="sm"
-              aria-label="Select chart range"
+              aria-label="Pilih Kategori"
             >
-              <SelectValue placeholder={selectedRange.label} />
+              <SelectValue placeholder="Pilih Kategori" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
-              {config.ranges.map((range) => (
-                <SelectItem
-                  key={range.value}
-                  value={range.value}
-                  className="rounded-lg"
-                >
-                  {range.label}
-                </SelectItem>
-              ))}
+              <SelectItem value="produk" className="text-xs font-medium">
+                Produk
+              </SelectItem>
+              <SelectItem value="klien" className="text-xs font-medium">
+                Klien
+              </SelectItem>
             </SelectContent>
           </Select>
         </CardAction>
       </CardHeader>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+      <CardContent className="px-2 pt-2 sm:px-6 sm:pt-4">
         <ChartContainer
-          config={config.chartConfig}
-          className="aspect-auto h-[250px] w-full"
+          config={currentCategory.chartConfig}
+          className="aspect-auto h-[240px] sm:h-[280px] w-full"
         >
-          <AreaChart data={filteredData}>
+          <AreaChart data={chartData}>
             <defs>
               <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
                   stopColor="var(--color-desktop)"
-                  stopOpacity={1.0}
+                  stopOpacity={0.8}
                 />
                 <stop
                   offset="95%"
                   stopColor="var(--color-desktop)"
-                  stopOpacity={0.1}
+                  stopOpacity={0.05}
                 />
               </linearGradient>
               <linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
@@ -168,35 +277,24 @@ export function ChartAreaInteractive({
                 <stop
                   offset="95%"
                   stopColor="var(--color-mobile)"
-                  stopOpacity={0.1}
+                  stopOpacity={0.05}
                 />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.2} />
             <XAxis
               dataKey="date"
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              minTickGap={32}
-              tickFormatter={(value: any) => {
-                const date = new Date(value)
-                return date.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })
-              }}
+              minTickGap={20}
+              tickFormatter={formatXAxis}
             />
             <ChartTooltip
               cursor={false}
               content={
                 <ChartTooltipContent
-                  labelFormatter={(value: any) => {
-                    return new Date(value).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })
-                  }}
+                  labelFormatter={formatTooltipLabel}
                   indicator="dot"
                 />
               }
@@ -206,6 +304,7 @@ export function ChartAreaInteractive({
               type="natural"
               fill="url(#fillMobile)"
               stroke="var(--color-mobile)"
+              strokeWidth={2}
               stackId="a"
             />
             <Area
@@ -213,6 +312,7 @@ export function ChartAreaInteractive({
               type="natural"
               fill="url(#fillDesktop)"
               stroke="var(--color-desktop)"
+              strokeWidth={2}
               stackId="a"
             />
           </AreaChart>

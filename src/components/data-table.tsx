@@ -46,6 +46,7 @@ import {
   FilterIcon,
   XIcon,
   EyeIcon,
+  CheckIcon,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -297,31 +298,25 @@ function SortableColumnItem({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-muted/60 transition-colors select-none group",
+        "flex items-center justify-between gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-muted/60 transition-colors select-none group cursor-pointer",
         isDragging && "opacity-60 bg-accent z-20 shadow-xs"
       )}
+      onClick={() => onToggle(!isVisible)}
     >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing text-muted-foreground/50 group-hover:text-muted-foreground p-0.5 rounded touch-none hover:bg-muted shrink-0"
-        title="Geser untuk mengatur urutan kolom"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVerticalIcon className="size-3.5" />
-      </button>
-      <label
-        className="flex items-center gap-2 cursor-pointer truncate flex-1 py-0.5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Checkbox
-          checked={isVisible}
-          onCheckedChange={(checked) => onToggle(!!checked)}
-          className="size-3.5 rounded shrink-0"
-        />
+      <div className="flex items-center gap-2 truncate min-w-0 flex-1">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing text-muted-foreground/50 group-hover:text-muted-foreground p-0.5 rounded touch-none hover:bg-muted shrink-0"
+          title="Geser untuk mengatur urutan kolom"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVerticalIcon className="size-3.5" />
+        </button>
         <span className="capitalize truncate text-foreground/90 font-medium">{label}</span>
-      </label>
+      </div>
+      {isVisible && <CheckIcon className="size-4 text-emerald-500 shrink-0 ml-2" />}
     </div>
   );
 }
@@ -794,7 +789,7 @@ export function DataTable<TData extends DataTableRow>({
                   return (
                     <DropdownMenuSub key={col.id}>
                       <DropdownMenuSubTrigger className="capitalize text-xs cursor-pointer">
-                        <span>{colLabel} &gt;</span>
+                        <span>{colLabel}</span>
                       </DropdownMenuSubTrigger>
                       <DropdownMenuSubContent className="w-52 max-h-60 overflow-y-auto rounded-xl">
                         <DropdownMenuItem
@@ -915,19 +910,15 @@ export function DataTable<TData extends DataTableRow>({
                       {specialCols.map((column) => (
                         <div
                           key={column.id}
-                          className="flex items-center gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-muted/60 transition-colors select-none"
-                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs rounded-md hover:bg-muted/60 transition-colors select-none cursor-pointer"
+                          onClick={() => column.toggleVisibility(!column.getIsVisible())}
                         >
-                          <Checkbox
-                            checked={column.getIsVisible()}
-                            onCheckedChange={(value) =>
-                              column.toggleVisibility(!!value)
-                            }
-                            className="size-3.5 rounded ml-6 shrink-0"
-                          />
-                          <span className="capitalize font-medium text-foreground/90">
+                          <span className="capitalize font-medium text-foreground/90 pl-6">
                             {specialLabels[column.id] ?? column.id}
                           </span>
+                          {column.getIsVisible() && (
+                            <CheckIcon className="size-4 text-emerald-500 shrink-0 ml-2" />
+                          )}
                         </div>
                       ))}
                     </div>

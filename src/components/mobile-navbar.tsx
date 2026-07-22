@@ -37,35 +37,35 @@ const BOTTOM_NAV_ITEMS = [
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const
 
-// ── Keyboard-avoidance hook ────────────────────────────────────────────────
-// Reads the gap between the layout viewport and the visual viewport (= virtual
-// keyboard height on Android Chrome) so we can shift the navbar down and keep
-// it anchored to the *actual* bottom of the screen.
+// ── Input Focus hook ────────────────────────────────────────────────────────
+// Detects if user is currently typing in an input or textarea on mobile
+// so we can hide the navbar and prevent it from floating up over inputs.
 
-function useKeyboardHeight(): number {
-  const [kbH, setKbH] = React.useState(0)
+function useIsInputFocused(): boolean {
+  const [isFocused, setIsFocused] = React.useState(false)
 
   React.useEffect(() => {
-    const vv = window.visualViewport
-    if (!vv) return
-
-    function update() {
-      // keyboard height = layout-viewport bottom − visual-viewport bottom
-      const gap = window.innerHeight - (vv!.offsetTop + vv!.height)
-      setKbH(Math.max(0, gap))
+    function handleFocusChange() {
+      const activeEl = document.activeElement
+      const isInput =
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.tagName === "SELECT" ||
+          activeEl.getAttribute("contenteditable") === "true")
+      setIsFocused(Boolean(isInput))
     }
 
-    vv.addEventListener("resize", update)
-    vv.addEventListener("scroll", update)
-    update()
+    document.addEventListener("focusin", handleFocusChange)
+    document.addEventListener("focusout", handleFocusChange)
 
     return () => {
-      vv.removeEventListener("resize", update)
-      vv.removeEventListener("scroll", update)
+      document.removeEventListener("focusin", handleFocusChange)
+      document.removeEventListener("focusout", handleFocusChange)
     }
   }, [])
 
-  return kbH
+  return isFocused
 }
 
 // ── NavItem button ──────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ export function MobileNavbar() {
   const { navbarEnabled, topRowVisible, toggleTopRow } = useNavMode()
   const navigate = useNavigate()
   const location = useLocation()
-  const kbHeight = useKeyboardHeight()
+  const isInputFocused = useIsInputFocused()
 
   if (!navbarEnabled) {
     return null
@@ -146,8 +146,10 @@ export function MobileNavbar() {
   return (
     <div
       aria-label="Mobile navigation"
-      className="fixed left-0 right-0 z-40 md:hidden select-none"
-      style={{ bottom: kbHeight }}
+      className={cn(
+        "fixed left-0 right-0 bottom-0 z-40 md:hidden select-none transition-all duration-300 ease-in-out",
+        isInputFocused && "translate-y-full opacity-0 pointer-events-none"
+      )}
     >
       {/* ── Outer shell (position:relative so absolute children are anchored) */}
       <div className="relative">

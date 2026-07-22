@@ -268,7 +268,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="px-4 lg:px-6 mt-6">
-        <ChartAreaInteractive config={chartConfig} />
+        <ChartAreaInteractive selectedRange={selectedRange} config={chartConfig} />
         <Separator className="my-4" />
         <h3 className="font-semibold text-lg">Aktivitas Terbaru</h3>
       </div>

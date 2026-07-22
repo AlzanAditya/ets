@@ -1,5 +1,13 @@
 import { motion } from "framer-motion"
-import { ArrowUpIcon, ArrowDownIcon, MinusIcon, TrendingUpIcon } from "lucide-react"
+import {
+  ArrowUpIcon,
+  ArrowDownIcon,
+  MinusIcon,
+  TrendingUpIcon,
+  AlertTriangleIcon,
+  AlertOctagonIcon,
+  ThumbsUpIcon,
+} from "lucide-react"
 import type { MetricCardItem } from "@/types/metrics"
 import { Card } from "@/components/ui/card"
 
@@ -129,6 +137,23 @@ export function MetricCards({
           const p1 = Math.round((item.items[0].value / Math.max(totalVal, 1)) * 100)
           const p2 = Math.round((item.items[1].value / Math.max(totalVal, 1)) * 100)
 
+          // Determine Status based on p2 (% bermasalah)
+          // > 60% = Danger (Red gradient, bold danger icon)
+          // > 30% = Alert (Yellow gradient, bold alert icon)
+          // < 10% = Safe (Blue gradient, bold thumbs up icon)
+          const isDanger = p2 > 60
+          const isAlert = !isDanger && p2 > 30
+          const isSafe = p2 < 10
+
+          let cardStyle = "border-blue-500/40 bg-gradient-to-l from-blue-500/20 via-blue-500/10 to-card dark:from-blue-950/70 dark:via-blue-900/30 dark:to-card"
+          if (isDanger) {
+            cardStyle = "border-red-500/50 bg-gradient-to-l from-red-500/30 via-red-500/15 to-card dark:from-red-950/85 dark:via-red-900/40 dark:to-card"
+          } else if (isAlert) {
+            cardStyle = "border-amber-500/50 bg-gradient-to-l from-amber-500/30 via-amber-500/15 to-card dark:from-amber-950/85 dark:via-amber-900/40 dark:to-card"
+          } else if (isSafe) {
+            cardStyle = "border-blue-500/50 bg-gradient-to-l from-blue-500/30 via-blue-500/15 to-card dark:from-blue-950/85 dark:via-blue-900/40 dark:to-card"
+          }
+
           return (
             <motion.div
               key={item.id}
@@ -137,7 +162,20 @@ export function MetricCards({
               transition={{ duration: 0.45, delay: index * 0.1, ease: "easeOut" }}
               className={isAllDonut ? "col-span-1" : "col-span-2"}
             >
-              <Card className="relative rounded-xl sm:rounded-2xl border border-border/80 bg-card/90 p-4 sm:p-5 md:p-6 shadow-xs transition-all hover:border-border hover:shadow-sm flex flex-row items-center justify-start gap-4 sm:gap-6 min-w-0 h-full overflow-hidden">
+              <Card className={`relative rounded-xl sm:rounded-2xl border p-4 sm:p-5 md:p-6 shadow-xs transition-all hover:shadow-sm flex flex-row items-center justify-start gap-4 sm:gap-6 min-w-0 h-full overflow-hidden ${cardStyle}`}>
+                {/* Top-Right Status Icon (No outline, bold feel) */}
+                <div className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 pointer-events-none">
+                  {isDanger && (
+                    <AlertOctagonIcon className="size-5 sm:size-6 text-red-500 fill-red-500 stroke-none drop-shadow-xs" />
+                  )}
+                  {isAlert && (
+                    <AlertTriangleIcon className="size-5 sm:size-6 text-amber-500 fill-amber-500 stroke-none drop-shadow-xs" />
+                  )}
+                  {(isSafe || (!isDanger && !isAlert)) && (
+                    <ThumbsUpIcon className="size-5 sm:size-6 text-blue-500 fill-blue-500 stroke-none drop-shadow-xs" />
+                  )}
+                </div>
+
                 {/* Left Side: Donut Chart SVG (Larger) */}
                 <div className="shrink-0 z-10">
                   <DonutChartSVG
