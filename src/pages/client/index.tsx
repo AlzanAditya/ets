@@ -1,20 +1,11 @@
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-  UsersIcon,
-  Loader2Icon,
-  PencilIcon,
-  UploadIcon,
-  Trash2Icon,
-  UserIcon,
-  MapPinIcon,
-  FileTextIcon,
-  PackageIcon,
-} from "lucide-react";
+import { UsersIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { ClientViewMode } from "./components/client-view-mode";
+import { ClientEditMode } from "./components/client-edit-mode";
 import { useBreadcrumb } from "@/contexts/breadcrumb-context";
-import { Button } from "@/components/ui/button";
 
 import {
   useClients,
@@ -28,42 +19,10 @@ import { DataTable, type DataTableRow } from "@/components/data-table";
 import { MetricCards } from "@/components/metric-cards";
 import { PageContent } from "@/components/page-content";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import type { MetricCardItem } from "@/types/metrics";
 import type { ClientRow, ClientInsert, ProductRow } from "@/types/database";
-
-// ─── Helper: Get Initials ignoring leading company types (PT, CV, UD, etc.) ────
-
-function getClientInitials(name: string): string {
-  if (!name || !name.trim()) return "CL";
-  const cleaned = name
-    .trim()
-    .replace(/^(PT\.?|CV\.?|UD\.?|PD\.?|TB\.?|FIRMA)\s+/i, "")
-    .trim();
-  if (!cleaned) return name.slice(0, 2).toUpperCase();
-  const words = cleaned.split(/\s+/).filter(Boolean);
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return words
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 3)
-    .toUpperCase();
-}
 
 // ─── Default Empty Fields ──────────────────────────────────────────────────────
 
@@ -216,9 +175,14 @@ export default function ClientPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { setBreadcrumb } = useBreadcrumb();
 
   const isFormActive = location.pathname.endsWith("/add") || !!id;
+  const isEditMode =
+    searchParams.has("edit") ||
+    location.search.includes("edit") ||
+    location.pathname.endsWith("/add");
 
   const { data: allClients = [], loading, error, refetch } = useClients();
   const { data: allProducts = [] } = useProducts();
@@ -301,10 +265,6 @@ export default function ClientPage() {
     }
   }, [id, location.pathname, isFormActive, allClients, loading, setBreadcrumb, navigate]);
 
-  const handleCancel = () => {
-    navigate("/client");
-  };
-
   // Convert uploaded image file to 90x90 WebP data URL
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -375,6 +335,9 @@ export default function ClientPage() {
           localStorage.setItem(`client_avatar_${editTarget.client_id}`, avatarUrl);
         }
         toast.success("Klien berhasil diperbarui");
+        refetch();
+        navigate(`/client/${editTarget.client_id}`, { replace: true });
+        return;
       } else {
         const created = await createMutation.mutateAsync(clientData);
         if (avatarUrl && created?.client_id) {
@@ -452,390 +415,43 @@ export default function ClientPage() {
   }
 
   if (isFormActive) {
-    const emptyKontakCount = [
-      fields.client_code,
-      fields.customer_name_alias,
-      fields.customer_name,
-      fields.email,
-      fields.phone_number,
-      fields.whatsapp_number,
-    ].filter((val) => !val || !String(val).trim()).length;
-
-    const emptyLokasiCount = [
-      fields.address,
-      fields.city,
-      fields.province,
-      fields.postal_code,
-    ].filter((val) => !val || !String(val).trim()).length;
-
-    const emptyLainCount = [
-      fields.notes,
-    ].filter((val) => !val || !String(val).trim()).length;
+    if (editTarget && !isEditMode) {
+      return (
+        <PageContent>
+          <ClientViewMode
+            client={editTarget}
+            avatarUrl={avatarUrl}
+            clientProducts={mappedClientProducts}
+            clientProductColumns={clientProductColumns}
+            onEdit={() => navigate(`/client/${editTarget.client_id}?edit`)}
+            onBack={() => navigate("/client")}
+            onRowClickProduct={(prodId) => navigate(`/products/${prodId}`)}
+            onAvatarChange={handleFileChange}
+            onAvatarRemove={handleRemoveAvatar}
+            fileInputRef={fileInputRef}
+          />
+        </PageContent>
+      );
+    }
 
     return (
       <PageContent>
-        <div className="max-w-5xl mx-auto px-4 lg:px-6 w-full space-y-6">
-          {/* Header Bar */}
-          <div className="flex items-center justify-between border-b pb-4">
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-foreground">
-                {editTarget ? "Detail Klien" : "Tambah Klien Baru"}
-              </h2>
-              {editTarget && (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  ID: <span className="font-mono">{editTarget.client_id}</span>
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleCancel}>
-                Kembali
-              </Button>
-            </div>
-          </div>
-
-          {/* 1. Client Profile Header with 90x90 Avatar */}
-          <div className="flex flex-col sm:flex-row items-center gap-5 bg-card border rounded-2xl p-5 shadow-2xs">
-            <div className="relative size-[90px] rounded-full shrink-0 border-2 border-border/80 bg-muted/40 flex items-center justify-center group shadow-sm">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={fields.customer_name || "Client Avatar"}
-                  className="size-[86px] rounded-full object-cover"
-                />
-              ) : (
-                <div className="size-[86px] rounded-full bg-primary/15 text-primary flex items-center justify-center text-2xl font-bold tracking-wider select-none">
-                  {getClientInitials(fields.customer_name)}
-                </div>
-              )}
-
-              {/* Pencil Icon Button on Bottom-Right */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="absolute bottom-0 right-0 p-2 rounded-full bg-primary text-primary-foreground shadow-md hover:scale-105 transition-transform cursor-pointer border-2 border-background"
-                    title="Ubah foto profil"
-                  >
-                    <PencilIcon className="size-3.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48 rounded-xl">
-                  <DropdownMenuItem
-                    onClick={() => fileInputRef.current?.click()}
-                    className="cursor-pointer gap-2"
-                  >
-                    <UploadIcon className="size-4" />
-                    <span>{avatarUrl ? "Ganti Foto Profil" : "Unggah Foto Profil"}</span>
-                  </DropdownMenuItem>
-                  {avatarUrl && (
-                    <DropdownMenuItem
-                      onClick={handleRemoveAvatar}
-                      className="cursor-pointer gap-2 text-destructive focus:text-destructive"
-                    >
-                      <Trash2Icon className="size-4" />
-                      <span>Hapus Foto Profil</span>
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-
-            <div className="flex-1 text-center sm:text-left min-w-0">
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <h3 className="text-xl font-bold tracking-tight text-foreground truncate">
-                  {fields.customer_name || "Nama Pelanggan"}
-                </h3>
-                {fields.customer_name_alias && (
-                  <Badge variant="outline" className="text-xs">
-                    Alias: {fields.customer_name_alias}
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs font-mono text-muted-foreground mt-1">
-                {fields.client_code ? `Kode Klien: ${fields.client_code}` : "Klien Baru"}
-              </p>
-              <div className="text-xs text-muted-foreground mt-1.5 flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1">
-                {fields.email && <span>📧 {fields.email}</span>}
-                {fields.phone_number && <span>📞 {fields.phone_number}</span>}
-                {fields.city && (
-                  <span>
-                    📍 {fields.city}
-                    {fields.province ? `, ${fields.province}` : ""}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Form & Actions Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* 2. Categorized Inputs using Accordion */}
-                <div className="lg:col-span-2 space-y-4">
-                  <Accordion
-                    type="multiple"
-                    defaultValue={[]}
-                    className="w-full space-y-3"
-                  >
-                    {/* Section 1: Kontak (Combines Identitas & Kontak) */}
-                    <AccordionItem
-                      value="kontak"
-                      className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-                    >
-                      <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-                        <div className="flex items-center justify-between w-full mr-2">
-                          <div className="flex items-center gap-2 text-foreground">
-                            <UserIcon className="size-4 text-primary" />
-                            <span>Kontak & Identitas Klien</span>
-                          </div>
-                          {emptyKontakCount > 0 && (
-                            <Badge
-                              variant="secondary"
-                              className="size-5 rounded-full p-0 flex items-center justify-center text-[10px] font-mono font-bold bg-muted text-muted-foreground border-border/60 shrink-0"
-                              title={`${emptyKontakCount} kolom belum diisi`}
-                            >
-                              {emptyKontakCount}
-                            </Badge>
-                          )}
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-2 pb-4 space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="client_code">Kode Klien *</Label>
-                            <Input
-                              id="client_code"
-                              value={fields.client_code}
-                              onChange={(e) => setField("client_code", e.target.value)}
-                              placeholder="CLI-..."
-                              disabled={!!editTarget}
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="customer_name_alias">Nama Alias (Nickname)</Label>
-                            <Input
-                              id="customer_name_alias"
-                              value={fields.customer_name_alias ?? ""}
-                              onChange={(e) => setField("customer_name_alias", e.target.value)}
-                              placeholder="Alias / Nama Panggilan"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor="customer_name">Nama Pelanggan / Perusahaan *</Label>
-                          <Input
-                            id="customer_name"
-                            value={fields.customer_name}
-                            onChange={(e) => setField("customer_name", e.target.value)}
-                            placeholder="PT Wiraswasta Muda Indonesia"
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={fields.email ?? ""}
-                            onChange={(e) => setField("email", e.target.value)}
-                            placeholder="alamat@email.com"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="phone_number">No. Telepon</Label>
-                            <Input
-                              id="phone_number"
-                              value={fields.phone_number ?? ""}
-                              onChange={(e) => setField("phone_number", e.target.value)}
-                              placeholder="08..."
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="whatsapp_number">No. WhatsApp</Label>
-                            <Input
-                              id="whatsapp_number"
-                              value={fields.whatsapp_number ?? ""}
-                              onChange={(e) => setField("whatsapp_number", e.target.value)}
-                              placeholder="08..."
-                            />
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Section 2: Lokasi & Alamat */}
-                    <AccordionItem
-                      value="lokasi"
-                      className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-                    >
-                      <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-                        <div className="flex items-center justify-between w-full mr-2">
-                          <div className="flex items-center gap-2 text-foreground">
-                            <MapPinIcon className="size-4 text-primary" />
-                            <span>Lokasi & Alamat</span>
-                          </div>
-                          {emptyLokasiCount > 0 && (
-                            <Badge
-                              variant="secondary"
-                              className="size-5 rounded-full p-0 flex items-center justify-center text-[10px] font-mono font-bold bg-muted text-muted-foreground border-border/60 shrink-0"
-                              title={`${emptyLokasiCount} kolom belum diisi`}
-                            >
-                              {emptyLokasiCount}
-                            </Badge>
-                          )}
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-2 pb-4 space-y-3">
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor="address">Alamat Lengkap</Label>
-                          <Input
-                            id="address"
-                            value={fields.address ?? ""}
-                            onChange={(e) => setField("address", e.target.value)}
-                            placeholder="Jalan, No. Rumah, RT/RW..."
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="city">Kota</Label>
-                            <Input
-                              id="city"
-                              value={fields.city ?? ""}
-                              onChange={(e) => setField("city", e.target.value)}
-                              placeholder="Jakarta"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="province">Provinsi</Label>
-                            <Input
-                              id="province"
-                              value={fields.province ?? ""}
-                              onChange={(e) => setField("province", e.target.value)}
-                              placeholder="DKI Jakarta"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="postal_code">Kode Pos</Label>
-                            <Input
-                              id="postal_code"
-                              value={fields.postal_code ?? ""}
-                              onChange={(e) => setField("postal_code", e.target.value)}
-                              placeholder="12345"
-                            />
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Section 3: Lain-lain */}
-                    <AccordionItem
-                      value="lain-lain"
-                      className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-                    >
-                      <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-                        <div className="flex items-center justify-between w-full mr-2">
-                          <div className="flex items-center gap-2 text-foreground">
-                            <FileTextIcon className="size-4 text-primary" />
-                            <span>Lain-lain</span>
-                          </div>
-                          {emptyLainCount > 0 && (
-                            <Badge
-                              variant="secondary"
-                              className="size-5 rounded-full p-0 flex items-center justify-center text-[10px] font-mono font-bold bg-muted text-muted-foreground border-border/60 shrink-0"
-                              title={`${emptyLainCount} kolom belum diisi`}
-                            >
-                              {emptyLainCount}
-                            </Badge>
-                          )}
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-2 pb-4 space-y-3">
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor="notes">Catatan Keterangan</Label>
-                          <Input
-                            id="notes"
-                            value={fields.notes ?? ""}
-                            onChange={(e) => setField("notes", e.target.value)}
-                            placeholder="Catatan tambahan mengenai klien..."
-                          />
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                </div>
-
-                {/* Actions Card */}
-            <div className="space-y-6">
-              <div className="bg-card border rounded-2xl p-5 shadow-2xs space-y-3">
-                <Button
-                  className="w-full font-semibold rounded-xl"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2Icon className="mr-1.5 size-3.5 animate-spin" />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    "Simpan Perubahan"
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full text-muted-foreground rounded-xl"
-                  onClick={handleCancel}
-                >
-                  Batal
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Table Produk Milik Klien */}
-          {editTarget && (
-            <div className="space-y-4 pt-6 border-t">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                    <PackageIcon className="size-5 text-primary" />
-                    Daftar Produk Milik Klien
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Produk yang terdaftar dan dimiliki oleh {editTarget.customer_name}
-                  </p>
-                </div>
-                <Badge variant="secondary" className="font-mono text-xs px-2.5 py-1">
-                  {clientProducts.length} Produk
-                </Badge>
-              </div>
-
-              <DataTable
-                persistenceKey={`client-products-${editTarget.client_id}`}
-                columns={clientProductColumns}
-                data={mappedClientProducts}
-                addButtonLabel=""
-                onAddClick={() => navigate("/products/add")}
-                onRowClick={(row) => navigate(`/products/${row.product_id}`)}
-                defaultTab="all"
-                tabs={[
-                  { value: "all", label: "Semua Produk", badge: clientProducts.length },
-                ]}
-              />
-            </div>
-          )}
-        </div>
+        <ClientEditMode
+          editTarget={editTarget}
+          fields={fields}
+          setField={setField}
+          avatarUrl={avatarUrl}
+          fileInputRef={fileInputRef}
+          handleFileChange={handleFileChange}
+          handleRemoveAvatar={handleRemoveAvatar}
+          onSubmit={handleSubmit}
+          onCancel={() =>
+            editTarget
+              ? navigate(`/client/${editTarget.client_id}`, { replace: true })
+              : navigate("/client")
+          }
+          isSubmitting={isSubmitting}
+        />
       </PageContent>
     );
   }

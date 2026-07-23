@@ -511,9 +511,18 @@ export function DataTable<TData extends DataTableRow>({
   }, [pagination.pageSize, savePreferences]);
   const sortableId = React.useId();
   const sensors = useSensors(
-    useSensor(MouseSensor, {}),
-    useSensor(TouchSensor, {}),
-    useSensor(KeyboardSensor, {}),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {})
   );
 
   const columnSensors = useSensors(

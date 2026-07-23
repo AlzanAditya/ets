@@ -5,23 +5,12 @@ import {
   LandmarkIcon,
   UserCheckIcon,
   HammerIcon,
-  PlusIcon,
-  Trash2Icon,
-  ImageIcon,
-  Loader2Icon,
-  ZapIcon,
-  ShieldCheckIcon,
-  MapPinIcon,
-  FileTextIcon,
 } from "lucide-react";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
 import { toast } from "sonner";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { ProductViewMode } from "./components/product-view-mode";
+import { ProductEditMode } from "./components/product-edit-mode";
+import { addActivityLog } from "./components/product-activity-timeline";
 import { useBreadcrumb } from "@/contexts/breadcrumb-context";
 import { optimizeImage } from "@/lib/image-optimizer";
 import { getSignedUrls, cleanupTempSession, uploadImagePair } from "@/lib/image-service";
@@ -49,7 +38,6 @@ import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -59,14 +47,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { MetricCardItem } from "@/types/metrics";
 import type { ProductWithRelations } from "@/services/products.service";
 import { productsService } from "@/services/products.service";
@@ -76,7 +56,6 @@ import type {
   ProductImageRow,
 } from "@/types/database";
 import {
-  moveTempToDraft,
   moveDraftToProduct,
   deleteFiles,
 } from "@/lib/image-service";
@@ -84,7 +63,6 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DRAFT_STORAGE_KEY = "draft_products_v2";
-const NO_SELECTION_VALUE = "__none__";
 
 const STATUS_OPTIONS: ProductRow["status"][] = [
   "active",
@@ -190,44 +168,51 @@ interface ProductRowWithId extends DataTableRow, ProductWithRelations { }
 
 // ─── Inline Editable Cells for Products ───────────────────────────────────────
 
-function useTouchScrollFriendly() {
-  const startPos = React.useRef<{ x: number; y: number } | null>(null);
-  const wasDragged = React.useRef(false);
+function useTouchTap(onTap: () => void) {
+  const startPosRef = React.useRef<{ x: number; y: number } | null>(null);
+  const isSwipingRef = React.useRef(false);
 
-  const onPointerDownCapture = (e: React.PointerEvent) => {
-    startPos.current = { x: e.clientX, y: e.clientY };
-    wasDragged.current = false;
-  };
-
-  const onPointerMoveCapture = (e: React.PointerEvent) => {
-    if (!startPos.current) return;
-    const dx = e.clientX - startPos.current.x;
-    const dy = e.clientY - startPos.current.y;
-    // If pointer moved more than 8 pixels, we consider it a scroll/drag
-    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-      wasDragged.current = true;
+  const onPointerDown = React.useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === "touch") {
+      e.preventDefault();
     }
-  };
+  }, []);
 
-  const onPointerUpCapture = (e: React.PointerEvent) => {
-    startPos.current = null;
-    if (wasDragged.current) {
-      e.stopPropagation();
+  const onTouchStart = React.useCallback((e: React.TouchEvent) => {
+    if (e.touches && e.touches[0]) {
+      startPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      isSwipingRef.current = false;
     }
-  };
+  }, []);
 
-  const onClickCapture = (e: React.MouseEvent) => {
-    if (wasDragged.current) {
-      e.stopPropagation();
-      wasDragged.current = false;
+  const onTouchMove = React.useCallback((e: React.TouchEvent) => {
+    if (startPosRef.current && e.touches && e.touches[0]) {
+      const dx = Math.abs(e.touches[0].clientX - startPosRef.current.x);
+      const dy = Math.abs(e.touches[0].clientY - startPosRef.current.y);
+      if (dx > 8 || dy > 8) {
+        isSwipingRef.current = true;
+      }
     }
-  };
+  }, []);
+
+  const onTouchEnd = React.useCallback((e: React.TouchEvent) => {
+    if (startPosRef.current && !isSwipingRef.current && e.changedTouches && e.changedTouches[0]) {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const dist = Math.hypot(endX - startPosRef.current.x, endY - startPosRef.current.y);
+      if (dist <= 8) {
+        onTap();
+      }
+    }
+    startPosRef.current = null;
+    isSwipingRef.current = false;
+  }, [onTap]);
 
   return {
-    onPointerDownCapture,
-    onPointerMoveCapture,
-    onPointerUpCapture,
-    onClickCapture,
+    onPointerDown,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
   };
 }
 
@@ -235,7 +220,7 @@ function InlineCategoryCell({ row }: { row: any }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [newValue, setNewValue] = React.useState(row.original.category || "");
   const { mutateAsync: updateProduct } = useUpdateProductMutation();
-  const touchFriendly = useTouchScrollFriendly();
+  const touchHandlers = useTouchTap(() => setIsOpen((prev) => !prev));
 
   const handleSave = async (val: string) => {
     try {
@@ -257,7 +242,7 @@ function InlineCategoryCell({ row }: { row: any }) {
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
-            {...touchFriendly}
+            {...touchHandlers}
             className="text-left font-medium hover:bg-accent hover:text-accent-foreground px-1.5 py-0.5 rounded transition-colors cursor-pointer text-xs"
           >
             <Badge variant="outline" className="text-muted-foreground select-none pointer-events-none">
@@ -302,7 +287,7 @@ function InlineCategoryCell({ row }: { row: any }) {
 function InlineStatusCell({ row }: { row: any }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { mutateAsync: updateProduct } = useUpdateProductMutation();
-  const touchFriendly = useTouchScrollFriendly();
+  const touchHandlers = useTouchTap(() => setIsOpen((prev) => !prev));
 
   const handleSave = async (val: any) => {
     try {
@@ -322,7 +307,7 @@ function InlineStatusCell({ row }: { row: any }) {
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
-            {...touchFriendly}
+            {...touchHandlers}
             className="text-left font-medium hover:bg-accent hover:text-accent-foreground px-1.5 py-0.5 rounded transition-colors cursor-pointer text-xs"
           >
             <Badge
@@ -358,7 +343,7 @@ function InlineBranchCell({ row }: { row: any }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { data: branches = [] } = useBranches();
   const { mutateAsync: updateProduct } = useUpdateProductMutation();
-  const touchFriendly = useTouchScrollFriendly();
+  const touchHandlers = useTouchTap(() => setIsOpen((prev) => !prev));
   const branch = row.original.branch;
 
   const handleSave = async (branchId: string | null) => {
@@ -379,7 +364,7 @@ function InlineBranchCell({ row }: { row: any }) {
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
-            {...touchFriendly}
+            {...touchHandlers}
             className="text-left hover:bg-accent hover:text-accent-foreground px-2 py-1 rounded transition-colors cursor-pointer flex items-center w-full min-w-[120px]"
           >
             {branch ? (
@@ -423,7 +408,7 @@ function InlineClientCell({ row }: { row: any }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { data: clients = [] } = useClients();
   const { mutateAsync: updateProduct } = useUpdateProductMutation();
-  const touchFriendly = useTouchScrollFriendly();
+  const touchHandlers = useTouchTap(() => setIsOpen((prev) => !prev));
   const client = row.original.client;
 
   const handleSave = async (clientId: string | null) => {
@@ -444,7 +429,7 @@ function InlineClientCell({ row }: { row: any }) {
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
-            {...touchFriendly}
+            {...touchHandlers}
             className="text-left hover:bg-accent hover:text-accent-foreground px-2 py-1 rounded transition-colors cursor-pointer flex items-center w-full min-w-[120px]"
           >
             {client ? (
@@ -571,9 +556,14 @@ export default function ProductsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { setBreadcrumb } = useBreadcrumb();
 
   const isFormActive = location.pathname.endsWith("/add") || !!id;
+  const isEditMode =
+    searchParams.has("edit") ||
+    location.search.includes("edit") ||
+    location.pathname.endsWith("/add");
 
   const { data: allProducts = [], loading, error, refetch } = useProducts();
   const { columns: schemaColumns } = useTableSchema("products");
@@ -601,12 +591,11 @@ export default function ProductsPage() {
   // ── Form / Edit state ─────────────────────────────────────────────────────────
   const [editTarget, setEditTarget] =
     React.useState<ProductWithRelations | null>(null);
-  const [isDraftMode, setIsDraftMode] = React.useState(false);
+  const [, setIsDraftMode] = React.useState(false);
   const [activeDraftId, setActiveDraftId] = React.useState<string | null>(null);
   const [activeTab, setActiveTab] = React.useState("all");
   const sessionId = React.useMemo(() => safeUUID(), []);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isSaving, setIsSaving] = React.useState(false);
 
   // ── Form fields (controlled) ──────────────────────────────────────────────────
   const [fields, setFields] = React.useState<ProductDraftFields>(emptyFields());
@@ -789,7 +778,11 @@ export default function ProductsPage() {
       }
     }
 
-    navigate("/products");
+    if (editTarget) {
+      navigate(`/products/${editTarget.product_id}`, { replace: true });
+    } else {
+      navigate("/products");
+    }
   };
 
   // ── Handle Submit ─────────────────────────────────────────────────────────────
@@ -919,7 +912,22 @@ export default function ProductsPage() {
           await productsService.updateImageSortOrder(validUpdates);
         }
 
+        addActivityLog(
+          editTarget.product_id,
+          {
+            activity: "Informasi Diperbarui",
+            performer: "System Admin",
+            notes: "Pembaruan data spesifikasi & identitas produk via Detail Edit Mode",
+            type: "update",
+            timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+          },
+          editTarget
+        );
+
         toast.success("Produk berhasil diperbarui");
+        refetch();
+        navigate(`/products/${editTarget.product_id}`, { replace: true });
+        return;
       } else {
         // ── Add mode: create product then move images ─────────────────────────────
         const created = await createMutation.mutateAsync(productData);
@@ -972,55 +980,6 @@ export default function ProductsPage() {
       toast.error(err?.message ?? "Terjadi kesalahan");
     } finally {
       setIsSubmitting(false);
-    }
-  }
-
-  // ── Handle Draft ──────────────────────────────────────────────────────────────
-  async function handleDraft() {
-    setIsSaving(true);
-    try {
-      const draftId = activeDraftId ?? safeUUID();
-
-      const tempImages = drawerImages.filter((img) => img.id === null);
-      let imagePaths = tempImages.map((img, i) => ({
-        storagePath: img.storagePath,
-        thumbPath: img.thumbPath,
-        sortOrder: i,
-      }));
-
-      if (tempImages.length > 0 && !activeDraftId) {
-        const pairs = await moveTempToDraft(
-          sessionId,
-          draftId,
-          tempImages.map((img) => ({
-            fullPath: img.storagePath,
-            thumbPath: img.thumbPath,
-          })),
-        );
-        imagePaths = pairs.map((p, i) => ({
-          storagePath: p.fullPath,
-          thumbPath: p.thumbPath,
-          sortOrder: i,
-        }));
-      }
-
-      const draft: ProductDraft = {
-        draftId,
-        createdAt: new Date().toISOString(),
-        fields,
-        imagePaths,
-      };
-
-      const next = [draft, ...drafts.filter((d) => d.draftId !== draftId)];
-      setDrafts(next);
-      saveDrafts(next);
-
-      toast.success("Draft tersimpan");
-      navigate("/products");
-    } catch (err: any) {
-      toast.error(err?.message ?? "Gagal menyimpan draft");
-    } finally {
-      setIsSaving(false);
     }
   }
 
@@ -1134,545 +1093,41 @@ export default function ProductsPage() {
             ? mappedDrafts
             : mappedAll;
 
-  // ─── Form fields section with Accordion ─────────────────────────────────────
-  const emptyIdentitasCount = [
-    fields.nomor_seri,
-    fields.product_code,
-    fields.nama_produk,
-    fields.category,
-    fields.brand,
-    fields.tipe_kode,
-    fields.tahun_pembuatan,
-  ].filter((val) => !val || !String(val).trim()).length;
-
-  const emptySpesifikasiCount = [
-    fields.input,
-    fields.output,
-    fields.frekuensi,
-    fields.jumlah_socket,
-    fields.range_daya,
-  ].filter((val) => !val || !String(val).trim()).length;
-
-  const emptyProteksiCount = [
-    fields.soft_fuse_protection,
-    fields.hard_fuse_protection,
-    fields.ground_output,
-  ].filter((val) => !val || !String(val).trim()).length;
-
-  const emptyLokasiStatusCount = [
-    fields.status,
-    fields.current_branch_id,
-    fields.current_client_id,
-  ].filter((val) => !val || !String(val).trim()).length;
-
-  const emptyCatatanCount = [
-    fields.tambahan_optional,
-  ].filter((val) => !val || !String(val).trim()).length;
-
-  const FormFields = (
-    <Accordion
-      type="multiple"
-      defaultValue={[]}
-      className="w-full space-y-3"
-    >
-      {/* Category 1: Identitas Produk */}
-      <AccordionItem
-        value="identitas"
-        className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-      >
-        <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-          <div className="flex items-center justify-between w-full mr-2">
-            <div className="flex items-center gap-2 text-foreground">
-              <PackageIcon className="size-4 text-primary" />
-              <span>Identitas Produk</span>
-            </div>
-            {emptyIdentitasCount > 0 && (
-              <Badge
-                variant="secondary"
-                className="size-5 rounded-full p-0 flex items-center justify-center text-[10px] font-mono font-bold bg-muted text-muted-foreground border-border/60 shrink-0"
-                title={`${emptyIdentitasCount} kolom belum diisi`}
-              >
-                {emptyIdentitasCount}
-              </Badge>
-            )}
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="pt-2 pb-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="nomor_seri">Nomor Seri *</Label>
-              <Input
-                id="nomor_seri"
-                value={fields.nomor_seri}
-                onChange={(e) => setField("nomor_seri", e.target.value)}
-                placeholder="SN-..."
-                disabled={!!editTarget}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="product_code">Kode Produk</Label>
-              <Input
-                id="product_code"
-                value={fields.product_code}
-                onChange={(e) => setField("product_code", e.target.value)}
-                placeholder="PRD-..."
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="nama_produk">Nama Produk *</Label>
-            <Input
-              id="nama_produk"
-              value={fields.nama_produk}
-              onChange={(e) => setField("nama_produk", e.target.value)}
-              placeholder="Nama lengkap produk"
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="category">Kategori</Label>
-              <Input
-                id="category"
-                value={fields.category}
-                onChange={(e) => setField("category", e.target.value)}
-                placeholder="e.g. UPS, Stabilizer"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="brand">Brand</Label>
-              <Input
-                id="brand"
-                value={fields.brand}
-                onChange={(e) => setField("brand", e.target.value)}
-                placeholder="e.g. Liebert, APC"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="tipe_kode">Tipe / Kode Model</Label>
-              <Input
-                id="tipe_kode"
-                value={fields.tipe_kode}
-                onChange={(e) => setField("tipe_kode", e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="tahun_pembuatan">Tahun Pembuatan</Label>
-              <Input
-                id="tahun_pembuatan"
-                type="number"
-                min="1990"
-                max="2099"
-                value={fields.tahun_pembuatan}
-                onChange={(e) => setField("tahun_pembuatan", e.target.value)}
-                placeholder="2024"
-              />
-            </div>
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-
-      {/* Category 2: Spesifikasi Elektrikal */}
-      <AccordionItem
-        value="spesifikasi"
-        className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-      >
-        <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-          <div className="flex items-center justify-between w-full mr-2">
-            <div className="flex items-center gap-2 text-foreground">
-              <ZapIcon className="size-4 text-primary" />
-              <span>Spesifikasi Elektrikal</span>
-            </div>
-            {emptySpesifikasiCount > 0 && (
-              <Badge
-                variant="secondary"
-                className="size-5 rounded-full p-0 flex items-center justify-center text-[10px] font-mono font-bold bg-muted text-muted-foreground border-border/60 shrink-0"
-                title={`${emptySpesifikasiCount} kolom belum diisi`}
-              >
-                {emptySpesifikasiCount}
-              </Badge>
-            )}
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="pt-2 pb-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="input">Input</Label>
-              <Input
-                id="input"
-                value={fields.input}
-                onChange={(e) => setField("input", e.target.value)}
-                placeholder="220V / 1Ph / 50Hz"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="output">Output</Label>
-              <Input
-                id="output"
-                value={fields.output}
-                onChange={(e) => setField("output", e.target.value)}
-                placeholder="220V / 1Ph / 50Hz"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="frekuensi">Frekuensi</Label>
-              <Input
-                id="frekuensi"
-                value={fields.frekuensi}
-                onChange={(e) => setField("frekuensi", e.target.value)}
-                placeholder="50 Hz"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="jumlah_socket">Jumlah Socket</Label>
-              <Input
-                id="jumlah_socket"
-                type="number"
-                min="0"
-                value={fields.jumlah_socket}
-                onChange={(e) => setField("jumlah_socket", e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="range_daya">Range Daya</Label>
-            <Input
-              id="range_daya"
-              value={fields.range_daya}
-              onChange={(e) => setField("range_daya", e.target.value)}
-              placeholder="1000VA – 3000VA"
-            />
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-
-      {/* Category 3: Proteksi */}
-      <AccordionItem
-        value="proteksi"
-        className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-      >
-        <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-          <div className="flex items-center justify-between w-full mr-2">
-            <div className="flex items-center gap-2 text-foreground">
-              <ShieldCheckIcon className="size-4 text-primary" />
-              <span>Proteksi</span>
-            </div>
-            {emptyProteksiCount > 0 && (
-              <Badge
-                variant="secondary"
-                className="size-5 rounded-full p-0 flex items-center justify-center text-[10px] font-mono font-bold bg-muted text-muted-foreground border-border/60 shrink-0"
-                title={`${emptyProteksiCount} kolom belum diisi`}
-              >
-                {emptyProteksiCount}
-              </Badge>
-            )}
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="pt-2 pb-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="soft_fuse_protection">Soft Fuse Protection</Label>
-              <Input
-                id="soft_fuse_protection"
-                value={fields.soft_fuse_protection}
-                onChange={(e) => setField("soft_fuse_protection", e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="hard_fuse_protection">Hard Fuse Protection</Label>
-              <Input
-                id="hard_fuse_protection"
-                value={fields.hard_fuse_protection}
-                onChange={(e) => setField("hard_fuse_protection", e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ground_output">Ground Output</Label>
-            <Input
-              id="ground_output"
-              value={fields.ground_output}
-              onChange={(e) => setField("ground_output", e.target.value)}
-            />
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-
-      {/* Category 4: Lokasi & Status */}
-      <AccordionItem
-        value="lokasi-status"
-        className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-      >
-        <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-          <div className="flex items-center justify-between w-full mr-2">
-            <div className="flex items-center gap-2 text-foreground">
-              <MapPinIcon className="size-4 text-primary" />
-              <span>Lokasi & Status</span>
-            </div>
-            {emptyLokasiStatusCount > 0 && (
-              <Badge
-                variant="secondary"
-                className="size-5 rounded-full p-0 flex items-center justify-center text-[10px] font-mono font-bold bg-muted text-muted-foreground border-border/60 shrink-0"
-                title={`${emptyLokasiStatusCount} kolom belum diisi`}
-              >
-                {emptyLokasiStatusCount}
-              </Badge>
-            )}
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="pt-2 pb-4 space-y-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="status">Status</Label>
-            <Select
-              value={fields.status}
-              onValueChange={(v) => setField("status", v as ProductRow["status"])}
-            >
-              <SelectTrigger id="status" className="w-full">
-                <SelectValue placeholder="Pilih status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {STATUS_LABELS[s]}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="current_branch_id">Cabang / Gudang</Label>
-            <Select
-              value={fields.current_branch_id || NO_SELECTION_VALUE}
-              onValueChange={(v) =>
-                setField("current_branch_id", v === NO_SELECTION_VALUE ? "" : v)
-              }
-            >
-              <SelectTrigger id="current_branch_id" className="w-full">
-                <SelectValue placeholder="Pilih cabang" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value={NO_SELECTION_VALUE}>— Tidak ada —</SelectItem>
-                  {branches.map((b) => (
-                    <SelectItem key={b.branch_id} value={b.branch_id}>
-                      {b.branch_name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="current_client_id">Klien Pemegang</Label>
-            <Select
-              value={fields.current_client_id || NO_SELECTION_VALUE}
-              onValueChange={(v) =>
-                setField("current_client_id", v === NO_SELECTION_VALUE ? "" : v)
-              }
-            >
-              <SelectTrigger id="current_client_id" className="w-full">
-                <SelectValue placeholder="Pilih klien" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value={NO_SELECTION_VALUE}>— Tidak ada —</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.client_id} value={c.client_id}>
-                      {c.customer_name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-
-      {/* Category 5: Catatan Tambahan */}
-      <AccordionItem
-        value="catatan"
-        className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-      >
-        <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-          <div className="flex items-center justify-between w-full mr-2">
-            <div className="flex items-center gap-2 text-foreground">
-              <FileTextIcon className="size-4 text-primary" />
-              <span>Catatan Tambahan</span>
-            </div>
-            {emptyCatatanCount > 0 && (
-              <Badge
-                variant="secondary"
-                className="size-5 rounded-full p-0 flex items-center justify-center text-[10px] font-mono font-bold bg-muted text-muted-foreground border-border/60 shrink-0"
-                title={`${emptyCatatanCount} kolom belum diisi`}
-              >
-                {emptyCatatanCount}
-              </Badge>
-            )}
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="pt-2 pb-4 space-y-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="tambahan_optional">Keterangan Opsional</Label>
-            <Input
-              id="tambahan_optional"
-              value={fields.tambahan_optional}
-              onChange={(e) => setField("tambahan_optional", e.target.value)}
-              placeholder="Info tambahan..."
-            />
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  );
-
   if (isFormActive) {
+    if (editTarget && !isEditMode) {
+      return (
+        <PageContent>
+          <ProductViewMode
+            product={editTarget}
+            onEdit={() => navigate(`/products/${editTarget.product_id}?edit`)}
+            onBack={() => navigate("/products")}
+            signedImages={drawerImages.map((img) => ({
+              storagePath: img.storagePath,
+              thumbUrl: img.thumbUrl ?? img.previewUrl,
+              fullUrl: img.thumbUrl ?? img.previewUrl,
+            }))}
+          />
+        </PageContent>
+      );
+    }
+
     return (
       <PageContent>
-        <div className="max-w-4xl mx-auto px-4 lg:px-6 w-full space-y-6">
-          <div className="flex items-center justify-between border-b pb-4">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight text-foreground">
-                {editTarget
-                  ? "Detail Produk"
-                  : isDraftMode
-                    ? "Edit Draft"
-                    : "Tambah Produk Baru"}
-              </h2>
-              {editTarget && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  SN: {editTarget.nomor_seri}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCancel}
-              >
-                Kembali
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
-              {FormFields}
-            </div>
-
-            <div className="space-y-6">
-              {/* Photo upload gallery card */}
-              <div className="bg-card border rounded-lg p-6 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                    Foto ({drawerImages.length})
-                  </h3>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="h-7 gap-1.5 text-xs"
-                  >
-                    {uploading ? (
-                      <Loader2Icon className="size-3 animate-spin" />
-                    ) : (
-                      <PlusIcon className="size-3" />
-                    )}
-                    Tambah Foto
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="sr-only"
-                    onChange={handleFileSelect}
-                  />
-                </div>
-
-                {drawerImages.length === 0 ? (
-                  <div className="flex h-24 flex-col items-center justify-center gap-2 rounded-lg border border-dashed text-muted-foreground">
-                    <ImageIcon className="size-6 opacity-50" />
-                    <span className="text-xs">Belum ada foto</span>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 gap-2">
-                    {drawerImages.map((img, index) => (
-                      <div
-                        key={img.storagePath}
-                        className="group relative aspect-square overflow-hidden rounded-md border bg-muted"
-                      >
-                        <img
-                          src={img.previewUrl ?? img.thumbUrl ?? ""}
-                          alt={`Foto ${index + 1}`}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteImage(index)}
-                          className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
-                          aria-label="Hapus foto"
-                        >
-                          <Trash2Icon className="size-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons Card */}
-              <div className="bg-card border rounded-lg p-6 shadow-sm space-y-3">
-                <Button
-                  className="w-full"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2Icon className="mr-1.5 size-3.5 animate-spin" />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    "Simpan Perubahan"
-                  )}
-                </Button>
-                {!editTarget && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleDraft}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2Icon className="mr-1.5 size-3.5 animate-spin" />
-                        Menyimpan Draft...
-                      </>
-                    ) : (
-                      "Simpan sebagai Draft"
-                    )}
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  className="w-full text-destructive hover:bg-destructive/10"
-                  onClick={handleCancel}
-                >
-                  Batal
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ProductEditMode
+          editTarget={editTarget}
+          fields={fields}
+          setField={setField}
+          branches={branches}
+          clients={clients}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          isSubmitting={isSubmitting}
+          drawerImages={drawerImages}
+          handleFileSelect={handleFileSelect}
+          handleDeleteImage={handleDeleteImage}
+          uploading={uploading}
+          fileInputRef={fileInputRef}
+        />
       </PageContent>
     );
   }
