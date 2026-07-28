@@ -75,7 +75,8 @@ export function useCreateWorkerMutation() {
     mutationFn: (data: Partial<WorkerInsert>) => workersService.createWorker(data),
     onSuccess: (newWorker) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
-      toast.success(`Pekerja ${newWorker.full_name} berhasil ditambahkan`);
+      const name = newWorker?.full_name || newWorker?.name || "Pekerja";
+      toast.success(`Pekerja ${name} berhasil ditambahkan`);
     },
     onError: (err: any) => {
       toast.error(`Gagal menambahkan pekerja: ${err.message || "Terjadi kesalahan"}`);
@@ -90,7 +91,8 @@ export function useUpdateWorkerMutation() {
       workersService.updateWorker(workerId, data),
     onSuccess: (updatedWorker) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
-      toast.success(`Data pekerja ${updatedWorker.full_name} berhasil diperbarui`);
+      const name = updatedWorker?.full_name || updatedWorker?.name || "Pekerja";
+      toast.success(`Data pekerja ${name} berhasil diperbarui`);
     },
     onError: (err: any) => {
       toast.error(`Gagal mengedit pekerja: ${err.message || "Terjadi kesalahan"}`);

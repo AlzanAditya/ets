@@ -288,10 +288,16 @@ export type WorkerRoleRow = {
 
 export type WorkerRow = {
   worker_id: string; // UUID PK
+  id?: string; // UUID PK alias
   worker_code: string; // UNIQUE
   full_name: string;
+  name?: string; // alias for full_name
   nickname: string | null;
   profile_image_path: string | null;
+  profile_photo_path: string | null; // Path / URL to photo in worker-profiles bucket
+  role?: string | null;
+  status?: string | null;
+  notes?: string | null;
   phone_number: string | null;
   email: string | null;
   position_id: string | null; // FK → worker_positions

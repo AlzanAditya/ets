@@ -30,10 +30,10 @@ export const appNavigation = {
     tagline: ["Protecting & Improving", "Electricity"],
   },
   user: {
-    name: "Berkah Maju Elektrik",
-    email: "admin@bme.com",
+    name: "Admin ETS",
+    email: "admin@ets.co.id",
     avatar: "/avatars/shadcn.jpg",
-    fallback: "BM",
+    fallback: "AE",
   },
   mainItems: [
     {
@@ -59,6 +59,12 @@ export const appNavigation = {
       url: "/clients",
       plan: plan.free,
       icon: <UsersIcon />,
+    },
+    {
+      title: "Workers",
+      url: "/workers",
+      plan: plan.free,
+      icon: <HardHatIcon />,
     },
     {
       title: "Images",
@@ -119,12 +125,6 @@ export const appNavigation = {
           url: "/tax",
           plan: plan.pro,
           icon: <LandmarkIcon />,
-        },
-        {
-          name: "Workers",
-          url: "/workers",
-          plan: plan.free,
-          icon: <HardHatIcon />,
         },
       ],
     },

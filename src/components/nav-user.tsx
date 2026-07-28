@@ -40,13 +40,18 @@ export function NavUser({
   user?: UserProfile
 }) {
   const { isMobile } = useSidebar()
-  const { admin, signOut } = useAuth()
+  const { admin, user: authUser, signOut } = useAuth()
   const navigate = useNavigate()
 
-  // Prefer live admin data when available
-  const displayName  = admin?.full_name ?? user.name
-  const displayEmail = admin?.email ?? user.email
-  const fallback = (displayName.slice(0, 2)).toUpperCase()
+  // Prefer live admin profile or Supabase auth user metadata/email when available
+  const displayName =
+    admin?.full_name ||
+    authUser?.user_metadata?.full_name ||
+    authUser?.user_metadata?.name ||
+    (authUser?.email ? authUser.email.split("@")[0] : null) ||
+    user.name
+  const displayEmail = admin?.email || authUser?.email || user.email
+  const fallback = displayName ? displayName.slice(0, 2).toUpperCase() : "US"
 
   async function handleSignOut() {
     await signOut()

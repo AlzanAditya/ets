@@ -1,4 +1,5 @@
 import React from "react";
+import { getWorkerProfilePhotoUrl } from "@/lib/image-service";
 import {
   UserCheckIcon,
   UsersIcon,
@@ -213,8 +214,8 @@ export default function WorkersPage() {
                             <td className="px-4 py-3 font-medium text-foreground">
                               <div className="flex items-center gap-3">
                                 <Avatar className="size-9 border border-border/60">
-                                  {worker.profile_image_path ? (
-                                    <AvatarImage src={worker.profile_image_path} alt={worker.full_name} />
+                                  {getWorkerProfilePhotoUrl(worker.worker_id || worker.id, worker.profile_photo_path || worker.profile_image_path) ? (
+                                    <AvatarImage src={getWorkerProfilePhotoUrl(worker.worker_id || worker.id, worker.profile_photo_path || worker.profile_image_path)} alt={worker.full_name} />
                                   ) : null}
                                   <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
                                     {initials}

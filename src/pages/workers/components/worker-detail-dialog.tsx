@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getWorkerProfilePhotoUrl } from "@/lib/image-service";
 import { useWorkerHistory } from "@/hooks/use-workers";
 import type { WorkerWithDetails } from "@/services/workers.service";
 import { cn } from "@/lib/utils";
@@ -61,8 +62,8 @@ export function WorkerDetailDialog({
         <div className="bg-gradient-to-r from-muted/50 to-muted/20 border border-border/60 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Avatar className="size-16 border-2 border-primary/20 shadow-xs shrink-0">
-              {worker.profile_image_path ? (
-                <AvatarImage src={worker.profile_image_path} alt={worker.full_name} />
+              {getWorkerProfilePhotoUrl(worker.worker_id || worker.id, worker.profile_photo_path || worker.profile_image_path) ? (
+                <AvatarImage src={getWorkerProfilePhotoUrl(worker.worker_id || worker.id, worker.profile_photo_path || worker.profile_image_path)} alt={worker.full_name} />
               ) : null}
               <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
                 {initials}

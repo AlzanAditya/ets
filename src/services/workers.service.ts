@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { safeUUID } from "@/lib/utils";
+import { deleteWorkerProfilePhoto, getWorkerProfilePhotoUrl } from "@/lib/image-service";
 import type {
   WorkerRow,
   WorkerPositionRow,
@@ -61,6 +62,7 @@ const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
     full_name: "Budi Santoso",
     nickname: "Budi",
     profile_image_path: null,
+    profile_photo_path: null,
     phone_number: "0812-3456-7890",
     email: "budi.santoso@zanxa.studio",
     position_id: "pos-2",
@@ -74,6 +76,7 @@ const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
     full_name: "Rahmat Hidayat",
     nickname: "Rahmat",
     profile_image_path: null,
+    profile_photo_path: null,
     phone_number: "0813-9876-5432",
     email: "rahmat.hidayat@zanxa.studio",
     position_id: "pos-1",
@@ -87,6 +90,7 @@ const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
     full_name: "Ahmad Rizky",
     nickname: "Ahmad",
     profile_image_path: null,
+    profile_photo_path: null,
     phone_number: "0811-2233-4455",
     email: "ahmad.rizky@zanxa.studio",
     position_id: "pos-4",
@@ -100,6 +104,7 @@ const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
     full_name: "Dedi Prasetyo",
     nickname: "Dedi",
     profile_image_path: null,
+    profile_photo_path: null,
     phone_number: "0815-6677-8899",
     email: "dedi.prasetyo@zanxa.studio",
     position_id: "pos-3",
@@ -109,17 +114,64 @@ const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
   },
 ];
 
+export function normalizeWorkerRow(raw: any): WorkerRow {
+  if (!raw) {
+    const defaultId = safeUUID();
+    return {
+      worker_id: defaultId,
+      id: defaultId,
+      worker_code: `WKR-${Math.floor(100 + Math.random() * 900)}`,
+      full_name: "Pekerja Baru",
+      name: "Pekerja Baru",
+      nickname: null,
+      profile_image_path: null,
+      profile_photo_path: null,
+      role: null,
+      status: "active",
+      notes: null,
+      phone_number: null,
+      email: null,
+      position_id: "pos-2",
+      joined_date: new Date().toISOString().split("T")[0],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  const idVal = raw.worker_id || raw.id || safeUUID();
+  const nameVal = raw.full_name || raw.name || "Pekerja";
+  const rawPhoto = raw.profile_photo_path || raw.profile_image_path || null;
+  const photoVal = rawPhoto ? getWorkerProfilePhotoUrl(idVal, rawPhoto) : null;
+
+  return {
+    ...raw,
+    worker_id: idVal,
+    id: idVal,
+    full_name: nameVal,
+    name: nameVal,
+    profile_photo_path: photoVal,
+    profile_image_path: photoVal,
+    status: raw.status || "active",
+    joined_date: raw.joined_date || (raw.created_at ? String(raw.created_at).split("T")[0] : new Date().toISOString().split("T")[0]),
+  };
+}
+
 function getStoredWorkers(): WorkerRow[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_WORKERS_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map(normalizeWorkerRow);
+      }
+    }
   } catch (e) {
     console.error("Failed to parse stored workers:", e);
   }
   try {
     localStorage.setItem(LOCAL_STORAGE_WORKERS_KEY, JSON.stringify(SAMPLE_INITIAL_WORKERS));
   } catch {}
-  return SAMPLE_INITIAL_WORKERS;
+  return SAMPLE_INITIAL_WORKERS.map(normalizeWorkerRow);
 }
 
 function setStoredWorkers(workers: WorkerRow[]) {
@@ -146,6 +198,23 @@ function setStoredAssignments(assignments: WorkerAssignmentDetail[]) {
   } catch (e) {
     console.error("Failed to store worker assignments:", e);
   }
+}
+
+export async function resolveWorkerPhotoUrls(workers: WorkerRow[]): Promise<WorkerRow[]> {
+  if (!workers || workers.length === 0) return [];
+
+  return workers.map((w) => {
+    const rawPath = w.profile_photo_path || w.profile_image_path;
+    const resolvedUrl = getWorkerProfilePhotoUrl(w.worker_id || w.id, rawPath);
+    if (resolvedUrl) {
+      return {
+        ...w,
+        profile_photo_path: resolvedUrl,
+        profile_image_path: resolvedUrl,
+      };
+    }
+    return w;
+  });
 }
 
 export const workersService = {
@@ -197,13 +266,15 @@ export const workersService = {
         .order("created_at", { ascending: false });
 
       if (!error && data && data.length > 0) {
-        rawWorkers = data;
+        rawWorkers = data.map(normalizeWorkerRow);
       } else {
         rawWorkers = getStoredWorkers();
       }
     } catch {
       rawWorkers = getStoredWorkers();
     }
+
+    rawWorkers = await resolveWorkerPhotoUrls(rawWorkers);
 
     const assignments = await this.getAllAssignments();
 
@@ -261,36 +332,64 @@ export const workersService = {
    * Create a new worker
    */
   async createWorker(payload: Partial<WorkerInsert>): Promise<WorkerRow> {
-    const newWorkerId = safeUUID();
+    const newWorkerId = payload.worker_id || payload.id || safeUUID();
     const nowIso = new Date().toISOString();
+    const photoPath = payload.profile_photo_path || payload.profile_image_path || null;
+    const nameVal = payload.full_name || payload.name || "Pekerja Baru";
+    const codeVal = payload.worker_code || `WKR-${Math.floor(100 + Math.random() * 900)}`;
+    const roleVal = payload.role || "Teknisi";
 
-    const newWorker: WorkerRow = {
+    const newWorker = normalizeWorkerRow({
+      ...payload,
       worker_id: newWorkerId,
-      worker_code: payload.worker_code || `WKR-${Math.floor(100 + Math.random() * 900)}`,
-      full_name: payload.full_name || "Pekerja Baru",
-      nickname: payload.nickname || null,
-      profile_image_path: payload.profile_image_path || null,
-      phone_number: payload.phone_number || null,
-      email: payload.email || null,
-      position_id: payload.position_id || "pos-2",
-      joined_date: payload.joined_date || new Date().toISOString().split("T")[0],
+      id: newWorkerId,
+      worker_code: codeVal,
+      full_name: nameVal,
+      name: nameVal,
+      role: roleVal,
+      profile_photo_path: photoPath,
+      profile_image_path: photoPath,
       created_at: nowIso,
       updated_at: nowIso,
-    };
+    });
 
     try {
+      // Primary DB schema insert: id, worker_code, name, role, status, profile_photo_path, notes
+      const dbPayload = {
+        id: newWorkerId,
+        worker_code: codeVal,
+        name: nameVal,
+        role: roleVal,
+        status: payload.status || "active",
+        profile_photo_path: photoPath,
+        notes: payload.notes || null,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+
       const { data, error } = await (supabase as any)
         .from("workers")
-        .insert(newWorker)
+        .insert(dbPayload)
         .select()
         .single();
+
       if (!error && data) {
-        return data;
+        const normalized = normalizeWorkerRow(data);
+        const resolved = await resolveWorkerPhotoUrls([normalized]);
+        const result = resolved[0] || normalized;
+
+        const localWorkers = getStoredWorkers();
+        setStoredWorkers([result, ...localWorkers.filter((w) => w.worker_id !== newWorkerId && w.id !== newWorkerId)]);
+        return result;
+      } else if (error) {
+        console.warn("Supabase insert worker error:", error.message);
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Database insert worker exception:", e);
+    }
 
     const localWorkers = getStoredWorkers();
-    const updated = [newWorker, ...localWorkers];
+    const updated = [newWorker, ...localWorkers.filter((w) => w.worker_id !== newWorkerId && w.id !== newWorkerId)];
     setStoredWorkers(updated);
 
     return newWorker;
@@ -301,37 +400,95 @@ export const workersService = {
    */
   async updateWorker(workerId: string, payload: Partial<WorkerUpdate>): Promise<WorkerRow> {
     const nowIso = new Date().toISOString();
-    const updateData = { ...payload, updated_at: nowIso };
+    const photoPath = payload.profile_photo_path !== undefined ? payload.profile_photo_path : payload.profile_image_path;
+    const nameVal = payload.full_name !== undefined ? payload.full_name : payload.name;
+
+    const updateData: Partial<WorkerRow> = {
+      ...payload,
+      updated_at: nowIso,
+    };
+
+    if (photoPath !== undefined) {
+      updateData.profile_photo_path = photoPath;
+      updateData.profile_image_path = photoPath;
+    }
+    if (nameVal !== undefined) {
+      updateData.full_name = nameVal;
+      updateData.name = nameVal;
+    }
 
     try {
+      const dbPayload: Record<string, any> = { updated_at: nowIso };
+      if (nameVal !== undefined) dbPayload.name = nameVal;
+      if (payload.worker_code !== undefined) dbPayload.worker_code = payload.worker_code;
+      if (payload.role !== undefined) dbPayload.role = payload.role;
+      if (payload.status !== undefined) dbPayload.status = payload.status;
+      if (photoPath !== undefined) dbPayload.profile_photo_path = photoPath;
+      if (payload.notes !== undefined) dbPayload.notes = payload.notes;
+
       const { data, error } = await (supabase as any)
         .from("workers")
-        .update(updateData)
-        .eq("worker_id", workerId)
+        .update(dbPayload)
+        .eq("id", workerId)
         .select()
         .single();
+
       if (!error && data) {
-        return data;
+        const normalized = normalizeWorkerRow(data);
+        const resolved = await resolveWorkerPhotoUrls([normalized]);
+        const result = resolved[0] || normalized;
+
+        const localWorkers = getStoredWorkers();
+        const updatedLocals = localWorkers.map((w) =>
+          w.worker_id === workerId || w.id === workerId ? result : w
+        );
+        setStoredWorkers(updatedLocals);
+        return result;
+      } else if (error) {
+        console.warn("Supabase update worker error:", error.message);
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Database update worker exception:", e);
+    }
 
     const localWorkers = getStoredWorkers();
-    const updated = localWorkers.map((w) => (w.worker_id === workerId ? { ...w, ...updateData } : w));
-    setStoredWorkers(updated);
+    let found = false;
+    const updated = localWorkers.map((w) => {
+      if (w.worker_id === workerId || w.id === workerId) {
+        found = true;
+        return normalizeWorkerRow({ ...w, ...updateData });
+      }
+      return w;
+    });
 
-    return updated.find((w) => w.worker_id === workerId)!;
+    let resultWorker: WorkerRow;
+    if (found) {
+      setStoredWorkers(updated);
+      resultWorker = updated.find((w) => w.worker_id === workerId || w.id === workerId)!;
+    } else {
+      resultWorker = normalizeWorkerRow({ worker_id: workerId, id: workerId, ...updateData });
+      setStoredWorkers([resultWorker, ...localWorkers]);
+    }
+
+    return resultWorker;
   },
 
   /**
-   * Delete worker
+   * Delete worker (also removes profile photo from storage so it doesn't become an orphan file)
    */
   async deleteWorker(workerId: string): Promise<void> {
+    // Delete profile photo from storage bucket 'worker-profiles'
+    await deleteWorkerProfilePhoto(workerId);
+
     try {
-      await (supabase as any).from("workers").delete().eq("worker_id", workerId);
+      await (supabase as any)
+        .from("workers")
+        .delete()
+        .or(`worker_id.eq.${workerId},id.eq.${workerId}`);
     } catch {}
 
     const localWorkers = getStoredWorkers();
-    const filtered = localWorkers.filter((w) => w.worker_id !== workerId);
+    const filtered = localWorkers.filter((w) => w.worker_id !== workerId && w.id !== workerId);
     setStoredWorkers(filtered);
 
     // Also remove worker assignments

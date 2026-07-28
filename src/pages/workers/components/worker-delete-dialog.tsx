@@ -28,7 +28,7 @@ export function WorkerDeleteDialog({
   if (!worker) return null;
 
   const handleDelete = async () => {
-    await deleteMutation.mutateAsync(worker.worker_id);
+    await deleteMutation.mutateAsync(worker.worker_id || worker.id || "");
     onOpenChange(false);
   };
 

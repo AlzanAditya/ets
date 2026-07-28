@@ -35,6 +35,7 @@ import { optimizeAvatarImage, optimizeImage } from '@/lib/image-optimizer'
 export const IMAGE_BUCKET = 'product-images'
 export const CLIENT_BUCKET = 'client-assets'
 export const PRODUCT_ASSETS_BUCKET = 'product-assets'
+export const WORKER_PROFILES_BUCKET = 'worker-profiles'
 /** Signed URL expiry in seconds (1 hour). URLs are cached for this duration. */
 const SIGNED_URL_TTL_SECONDS = 3600
 
@@ -160,6 +161,106 @@ export function getClientAvatarUrl(clientId: string): string {
   const path = `${clientId}/profile.webp`
   const { data } = supabase.storage.from(CLIENT_BUCKET).getPublicUrl(path)
   return data?.publicUrl ?? ''
+}
+
+/**
+ * Helper to convert Blob/File to base64 Data URL
+ */
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => resolve('')
+    reader.readAsDataURL(blob)
+  })
+}
+
+/**
+ * Upload worker profile photo to 'worker-profiles' bucket under '{worker_id}/profile.webp'.
+ * Automatically resizes image to 300x300 WebP square and overwrites existing file.
+ */
+export async function uploadWorkerProfilePhoto(workerId: string, rawFile: File): Promise<string> {
+  const { file: avatarFile, previewUrl } = await optimizeAvatarImage(rawFile, 300)
+  const path = `${workerId}/profile.webp`
+
+  // Generate a persistent base64 Data URL fallback in case Storage RLS prevents upload
+  const dataUrlFallback = (await blobToDataUrl(avatarFile)) || previewUrl
+
+  try {
+    const { error } = await supabase.storage
+      .from(WORKER_PROFILES_BUCKET)
+      .upload(path, avatarFile, {
+        contentType: 'image/webp',
+        upsert: true,
+      })
+
+    if (error) {
+      console.warn('Worker profile photo storage upload fallback activated:', error.message)
+      return dataUrlFallback
+    }
+
+    const { data } = supabase.storage.from(WORKER_PROFILES_BUCKET).getPublicUrl(path)
+    return data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : dataUrlFallback
+  } catch (err: any) {
+    console.warn('Worker profile photo upload exception, using fallback:', err?.message || err)
+    return dataUrlFallback
+  }
+}
+
+/**
+ * Get worker profile photo URL for a given workerId from 'worker-profiles' bucket.
+ */
+export function getWorkerProfilePhotoUrl(workerId?: string | null, profilePhotoPath?: string | null): string {
+  if (!workerId && !profilePhotoPath) return ''
+
+  if (profilePhotoPath) {
+    if (profilePhotoPath.startsWith('data:') || profilePhotoPath.startsWith('blob:')) {
+      return profilePhotoPath
+    }
+
+    if (profilePhotoPath.startsWith('http://') || profilePhotoPath.startsWith('https://')) {
+      // If it's a worker-profiles storage URL, check if it ends with an image extension or is invalid
+      if (profilePhotoPath.includes('/worker-profiles/')) {
+        const urlWithoutQuery = profilePhotoPath.split('?')[0]
+        if (!/\.(webp|jpg|jpeg|png|gif|svg)$/i.test(urlWithoutQuery)) {
+          if (workerId) {
+            const { data } = supabase.storage.from(WORKER_PROFILES_BUCKET).getPublicUrl(`${workerId}/profile.webp`)
+            return data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : ''
+          }
+        }
+      }
+      return profilePhotoPath
+    }
+  }
+
+  // Canonical path for worker photo in storage bucket is always `${workerId}/profile.webp`
+  if (workerId) {
+    const { data } = supabase.storage.from(WORKER_PROFILES_BUCKET).getPublicUrl(`${workerId}/profile.webp`)
+    return data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : ''
+  }
+
+  if (profilePhotoPath && profilePhotoPath.includes('/')) {
+    const { data } = supabase.storage.from(WORKER_PROFILES_BUCKET).getPublicUrl(profilePhotoPath)
+    return data?.publicUrl ?? ''
+  }
+
+  return ''
+}
+
+/**
+ * Delete worker profile photo from 'worker-profiles' bucket.
+ */
+export async function deleteWorkerProfilePhoto(workerId: string): Promise<void> {
+  if (!workerId) return
+  const path = `${workerId}/profile.webp`
+  try {
+    const { error } = await supabase.storage.from(WORKER_PROFILES_BUCKET).remove([path])
+    if (error) {
+      console.error('Failed to delete worker profile photo from storage:', error.message)
+    }
+  } catch (err) {
+    console.error('Worker profile photo deletion error:', err)
+  }
 }
 
 /**

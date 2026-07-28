@@ -4,6 +4,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   FileChartColumnIcon,
+  HardHatIcon,
   ImageIcon,
   LayoutGridIcon,
   PackageIcon,
@@ -11,7 +12,6 @@ import {
   ScanQrCodeIcon,
   SettingsIcon,
   UsersIcon,
-  Wallet2Icon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNavMode } from "@/contexts/nav-mode-context"
@@ -23,7 +23,7 @@ const ROW_H = 48 // px — height of each row
 // Top row (collapsible) — 4 items, chevron takes the 5th visual slot
 const TOP_NAV_ITEMS = [
   { title: "QR Statistics", url: "/qr-statistics", icon: ScanQrCodeIcon },
-  { title: "Transaction", url: "/transaction", icon: Wallet2Icon },
+  { title: "Reports", url: "/reports", icon: FileChartColumnIcon },
   { title: "Images", url: "/images", icon: ImageIcon },
   { title: "Invoice", url: "/invoice", icon: ReceiptIcon },
 ] as const
@@ -33,7 +33,7 @@ const BOTTOM_NAV_ITEMS = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGridIcon },
   { title: "Products", url: "/products", icon: PackageIcon },
   { title: "Clients", url: "/clients", icon: UsersIcon },
-  { title: "Reports", url: "/reports", icon: FileChartColumnIcon },
+  { title: "Workers", url: "/workers", icon: HardHatIcon },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const
 
