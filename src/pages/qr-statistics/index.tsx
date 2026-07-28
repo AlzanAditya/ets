@@ -53,7 +53,7 @@ const PINNED_COLUMNS: ColumnDef<ScanLogWithId>[] = [
     cell: ({ row }) => {
       const product = row.original.product
       return product ? (
-        <span className="font-medium text-foreground">{product.nama_produk}</span>
+        <span className="font-medium text-foreground">{product.product_name}</span>
       ) : (
         <span className="text-muted-foreground italic text-xs">Produk tidak dikenal</span>
       )

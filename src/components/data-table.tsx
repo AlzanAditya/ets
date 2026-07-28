@@ -842,13 +842,13 @@ export function DataTable<TData extends DataTableRow>({
         <div className="flex items-center gap-1 md:gap-2">
           {/* Global search */}
           <div className="relative">
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="data-table-search"
               placeholder={searchPlaceholder}
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="h-7 w-20 pl-8 text-xs transition-all focus:w-36 sm:w-44 sm:focus:w-44 lg:w-56"
+              className="h-8 w-20 pl-8 text-xs transition-all focus:w-36 sm:w-44 sm:focus:w-44 lg:w-56"
             />
           </div>
 
@@ -942,9 +942,9 @@ export function DataTable<TData extends DataTableRow>({
               <Button
                 id="data-table-actions-dropdown"
                 variant="outline"
-                size="sm"
+                size="default"
                 title="Aksi & Ekspor"
-                className="h-7 px-2 flex items-center gap-1"
+                className="h-8 px-2.5 flex items-center gap-1.5 text-xs font-medium border-border/80 shrink-0"
               >
                 <MoreHorizontal className="size-4" />
                 <span className="hidden text-xs sm:inline">Aksi</span>
@@ -993,11 +993,11 @@ export function DataTable<TData extends DataTableRow>({
           <Button
             id="data-table-add"
             variant="default"
-            size="sm"
+            size="default"
             onClick={onAddClick}
-            className="bg-primary text-background hover:bg-primary/90"
+            className="h-8 px-3 bg-primary text-background hover:bg-primary/90 text-xs font-medium shrink-0 flex items-center gap-1.5"
           >
-            <PlusIcon />
+            <PlusIcon className="size-4" />
             <span className="hidden lg:inline">{addButtonLabel}</span>
           </Button>
         </div>

@@ -25,10 +25,16 @@ export const queryKeys = {
     trend: (days: number) => [...queryKeys.scanLogs.all, 'trend', days] as const,
     recent: (limit: number) => [...queryKeys.scanLogs.all, 'recent', limit] as const,
   },
-  branches: {
-    all: ['branches'] as const,
-    lists: () => [...queryKeys.branches.all, 'list'] as const,
-    list: (filters: any) => [...queryKeys.branches.lists(), filters] as const,
+  workers: {
+    all: ['workers'] as const,
+    lists: () => [...queryKeys.workers.all, 'list'] as const,
+    list: (filters: any) => [...queryKeys.workers.lists(), filters] as const,
+    details: () => [...queryKeys.workers.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.workers.details(), id] as const,
+    positions: () => [...queryKeys.workers.all, 'positions'] as const,
+    roles: () => [...queryKeys.workers.all, 'roles'] as const,
+    assignments: (stepId: string) => [...queryKeys.workers.all, 'assignments', stepId] as const,
+    history: (workerId: string) => [...queryKeys.workers.all, 'history', workerId] as const,
   },
   clients: {
     all: ['clients'] as const,

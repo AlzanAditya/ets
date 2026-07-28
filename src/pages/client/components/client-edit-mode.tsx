@@ -2,7 +2,6 @@ import * as React from "react";
 import {
   UserIcon,
   MapPinIcon,
-  FileTextIcon,
   PencilIcon,
   ArrowLeftIcon,
   UploadIcon,
@@ -10,7 +9,6 @@ import {
   Loader2Icon,
   MailIcon,
   PhoneIcon,
-  MessageSquareIcon,
   Building2Icon,
   CheckIcon,
 } from "lucide-react";
@@ -75,11 +73,9 @@ export function ClientEditMode({
 }: ClientEditModeProps) {
   const emptyKontakCount = [
     fields.client_code,
-    fields.customer_name,
-    fields.customer_name_alias,
+    fields.client_name,
     fields.email,
     fields.phone_number,
-    fields.whatsapp_number,
   ].filter((val) => !val || !String(val).trim()).length;
 
   const emptyLokasiCount = [
@@ -116,12 +112,12 @@ export function ClientEditMode({
           {avatarUrl ? (
             <img
               src={avatarUrl}
-              alt={fields.customer_name || "Client Avatar"}
+              alt={fields.client_name || "Client Avatar"}
               className="size-[86px] rounded-full object-cover"
             />
           ) : (
             <div className="size-[86px] rounded-full bg-primary/15 text-primary flex items-center justify-center text-2xl font-bold tracking-wider select-none">
-              {getClientInitials(fields.customer_name)}
+              {getClientInitials(fields.client_name)}
             </div>
           )}
 
@@ -167,13 +163,8 @@ export function ClientEditMode({
         <div className="flex-1 text-center sm:text-left min-w-0">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <h3 className="text-xl font-bold tracking-tight text-foreground truncate">
-              {fields.customer_name || "Nama Pelanggan"}
+              {fields.client_name || "Nama Pelanggan"}
             </h3>
-            {fields.customer_name_alias && (
-              <Badge variant="outline" className="text-xs">
-                Alias: {fields.customer_name_alias}
-              </Badge>
-            )}
           </div>
           <p className="text-xs font-mono text-muted-foreground mt-1">
             {fields.client_code ? `Kode Klien: ${fields.client_code}` : "Klien Baru"}
@@ -184,7 +175,7 @@ export function ClientEditMode({
       {/* 2. Categorized Form Inputs using Accordions */}
       <Accordion
         type="multiple"
-        defaultValue={["kontak", "lokasi", "lain-lain"]}
+        defaultValue={["kontak", "lokasi"]}
         className="w-full space-y-3"
       >
         {/* Section 1: Kontak & Identitas */}
@@ -212,7 +203,7 @@ export function ClientEditMode({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="client_code" className="flex items-center gap-1.5 text-xs font-semibold">
-                  <Building2Icon className="size-3.5 text-primary" />
+                  <Building2Icon className="size-3.5 text-foreground/70" />
                   Kode Klien *
                 </Label>
                 <Input
@@ -225,68 +216,42 @@ export function ClientEditMode({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="customer_name_alias" className="flex items-center gap-1.5 text-xs font-semibold">
-                  <UserIcon className="size-3.5 text-primary" />
-                  Nama Alias (Nickname)
+                <Label htmlFor="client_name" className="flex items-center gap-1.5 text-xs font-semibold">
+                  <UserIcon className="size-3.5 text-foreground/70" />
+                  Nama Customer *
                 </Label>
                 <Input
-                  id="customer_name_alias"
-                  value={fields.customer_name_alias ?? ""}
-                  onChange={(e) => setField("customer_name_alias", e.target.value)}
-                  placeholder="Alias / Nama Panggilan..."
+                  id="client_name"
+                  value={fields.client_name}
+                  onChange={(e) => setField("client_name", e.target.value)}
+                  placeholder="PT Wiraswasta Muda Indonesia"
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="customer_name" className="flex items-center gap-1.5 text-xs font-semibold">
-                <UserIcon className="size-3.5 text-primary" />
-                Nama Pelanggan / Perusahaan *
-              </Label>
-              <Input
-                id="customer_name"
-                value={fields.customer_name}
-                onChange={(e) => setField("customer_name", e.target.value)}
-                placeholder="PT Wiraswasta Muda Indonesia"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email" className="flex items-center gap-1.5 text-xs font-semibold">
-                <MailIcon className="size-3.5 text-primary" />
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={fields.email ?? ""}
-                onChange={(e) => setField("email", e.target.value)}
-                placeholder="alamat@email.com"
-              />
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
+                <Label htmlFor="email" className="flex items-center gap-1.5 text-xs font-semibold">
+                  <MailIcon className="size-3.5 text-foreground/70" />
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={fields.email ?? ""}
+                  onChange={(e) => setField("email", e.target.value)}
+                  placeholder="alamat@email.com"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="phone_number" className="flex items-center gap-1.5 text-xs font-semibold">
-                  <PhoneIcon className="size-3.5 text-primary" />
+                  <PhoneIcon className="size-3.5 text-foreground/70" />
                   No. Telepon
                 </Label>
                 <Input
                   id="phone_number"
                   value={fields.phone_number ?? ""}
                   onChange={(e) => setField("phone_number", e.target.value)}
-                  placeholder="08..."
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="whatsapp_number" className="flex items-center gap-1.5 text-xs font-semibold">
-                  <MessageSquareIcon className="size-3.5 text-emerald-500" />
-                  No. WhatsApp
-                </Label>
-                <Input
-                  id="whatsapp_number"
-                  value={fields.whatsapp_number ?? ""}
-                  onChange={(e) => setField("whatsapp_number", e.target.value)}
                   placeholder="08..."
                 />
               </div>
@@ -318,7 +283,7 @@ export function ClientEditMode({
           <AccordionContent className="pt-2 pb-4 space-y-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="address" className="flex items-center gap-1.5 text-xs font-semibold">
-                <MapPinIcon className="size-3.5 text-primary" />
+                <MapPinIcon className="size-3.5 text-foreground/70" />
                 Alamat Lengkap
               </Label>
               <Input
@@ -331,7 +296,7 @@ export function ClientEditMode({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="city" className="flex items-center gap-1.5 text-xs font-semibold">
-                  <MapPinIcon className="size-3.5 text-primary" />
+                  <MapPinIcon className="size-3.5 text-foreground/70" />
                   Kota
                 </Label>
                 <Input
@@ -343,7 +308,7 @@ export function ClientEditMode({
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="province" className="flex items-center gap-1.5 text-xs font-semibold">
-                  <MapPinIcon className="size-3.5 text-primary" />
+                  <MapPinIcon className="size-3.5 text-foreground/70" />
                   Provinsi
                 </Label>
                 <Input
@@ -355,7 +320,7 @@ export function ClientEditMode({
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="postal_code" className="flex items-center gap-1.5 text-xs font-semibold">
-                  <MapPinIcon className="size-3.5 text-primary" />
+                  <MapPinIcon className="size-3.5 text-foreground/70" />
                   Kode Pos
                 </Label>
                 <Input
@@ -368,40 +333,13 @@ export function ClientEditMode({
             </div>
           </AccordionContent>
         </AccordionItem>
-
-        {/* Section 3: Catatan */}
-        <AccordionItem
-          value="lain-lain"
-          className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-        >
-          <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-            <div className="flex items-center gap-2 text-foreground">
-              <FileTextIcon className="size-4 text-primary" />
-              <span>Catatan Keterangan</span>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="pt-2 pb-4 space-y-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="notes" className="flex items-center gap-1.5 text-xs font-semibold">
-                <FileTextIcon className="size-3.5 text-primary" />
-                Catatan
-              </Label>
-              <Input
-                id="notes"
-                value={fields.notes ?? ""}
-                onChange={(e) => setField("notes", e.target.value)}
-                placeholder="Catatan tambahan mengenai klien..."
-              />
-            </div>
-          </AccordionContent>
-        </AccordionItem>
       </Accordion>
 
       {/* ── Sticky Action Bar at Bottom of Viewport ── */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-t px-6 py-3.5 shadow-2xl flex items-center justify-end gap-3">
         <div className="max-w-5xl mx-auto w-full flex items-center justify-between">
           <div className="text-xs text-muted-foreground hidden sm:block">
-            Mode Edit: <span className="font-semibold text-foreground">{fields.customer_name || "Klien"}</span>
+            Mode Edit: <span className="font-semibold text-foreground">{fields.client_name || "Klien"}</span>
           </div>
 
           <div className="flex items-center gap-3 ml-auto">

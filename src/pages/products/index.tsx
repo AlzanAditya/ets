@@ -2,7 +2,6 @@ import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   PackageIcon,
-  LandmarkIcon,
   UserCheckIcon,
   HammerIcon,
 } from "lucide-react";
@@ -21,7 +20,6 @@ import {
   useCreateProductMutation,
   useUpdateProductMutation,
 } from "@/hooks/use-products";
-import { useBranches } from "@/hooks/use-branches";
 import { useClients } from "@/hooks/use-clients";
 import { useTableSchema } from "@/hooks/use-table-schema";
 import { mergeDynamicColumns } from "@/lib/dynamic-columns";
@@ -36,8 +34,6 @@ import { type DrawerImage } from "@/components/table-drawer";
 import { MetricCards } from "@/components/metric-cards";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -65,49 +61,37 @@ import {
 const DRAFT_STORAGE_KEY = "draft_products_v2";
 
 const STATUS_OPTIONS: ProductRow["status"][] = [
-  "active",
-  "deployed",
-  "sold",
+  "warranty",
   "maintenance",
-  "inactive",
-  "retired",
 ];
 const STATUS_LABELS: Record<string, string> = {
-  active: "Aktif (Gudang)",
-  deployed: "Terpasang (Klien)",
-  sold: "Terjual",
-  maintenance: "Servis",
-  inactive: "Nonaktif",
-  retired: "Pensiun",
+  warranty: "Garansi",
+  garansi: "Garansi",
+  maintenance: "Maintenance",
 };
 const STATUS_COLORS: Record<string, string> = {
-  active: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  deployed: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  sold: "bg-violet-500/10 text-violet-500 border-violet-500/20",
+  warranty: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  garansi: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
   maintenance: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  inactive: "bg-muted text-muted-foreground border-transparent",
-  retired: "bg-muted text-muted-foreground border-transparent",
 };
 
 // ─── Draft Types ──────────────────────────────────────────────────────────────
 
 interface ProductDraftFields {
-  nomor_seri: string;
+  serial_number: string;
   product_code: string;
-  nama_produk: string;
-  category: string;
-  brand: string;
-  tipe_kode: string;
-  tahun_pembuatan: string;
-  input: string;
-  output: string;
-  frekuensi: string;
-  jumlah_socket: string;
-  range_daya: string;
-  soft_fuse_protection: string;
-  hard_fuse_protection: string;
+  product_name: string;
+  model: string;
+  model_code: string;
+  manufacture_year: string;
+  input_voltage: string;
+  output_voltage: string;
+  frequency: string;
+  socket_count: string;
+  power_capacity: string;
+  soft_fuse: string;
+  hard_fuse: string;
   ground_output: string;
-  tambahan_optional: string;
   current_branch_id: string;
   current_client_id: string;
   status: ProductRow["status"];
@@ -140,25 +124,23 @@ function saveDrafts(drafts: ProductDraft[]): void {
 
 function emptyFields(): ProductDraftFields {
   return {
-    nomor_seri: "",
+    serial_number: "",
     product_code: "",
-    nama_produk: "",
-    category: "",
-    brand: "",
-    tipe_kode: "",
-    tahun_pembuatan: "",
-    input: "",
-    output: "",
-    frekuensi: "",
-    jumlah_socket: "",
-    range_daya: "",
-    soft_fuse_protection: "",
-    hard_fuse_protection: "",
+    product_name: "",
+    model: "",
+    model_code: "",
+    manufacture_year: "",
+    input_voltage: "",
+    output_voltage: "",
+    frequency: "",
+    socket_count: "",
+    power_capacity: "",
+    soft_fuse: "",
+    hard_fuse: "",
     ground_output: "",
-    tambahan_optional: "",
     current_branch_id: "",
     current_client_id: "",
-    status: "active",
+    status: "warranty",
   };
 }
 
@@ -216,74 +198,6 @@ function useTouchTap(onTap: () => void) {
   };
 }
 
-function InlineCategoryCell({ row }: { row: any }) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [newValue, setNewValue] = React.useState(row.original.category || "");
-  const { mutateAsync: updateProduct } = useUpdateProductMutation();
-  const touchHandlers = useTouchTap(() => setIsOpen((prev) => !prev));
-
-  const handleSave = async (val: string) => {
-    try {
-      await updateProduct({
-        product_id: row.original.product_id,
-        data: { category: val || null },
-      });
-      toast.success(`Kategori diperbarui ke "${val || "General"}"`);
-      setIsOpen(false);
-    } catch (err) {
-      toast.error("Gagal memperbarui kategori");
-    }
-  };
-
-  const categories = ["General", "Premium", "Standard", "Sparepart", "Custom"];
-
-  return (
-    <div onClick={(e) => e.stopPropagation()}>
-      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-        <DropdownMenuTrigger asChild>
-          <button
-            {...touchHandlers}
-            className="text-left font-medium hover:bg-accent hover:text-accent-foreground px-1.5 py-0.5 rounded transition-colors cursor-pointer text-xs"
-          >
-            <Badge variant="outline" className="text-muted-foreground select-none pointer-events-none">
-              {row.original.category || "General"}
-            </Badge>
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48 p-2">
-          <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground px-2 py-1">Pilih Kategori</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {categories.map((cat) => (
-            <DropdownMenuItem
-              key={cat}
-              onClick={() => handleSave(cat)}
-              className="text-xs cursor-pointer"
-            >
-              {cat}
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
-          <div className="flex gap-1 p-1">
-            <Input
-              value={newValue}
-              onChange={(e) => setNewValue(e.target.value)}
-              placeholder="Kategori baru..."
-              className="h-7 text-xs px-2 flex-1"
-            />
-            <Button
-              size="sm"
-              className="h-7 text-[10px] px-2 cursor-pointer"
-              onClick={() => handleSave(newValue)}
-            >
-              Simpan
-            </Button>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-}
-
 function InlineStatusCell({ row }: { row: any }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { mutateAsync: updateProduct } = useUpdateProductMutation();
@@ -339,71 +253,6 @@ function InlineStatusCell({ row }: { row: any }) {
   );
 }
 
-function InlineBranchCell({ row }: { row: any }) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const { data: branches = [] } = useBranches();
-  const { mutateAsync: updateProduct } = useUpdateProductMutation();
-  const touchHandlers = useTouchTap(() => setIsOpen((prev) => !prev));
-  const branch = row.original.branch;
-
-  const handleSave = async (branchId: string | null) => {
-    try {
-      await updateProduct({
-        product_id: row.original.product_id,
-        data: { current_branch_id: branchId },
-      });
-      toast.success("Lokasi cabang berhasil diperbarui");
-      setIsOpen(false);
-    } catch (err) {
-      toast.error("Gagal memperbarui cabang");
-    }
-  };
-
-  return (
-    <div onClick={(e) => e.stopPropagation()}>
-      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-        <DropdownMenuTrigger asChild>
-          <button
-            {...touchHandlers}
-            className="text-left hover:bg-accent hover:text-accent-foreground px-2 py-1 rounded transition-colors cursor-pointer flex items-center w-full min-w-[120px]"
-          >
-            {branch ? (
-              <span className="text-xs text-foreground flex items-center gap-1.5 select-none pointer-events-none">
-                <LandmarkIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                {branch.branch_name}
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground select-none pointer-events-none">— Tentukan Cabang</span>
-            )}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56 max-h-64 overflow-y-auto">
-          <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground">Pilih Cabang</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => handleSave(null)}
-            className="text-xs cursor-pointer italic text-muted-foreground"
-          >
-            Kosongkan Cabang
-          </DropdownMenuItem>
-          {branches.map((b) => (
-            <DropdownMenuItem
-              key={b.branch_id}
-              onClick={() => handleSave(b.branch_id)}
-              className="text-xs cursor-pointer flex items-center justify-between"
-            >
-              <span className="truncate">{b.branch_name}</span>
-              {row.original.current_branch_id === b.branch_id && (
-                <div className="size-1.5 rounded-full bg-primary" />
-              )}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-}
-
 function InlineClientCell({ row }: { row: any }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { data: clients = [] } = useClients();
@@ -435,7 +284,7 @@ function InlineClientCell({ row }: { row: any }) {
             {client ? (
               <span className="text-xs text-primary font-medium flex items-center gap-1.5 select-none pointer-events-none font-semibold">
                 <UserCheckIcon className="h-3.5 w-3.5" />
-                {client.customer_name}
+                {client.client_name}
               </span>
             ) : (
               <span className="text-xs text-muted-foreground select-none pointer-events-none">— Tentukan Klien</span>
@@ -457,7 +306,7 @@ function InlineClientCell({ row }: { row: any }) {
               onClick={() => handleSave(c.client_id)}
               className="text-xs cursor-pointer flex items-center justify-between"
             >
-              <span className="truncate">{c.customer_name}</span>
+              <span className="truncate">{c.client_name}</span>
               {row.original.current_client_id === c.client_id && (
                 <div className="size-1.5 rounded-full bg-primary" />
               )}
@@ -474,39 +323,29 @@ function InlineClientCell({ row }: { row: any }) {
 
 const PINNED_COLUMNS: ColumnDef<ProductRowWithId>[] = [
   {
-    accessorKey: "nomor_seri",
+    accessorKey: "serial_number",
     header: "Nomor Seri",
     cell: ({ row }) => (
       <span className="font-mono text-xs font-semibold tracking-wider text-foreground bg-muted px-1.5 py-0.5 rounded">
-        {row.original.nomor_seri}
+        {row.original.serial_number}
       </span>
     ),
   },
   {
-    accessorKey: "nama_produk",
+    accessorKey: "product_name",
     header: "Nama Produk",
     cell: ({ row }) => (
-      <span className="font-medium">{row.original.nama_produk}</span>
+      <span className="font-medium">{row.original.product_name}</span>
     ),
   },
   {
-    accessorKey: "category",
-    header: "Kategori",
-    cell: ({ row }) => <InlineCategoryCell row={row} />,
-  },
-  {
-    accessorKey: "brand",
-    header: "Brand",
+    accessorKey: "model",
+    header: "Model",
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
-        {row.original.brand || "—"}
+        {row.original.model || "—"}
       </span>
     ),
-  },
-  {
-    id: "location",
-    header: "Lokasi Gudang/Cabang",
-    cell: ({ row }) => <InlineBranchCell row={row} />,
   },
   {
     id: "holder",
@@ -529,7 +368,7 @@ const PINNED_COLUMNS: ColumnDef<ProductRowWithId>[] = [
         <DataTableRowActions
           row={row.original}
           showPreview
-          previewUrl={`https://qr.zanxa.studio/p/${row.original.nomor_seri}`}
+          previewUrl={`https://qr.zanxa.studio/p/${row.original.serial_number}`}
           onDelete={async (r) => {
             const {
               data: { user },
@@ -577,10 +416,8 @@ export default function ProductsPage() {
   }, [schemaColumns]);
 
   const { count: totalCount } = useProductCount();
-  const { count: activeCount } = useProductCount("active");
-  const { count: deployedCount } = useProductCount("deployed");
+  const { count: garansiCount } = useProductCount("warranty");
   const { count: maintenanceCount } = useProductCount("maintenance");
-  const { data: branches = [] } = useBranches();
   const { data: clients = [] } = useClients();
   const createMutation = useCreateProductMutation();
   const updateMutation = useUpdateProductMutation();
@@ -620,7 +457,7 @@ export default function ProductsPage() {
       return;
     }
 
-    if (location.pathname.endsWith("/products/add") || location.pathname.endsWith("/add")) {
+    if (location.pathname.endsWith("/products/add") || location.pathname.endsWith("/product/add") || location.pathname.endsWith("/add")) {
       setBreadcrumb("Add", null);
       setFields(emptyFields());
       setDrawerImages([]);
@@ -628,10 +465,11 @@ export default function ProductsPage() {
       setIsDraftMode(false);
       setActiveDraftId(null);
     } else if (id) {
+      const decodedId = decodeURIComponent(id);
       // Check drafts first
-      const draft = drafts.find((d) => d.draftId === id);
+      const draft = drafts.find((d) => d.draftId === decodedId || d.draftId === id);
       if (draft) {
-        setBreadcrumb(draft.fields.nama_produk || "Draft Baru", draft.draftId);
+        setBreadcrumb(draft.fields.product_name || "Draft Baru", draft.draftId);
         setEditTarget(null);
         setIsDraftMode(true);
         setActiveDraftId(draft.draftId);
@@ -643,36 +481,42 @@ export default function ProductsPage() {
           sortOrder: p.sortOrder,
         })));
       } else {
-        // Check products from database
-        const product = allProducts.find((p) => p.product_id === id);
+        // Check products from database by product name (product_name), serial_number (serial_number), or product_id
+        const product = allProducts.find(
+          (p) =>
+            p.product_name === decodedId ||
+            (p.product_name && p.product_name.toLowerCase() === decodedId.toLowerCase()) ||
+            p.serial_number === decodedId ||
+            (p.serial_number && p.serial_number.toLowerCase() === decodedId.toLowerCase()) ||
+            p.product_id === decodedId ||
+            p.product_id === id
+        );
         if (product) {
-          setBreadcrumb(product.nama_produk, product.nomor_seri);
+          setBreadcrumb(product.product_name, product.product_name || product.serial_number);
           setEditTarget(product);
           setIsDraftMode(false);
           setActiveDraftId(null);
           setFields({
-            nomor_seri: product.nomor_seri,
+            serial_number: product.serial_number,
             product_code: product.product_code ?? "",
-            nama_produk: product.nama_produk,
-            category: product.category ?? "",
-            brand: product.brand ?? "",
-            tipe_kode: product.tipe_kode ?? "",
-            tahun_pembuatan: product.tahun_pembuatan?.toString() ?? "",
-            input: product.input ?? "",
-            output: product.output ?? "",
-            frekuensi: product.frekuensi ?? "",
-            jumlah_socket: product.jumlah_socket?.toString() ?? "",
-            range_daya: product.range_daya ?? "",
-            soft_fuse_protection: product.soft_fuse_protection ?? "",
-            hard_fuse_protection: product.hard_fuse_protection ?? "",
+            product_name: product.product_name,
+            model: product.model ?? "",
+            model_code: product.model_code ?? "",
+            manufacture_year: product.manufacture_year?.toString() ?? "",
+            input_voltage: product.input_voltage ?? "",
+            output_voltage: product.output_voltage ?? "",
+            frequency: product.frequency ?? "",
+            socket_count: product.socket_count?.toString() ?? "",
+            power_capacity: product.power_capacity ?? "",
+            soft_fuse: product.soft_fuse ?? "",
+            hard_fuse: product.hard_fuse ?? "",
             ground_output: product.ground_output ?? "",
-            tambahan_optional: product.tambahan_optional ?? "",
             current_branch_id: product.current_branch_id ?? "",
             current_client_id: product.current_client_id ?? "",
             status: product.status,
           });
           setDrawerImages((product.images ?? []).map((img) => ({
-            id: img.id,
+            id: img.image_id || img.id || null,
             storagePath: img.storage_path,
             thumbPath: img.thumbnail_path ?? img.storage_path,
             sortOrder: img.sort_order,
@@ -779,7 +623,7 @@ export default function ProductsPage() {
     }
 
     if (editTarget) {
-      navigate(`/products/${editTarget.product_id}`, { replace: true });
+      navigate(`/products/${encodeURIComponent(editTarget.product_name || editTarget.serial_number)}`, { replace: true });
     } else {
       navigate("/products");
     }
@@ -787,7 +631,7 @@ export default function ProductsPage() {
 
   // ── Handle Submit ─────────────────────────────────────────────────────────────
   async function handleSubmit() {
-    if (!fields.nomor_seri.trim() || !fields.nama_produk.trim()) {
+    if (!fields.serial_number.trim() || !fields.product_name.trim()) {
       toast.error("Nomor seri dan nama produk wajib diisi");
       return;
     }
@@ -795,26 +639,24 @@ export default function ProductsPage() {
     setIsSubmitting(true);
     try {
       const productData: ProductInsert = {
-        nomor_seri: fields.nomor_seri.trim(),
+        serial_number: fields.serial_number.trim(),
         product_code: fields.product_code.trim() || null,
-        nama_produk: fields.nama_produk.trim(),
-        category: fields.category || null,
-        brand: fields.brand || null,
-        tipe_kode: fields.tipe_kode || null,
-        tahun_pembuatan: fields.tahun_pembuatan
-          ? Number(fields.tahun_pembuatan)
+        product_name: fields.product_name.trim(),
+        model: fields.model || null,
+        model_code: fields.model_code || null,
+        manufacture_year: fields.manufacture_year
+          ? Number(fields.manufacture_year)
           : null,
-        input: fields.input || null,
-        output: fields.output || null,
-        frekuensi: fields.frekuensi || null,
-        jumlah_socket: fields.jumlah_socket
-          ? Number(fields.jumlah_socket)
+        input_voltage: fields.input_voltage || null,
+        output_voltage: fields.output_voltage || null,
+        frequency: fields.frequency || null,
+        socket_count: fields.socket_count
+          ? Number(fields.socket_count)
           : null,
-        range_daya: fields.range_daya || null,
-        soft_fuse_protection: fields.soft_fuse_protection || null,
-        hard_fuse_protection: fields.hard_fuse_protection || null,
+        power_capacity: fields.power_capacity || null,
+        soft_fuse: fields.soft_fuse || null,
+        hard_fuse: fields.hard_fuse || null,
         ground_output: fields.ground_output || null,
-        tambahan_optional: fields.tambahan_optional || null,
         current_branch_id: fields.current_branch_id || null,
         current_client_id: fields.current_client_id || null,
         status: fields.status,
@@ -833,11 +675,14 @@ export default function ProductsPage() {
           drawerImages.filter((img) => img.id !== null).map((img) => img.id),
         );
         const deletedDbImages = initialDbImages.filter(
-          (img) => !currentDbImageIds.has(img.id),
+          (img) => !currentDbImageIds.has(img.image_id || img.id || null),
         );
 
         for (const img of deletedDbImages) {
-          await productsService.deleteProductImage(img.id);
+          const imgId = img.image_id || img.id;
+          if (imgId) {
+            await productsService.deleteProductImage(imgId);
+          }
           try {
             await deleteFiles(
               [img.storage_path, img.thumbnail_path].filter(
@@ -895,7 +740,7 @@ export default function ProductsPage() {
           );
           return {
             ...img,
-            id: matchedDb ? matchedDb.id : null,
+            id: matchedDb ? (matchedDb.image_id || matchedDb.id || null) : null,
           };
         });
 
@@ -926,7 +771,7 @@ export default function ProductsPage() {
 
         toast.success("Produk berhasil diperbarui");
         refetch();
-        navigate(`/products/${editTarget.product_id}`, { replace: true });
+        navigate(`/products/${encodeURIComponent(fields.product_name.trim() || fields.serial_number.trim() || editTarget.product_name)}`, { replace: true });
         return;
       } else {
         // ── Add mode: create product then move images ─────────────────────────────
@@ -1010,34 +855,25 @@ export default function ProductsPage() {
       delta: "+0%",
       trend: "up",
       summary: "Semua aset terdaftar",
-      description: "Tidak termasuk retired",
+      description: "Total seluruh produk",
       icon: PackageIcon,
     },
     {
-      label: "Stock",
-      value: activeCount.toLocaleString("id-ID"),
+      label: "Garansi",
+      value: garansiCount.toLocaleString("id-ID"),
       delta: "+0%",
       trend: "up",
-      summary: "Ready untuk dideploy",
-      description: "Tersimpan di cabang/gudang",
-      icon: LandmarkIcon,
-    },
-    {
-      label: "Terjual",
-      value: deployedCount.toLocaleString("id-ID"),
-      delta: "+0%",
-      trend: "up",
-      summary: "Tersewa/dipinjamkan",
-      description: "Dalam operasional klien",
+      summary: "Status Garansi",
+      description: "Aset berstatus garansi",
       icon: UserCheckIcon,
     },
     {
-      label: "Diservis",
+      label: "Maintenance",
       value: maintenanceCount.toLocaleString("id-ID"),
       delta: "+0%",
       trend: "up",
       summary: "Dalam proses perbaikan",
-      description: "Membutuhkan atensi",
+      description: "Aset berstatus maintenance",
       icon: HammerIcon,
     },
   ];
@@ -1046,32 +882,29 @@ export default function ProductsPage() {
     id: p.product_id,
     ...p,
   }));
-  const mappedActive = mappedAll.filter((p) => p.status === "active");
-  const mappedDeployed = mappedAll.filter((p) => p.status === "deployed");
+  const mappedGaransi = mappedAll.filter((p) => p.status === "warranty" || (p.status as string) === "garansi");
   const mappedMaintenance = mappedAll.filter((p) => p.status === "maintenance");
   const mappedDrafts: ProductRowWithId[] = drafts.map((d, i) => ({
     id: d.draftId,
     product_id: d.draftId,
-    nomor_seri: d.fields.nomor_seri || `DRAFT-${i + 1}`,
-    nama_produk: d.fields.nama_produk || "Draft Baru",
+    serial_number: d.fields.serial_number || `DRAFT-${i + 1}`,
+    product_name: d.fields.product_name || "Draft Baru",
     product_code: d.fields.product_code || null,
-    category: d.fields.category || null,
-    brand: d.fields.brand || null,
-    tipe_kode: d.fields.tipe_kode || null,
-    tahun_pembuatan: d.fields.tahun_pembuatan
-      ? Number(d.fields.tahun_pembuatan)
+    model: d.fields.model || null,
+    model_code: d.fields.model_code || null,
+    manufacture_year: d.fields.manufacture_year
+      ? Number(d.fields.manufacture_year)
       : null,
-    input: d.fields.input || null,
-    output: d.fields.output || null,
-    frekuensi: d.fields.frekuensi || null,
-    jumlah_socket: d.fields.jumlah_socket
-      ? Number(d.fields.jumlah_socket)
+    input_voltage: d.fields.input_voltage || null,
+    output_voltage: d.fields.output_voltage || null,
+    frequency: d.fields.frequency || null,
+    socket_count: d.fields.socket_count
+      ? Number(d.fields.socket_count)
       : null,
-    range_daya: d.fields.range_daya || null,
-    soft_fuse_protection: d.fields.soft_fuse_protection || null,
-    hard_fuse_protection: d.fields.hard_fuse_protection || null,
+    power_capacity: d.fields.power_capacity || null,
+    soft_fuse: d.fields.soft_fuse || null,
+    hard_fuse: d.fields.hard_fuse || null,
     ground_output: d.fields.ground_output || null,
-    tambahan_optional: d.fields.tambahan_optional || null,
     current_branch_id: d.fields.current_branch_id || null,
     current_client_id: d.fields.current_client_id || null,
     status: d.fields.status,
@@ -1083,15 +916,13 @@ export default function ProductsPage() {
   }));
 
   const filteredProducts: ProductRowWithId[] =
-    activeTab === "active"
-      ? mappedActive
-      : activeTab === "deployed"
-        ? mappedDeployed
-        : activeTab === "maintenance"
-          ? mappedMaintenance
-          : activeTab === "draft"
-            ? mappedDrafts
-            : mappedAll;
+    activeTab === "garansi" || activeTab === "warranty"
+      ? mappedGaransi
+      : activeTab === "maintenance"
+        ? mappedMaintenance
+        : activeTab === "draft"
+          ? mappedDrafts
+          : mappedAll;
 
   if (isFormActive) {
     if (editTarget && !isEditMode) {
@@ -1099,7 +930,7 @@ export default function ProductsPage() {
         <PageContent>
           <ProductViewMode
             product={editTarget}
-            onEdit={() => navigate(`/products/${editTarget.product_id}?edit`)}
+            onEdit={() => navigate(`/products/${encodeURIComponent(editTarget.product_name || editTarget.serial_number)}?edit`)}
             onBack={() => navigate("/products")}
             signedImages={drawerImages.map((img) => ({
               storagePath: img.storagePath,
@@ -1117,7 +948,6 @@ export default function ProductsPage() {
           editTarget={editTarget}
           fields={fields}
           setField={setField}
-          branches={branches}
           clients={clients}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
@@ -1157,9 +987,11 @@ export default function ProductsPage() {
           onAddClick={() => navigate("/products/add")}
           onRowClick={(row) => {
             if (activeTab === "draft") {
-              navigate(`/products/${row.id}`);
+              const target = row.product_name || row.serial_number || row.id;
+              navigate(`/products/${encodeURIComponent(target)}`);
             } else {
-              navigate(`/products/${row.product_id}`);
+              const target = row.product_name || row.serial_number || row.product_id;
+              navigate(`/products/${encodeURIComponent(target)}`);
             }
           }}
           tabs={[
@@ -1169,14 +1001,9 @@ export default function ProductsPage() {
               badge: mappedAll.length,
             },
             {
-              value: "active",
-              label: "Di Gudang",
-              badge: mappedActive.length,
-            },
-            {
-              value: "deployed",
-              label: "Di Klien",
-              badge: mappedDeployed.length,
+              value: "garansi",
+              label: "Garansi",
+              badge: mappedGaransi.length,
             },
             {
               value: "maintenance",

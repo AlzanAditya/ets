@@ -15,7 +15,7 @@ export interface ScanTrendDatum {
 }
 
 export interface ScanLogWithRelations extends ScanLogRow {
-  product?: { nama_produk: string; product_code: string | null } | null
+  product?: { product_name: string; product_code: string | null } | null
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ export const scanLogsService = {
   async getRecentScanLogs(limit = 50): Promise<ScanLogWithRelations[]> {
     const { data, error } = await supabase
       .from('scan_logs')
-      .select('*, product:products(nama_produk, product_code)')
+      .select('*, product:products(product_name, product_code)')
       .order('scanned_at', { ascending: false })
       .limit(limit)
 

@@ -353,7 +353,7 @@ export default function SettingsPage() {
                 { label: "Lihat Dashboard & Produk", allowed: true },
                 { label: "Buat & Submit Transaksi", allowed: ["admin", "super_admin"].includes(role) },
                 { label: "Setujui / Tolak Transaksi", allowed: ["admin", "super_admin"].includes(role) },
-                { label: "Kelola Cabang & Klien", allowed: role === "super_admin" },
+                { label: "Kelola Pekerja & Klien", allowed: role === "super_admin" },
                 { label: "Hapus Data (Soft Delete)", allowed: role === "super_admin" },
                 { label: "Akses Semua Pengaturan", allowed: role === "super_admin" },
               ].map(({ label, allowed }) => (

@@ -27,7 +27,7 @@ export interface TransactionTrendDatum {
 }
 
 export interface TransactionWithRelations extends TransactionRow {
-  client?: { customer_name: string } | null
+  client?: { client_name: string } | null
   source_branch?: { branch_name: string } | null
   destination_branch?: { branch_name: string } | null
 }
@@ -48,7 +48,7 @@ export const transactionsService = {
 
     let query = supabase
       .from('transactions')
-      .select('*, client:clients(customer_name), source_branch:branches!source_branch_id(branch_name), destination_branch:branches!destination_branch_id(branch_name)')
+      .select('*, client:clients(client_name), source_branch:branches!source_branch_id(branch_name), destination_branch:branches!destination_branch_id(branch_name)')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -228,7 +228,7 @@ export const transactionsService = {
   async getRecentTransactions(limit = 10): Promise<TransactionWithRelations[]> {
     const { data, error } = await supabase
       .from('transactions')
-      .select('*, client:clients(customer_name), source_branch:branches!source_branch_id(branch_name), destination_branch:branches!destination_branch_id(branch_name)')
+      .select('*, client:clients(client_name), source_branch:branches!source_branch_id(branch_name), destination_branch:branches!destination_branch_id(branch_name)')
       .order('created_at', { ascending: false })
       .limit(limit)
 

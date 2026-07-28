@@ -20,6 +20,8 @@ import { MetricCards } from "@/components/metric-cards";
 import { PageContent } from "@/components/page-content";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { uploadClientAvatar, getClientAvatarUrl } from "@/lib/image-service";
+import { optimizeAvatarImage } from "@/lib/image-optimizer";
 
 import type { MetricCardItem } from "@/types/metrics";
 import type { ClientRow, ClientInsert, ProductRow } from "@/types/database";
@@ -29,16 +31,13 @@ import type { ClientRow, ClientInsert, ProductRow } from "@/types/database";
 function emptyFields(): ClientInsert {
   return {
     client_code: "",
-    customer_name: "",
-    customer_name_alias: null,
+    client_name: "",
     email: null,
     phone_number: null,
-    whatsapp_number: null,
     address: null,
     city: null,
     province: null,
     postal_code: null,
-    notes: null,
   };
 }
 
@@ -57,19 +56,10 @@ const PINNED_COLUMNS: ColumnDef<ClientRowWithId>[] = [
     ),
   },
   {
-    accessorKey: "customer_name",
+    accessorKey: "client_name",
     header: "Nama Pelanggan",
     cell: ({ row }) => (
-      <span className="font-medium">{row.original.customer_name}</span>
-    ),
-  },
-  {
-    accessorKey: "customer_name_alias",
-    header: "Alias",
-    cell: ({ row }) => (
-      <span className="text-muted-foreground text-sm">
-        {row.original.customer_name_alias || "—"}
-      </span>
+      <span className="font-medium">{row.original.client_name}</span>
     ),
   },
   {
@@ -108,25 +98,25 @@ const PINNED_COLUMNS: ColumnDef<ClientRowWithId>[] = [
 const EXCLUDED_COLUMNS = ["client_id", "deleted_at", "province"];
 
 // ─── Pinned Columns for Client Products Table ──────────────────────────────────
-// Default columns: nomor_seri, nama_produk, status
+// Default columns: serial_number, product_name, status
 
 type ProductRowWithId = ProductRow & DataTableRow;
 
 const CLIENT_PRODUCT_PINNED_COLUMNS: ColumnDef<ProductRowWithId>[] = [
   {
-    accessorKey: "nomor_seri",
+    accessorKey: "serial_number",
     header: "No. Seri",
     cell: ({ row }) => (
       <span className="font-mono text-xs font-semibold tracking-wider text-foreground bg-muted px-2 py-0.5 rounded">
-        {row.original.nomor_seri}
+        {row.original.serial_number}
       </span>
     ),
   },
   {
-    accessorKey: "nama_produk",
+    accessorKey: "product_name",
     header: "Nama Produk",
     cell: ({ row }) => (
-      <span className="font-medium text-foreground">{row.original.nama_produk}</span>
+      <span className="font-medium text-foreground">{row.original.product_name}</span>
     ),
   },
   {
@@ -232,69 +222,70 @@ export default function ClientPage() {
       return;
     }
 
-    if (location.pathname.endsWith("/client/add") || location.pathname.endsWith("/add")) {
+    if (location.pathname.endsWith("/clients/add") || location.pathname.endsWith("/client/add") || location.pathname.endsWith("/add")) {
       setBreadcrumb("Add", null);
       setFields(emptyFields());
       setEditTarget(null);
       setAvatarUrl(null);
     } else if (id) {
-      const client = allClients.find((c) => c.client_id === id);
+      const decodedId = decodeURIComponent(id);
+      const client = allClients.find(
+        (c) =>
+          c.client_name === decodedId ||
+          (c.client_name && c.client_name.toLowerCase() === decodedId.toLowerCase()) ||
+          c.client_id === decodedId ||
+          c.client_code === decodedId ||
+          c.client_id === id
+      );
       if (client) {
-        setBreadcrumb(client.customer_name, client.client_id);
+        setBreadcrumb(client.client_name, client.client_name);
         setEditTarget(client);
         setFields({
           client_code: client.client_code,
-          customer_name: client.customer_name,
-          customer_name_alias: client.customer_name_alias ?? null,
+          client_name: client.client_name,
           email: client.email ?? "",
           phone_number: client.phone_number ?? "",
-          whatsapp_number: client.whatsapp_number ?? "",
           address: client.address ?? "",
           city: client.city ?? "",
           province: client.province ?? "",
           postal_code: client.postal_code ?? "",
-          notes: client.notes ?? "",
         });
 
-        // Load avatar from localStorage
+        // Load avatar from client-assets bucket or local fallback
+        const avatarPathUrl = getClientAvatarUrl(client.client_id);
         const savedAvatar = localStorage.getItem(`client_avatar_${client.client_id}`);
-        setAvatarUrl(savedAvatar || null);
+        setAvatarUrl(avatarPathUrl || savedAvatar || null);
       } else if (!loading && allClients.length > 0) {
-        navigate("/client");
+        navigate("/clients");
       }
     }
   }, [id, location.pathname, isFormActive, allClients, loading, setBreadcrumb, navigate]);
 
-  // Convert uploaded image file to 90x90 WebP data URL
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Convert uploaded image file to 300x300 WebP and upload to client-assets bucket
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = 90;
-        canvas.height = 90;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          const minDim = Math.min(img.width, img.height);
-          const sx = (img.width - minDim) / 2;
-          const sy = (img.height - minDim) / 2;
-          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 90, 90);
-          const webpDataUrl = canvas.toDataURL("image/webp", 0.9);
-          setAvatarUrl(webpDataUrl);
-          if (editTarget?.client_id) {
-            localStorage.setItem(`client_avatar_${editTarget.client_id}`, webpDataUrl);
-          }
-          toast.success("Foto profil berhasil diperbarui (90x90 WebP)");
-        }
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+    try {
+      if (editTarget?.client_id) {
+        toast.loading("Mengunggah foto profil...", { id: "avatar-upload" });
+        const finalUrl = await uploadClientAvatar(editTarget.client_id, file);
+        setAvatarUrl(finalUrl);
+        localStorage.setItem(`client_avatar_${editTarget.client_id}`, finalUrl);
+        toast.success("Foto profil berhasil diperbarui (300x300 WebP)", { id: "avatar-upload" });
+      } else {
+        // Temp preview for new client creation before ID exists
+        const { previewUrl } = await optimizeAvatarImage(file, 300);
+        setAvatarUrl(previewUrl);
+        (e.target as unknown as { _pendingFile?: File })._pendingFile = file;
+        toast.success("Foto profil dikonversi ke 300x300 WebP");
+      }
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      toast.error("Gagal memproses foto profil", { id: "avatar-upload" });
+    }
   };
+
 
   const handleRemoveAvatar = () => {
     setAvatarUrl(null);
@@ -305,7 +296,7 @@ export default function ClientPage() {
   };
 
   async function handleSubmit() {
-    if (!fields.client_code.trim() || !fields.customer_name.trim()) {
+    if (!fields.client_code.trim() || !fields.client_name.trim()) {
       toast.error("Kode klien dan nama pelanggan wajib diisi");
       return;
     }
@@ -314,16 +305,13 @@ export default function ClientPage() {
     try {
       const clientData: ClientInsert = {
         client_code: fields.client_code.trim(),
-        customer_name: fields.customer_name.trim(),
-        customer_name_alias: fields.customer_name_alias?.trim() || null,
+        client_name: fields.client_name.trim(),
         email: fields.email?.trim() || null,
         phone_number: fields.phone_number?.trim() || null,
-        whatsapp_number: fields.whatsapp_number?.trim() || null,
         address: fields.address?.trim() || null,
         city: fields.city?.trim() || null,
         province: fields.province?.trim() || null,
         postal_code: fields.postal_code?.trim() || null,
-        notes: fields.notes?.trim() || null,
       };
 
       if (editTarget) {
@@ -336,7 +324,7 @@ export default function ClientPage() {
         }
         toast.success("Klien berhasil diperbarui");
         refetch();
-        navigate(`/client/${editTarget.client_id}`, { replace: true });
+        navigate(`/clients/${encodeURIComponent(fields.client_name.trim() || editTarget.client_name)}`, { replace: true });
         return;
       } else {
         const created = await createMutation.mutateAsync(clientData);
@@ -344,10 +332,10 @@ export default function ClientPage() {
           localStorage.setItem(`client_avatar_${created.client_id}`, avatarUrl);
         }
         toast.success("Klien berhasil ditambahkan");
+        refetch();
+        navigate(`/clients/${encodeURIComponent(created?.client_name || fields.client_name.trim())}`, { replace: true });
+        return;
       }
-
-      refetch();
-      navigate("/client");
     } catch (err: any) {
       toast.error(err?.message ?? "Terjadi kesalahan");
     } finally {
@@ -423,9 +411,9 @@ export default function ClientPage() {
             avatarUrl={avatarUrl}
             clientProducts={mappedClientProducts}
             clientProductColumns={clientProductColumns}
-            onEdit={() => navigate(`/client/${editTarget.client_id}?edit`)}
-            onBack={() => navigate("/client")}
-            onRowClickProduct={(prodId) => navigate(`/products/${prodId}`)}
+            onEdit={() => navigate(`/clients/${encodeURIComponent(editTarget.client_name)}?edit`)}
+            onBack={() => navigate("/clients")}
+            onRowClickProduct={(serialOrId) => navigate(`/products/${encodeURIComponent(serialOrId)}`)}
             onAvatarChange={handleFileChange}
             onAvatarRemove={handleRemoveAvatar}
             fileInputRef={fileInputRef}
@@ -447,8 +435,8 @@ export default function ClientPage() {
           onSubmit={handleSubmit}
           onCancel={() =>
             editTarget
-              ? navigate(`/client/${editTarget.client_id}`, { replace: true })
-              : navigate("/client")
+              ? navigate(`/clients/${encodeURIComponent(editTarget.client_name)}`, { replace: true })
+              : navigate("/clients")
           }
           isSubmitting={isSubmitting}
         />
@@ -469,8 +457,8 @@ export default function ClientPage() {
           addButtonLabel="Tambah Klien"
           columns={columns}
           data={mappedClients}
-          onAddClick={() => navigate("/client/add")}
-          onRowClick={(row) => navigate(`/client/${row.client_id}`)}
+          onAddClick={() => navigate("/clients/add")}
+          onRowClick={(row) => navigate(`/clients/${encodeURIComponent(row.client_name || row.client_id)}`)}
           defaultTab="all"
           tabs={[
             { value: "all", label: "Semua Klien", badge: mappedClients.length },

@@ -52,7 +52,7 @@ export function loadActivityLogs(
     timestamp: createdAt,
     activity: "Produk Dibuat",
     performer: "System Admin",
-    notes: `Registrasi awal produk ${product?.nama_produk || ""} (SN: ${product?.nomor_seri || "N/A"})`,
+    notes: `Registrasi awal produk ${product?.product_name || ""} (SN: ${product?.serial_number || "N/A"})`,
     type: "create",
   });
 
@@ -63,7 +63,7 @@ export function loadActivityLogs(
       timestamp: new Date(new Date(createdAt).getTime() + 3600000).toISOString(),
       activity: "Penempatan ke Klien",
       performer: "Tim Logistik",
-      notes: `Produk diserahterimakan & terpasang di ${product.client.customer_name}`,
+      notes: `Produk diserahterimakan & terpasang di ${product.client.client_name}`,
       type: "transfer",
     });
   } else if (product?.branch) {

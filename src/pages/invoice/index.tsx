@@ -16,7 +16,7 @@ interface InvoicePreviewRow extends DataTableRow {
 
 const metrics = [
   {
-    label: "Invoice Preview",
+    label: "Total Invoice",
     value: "2",
     delta: "+0%",
     trend: "up",
@@ -25,20 +25,20 @@ const metrics = [
     icon: ReceiptIcon,
   },
   {
-    label: "Invoice Preview",
-    value: "2",
+    label: "Active Invoice",
+    value: "1",
     delta: "+0%",
     trend: "up",
-    summary: "Sample billing view",
+    summary: "Active billing status",
     description: "Generic records for development",
     icon: ReceiptIcon,
   },
   {
-    label: "Invoice Preview",
-    value: "2",
+    label: "Draft Invoice",
+    value: "1",
     delta: "+0%",
     trend: "up",
-    summary: "Sample billing view",
+    summary: "Draft invoice records",
     description: "Generic records for development",
     icon: ReceiptIcon,
   },

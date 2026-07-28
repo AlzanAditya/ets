@@ -3,7 +3,6 @@ import {
   PackageIcon,
   ZapIcon,
   ShieldCheckIcon,
-  FileTextIcon,
   MapPinIcon,
   TagIcon,
   Building2Icon,
@@ -34,24 +33,17 @@ import {
   SelectGroup,
   SelectItem,
 } from "@/components/ui/select";
-import type { ProductRow, BranchRow, ClientRow } from "@/types/database";
+import type { ProductRow, ClientRow } from "@/types/database";
 
 const STATUS_OPTIONS: ProductRow["status"][] = [
-  "active",
-  "deployed",
-  "sold",
+  "warranty",
   "maintenance",
-  "inactive",
-  "retired",
 ];
 
-const STATUS_LABELS: Record<ProductRow["status"], string> = {
-  active: "Aktif (Tersedia di Gudang)",
-  deployed: "Terpasang di Klien",
-  sold: "Terjual",
-  maintenance: "Servis / Maintenance",
-  inactive: "Nonaktif",
-  retired: "Pensiun / Afkir",
+const STATUS_LABELS: Record<string, string> = {
+  warranty: "Bergaransi",
+  garansi: "Bergaransi",
+  maintenance: "Maintenance",
 };
 
 const NO_SELECTION_VALUE = "__NONE__";
@@ -60,7 +52,6 @@ interface ProductEditModeProps {
   editTarget: ProductRow | null;
   fields: any;
   setField: (key: any, value: any) => void;
-  branches: BranchRow[];
   clients: ClientRow[];
   onSubmit: () => void;
   onCancel: () => void;
@@ -76,7 +67,6 @@ export function ProductEditMode({
   editTarget,
   fields,
   setField,
-  branches,
   clients,
   onSubmit,
   onCancel,
@@ -89,24 +79,23 @@ export function ProductEditMode({
 }: ProductEditModeProps) {
   // Field counters for Accordion indicators
   const emptyInfoCount = [
-    fields.nomor_seri,
-    fields.nama_produk,
-    fields.category,
-    fields.brand,
-    fields.tipe_kode,
+    fields.serial_number,
+    fields.product_name,
+    fields.model,
+    fields.model_code,
   ].filter((v) => !v || !String(v).trim()).length;
 
   const emptySpecsCount = [
-    fields.input,
-    fields.output,
-    fields.frekuensi,
-    fields.jumlah_socket,
-    fields.range_daya,
+    fields.input_voltage,
+    fields.output_voltage,
+    fields.frequency,
+    fields.socket_count,
+    fields.power_capacity,
   ].filter((v) => v === null || v === undefined || !String(v).trim()).length;
 
   const emptyProteksiCount = [
-    fields.soft_fuse_protection,
-    fields.hard_fuse_protection,
+    fields.soft_fuse,
+    fields.hard_fuse,
     fields.ground_output,
   ].filter((v) => !v || !String(v).trim()).length;
 
@@ -121,7 +110,7 @@ export function ProductEditMode({
           </h2>
           {editTarget && (
             <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-              Serial Number: <span className="font-semibold text-foreground">{editTarget.nomor_seri}</span>
+              Serial Number: <span className="font-semibold text-foreground">{editTarget.serial_number}</span>
             </p>
           )}
         </div>
@@ -162,14 +151,14 @@ export function ProductEditMode({
               </AccordionTrigger>
               <AccordionContent className="pt-2 pb-4 space-y-3">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="nomor_seri" className="flex items-center gap-1.5 text-xs font-semibold">
+                  <Label htmlFor="serial_number" className="flex items-center gap-1.5 text-xs font-semibold">
                     <TagIcon className="size-3.5 text-primary" />
                     Nomor Seri (Serial Number) *
                   </Label>
                   <Input
-                    id="nomor_seri"
-                    value={fields.nomor_seri}
-                    onChange={(e) => setField("nomor_seri", e.target.value)}
+                    id="serial_number"
+                    value={fields.serial_number}
+                    onChange={(e) => setField("serial_number", e.target.value)}
                     placeholder="SN-..."
                     disabled={!!editTarget}
                     className="font-mono text-sm"
@@ -191,75 +180,61 @@ export function ProductEditMode({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="nama_produk" className="flex items-center gap-1.5 text-xs font-semibold">
+                  <Label htmlFor="product_name" className="flex items-center gap-1.5 text-xs font-semibold">
                     <PackageIcon className="size-3.5 text-primary" />
                     Nama Produk *
                   </Label>
                   <Input
-                    id="nama_produk"
-                    value={fields.nama_produk}
-                    onChange={(e) => setField("nama_produk", e.target.value)}
+                    id="product_name"
+                    value={fields.product_name}
+                    onChange={(e) => setField("product_name", e.target.value)}
                     placeholder="Nama lengkap produk..."
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="category" className="flex items-center gap-1.5 text-xs font-semibold">
-                      <TagIcon className="size-3.5 text-primary" />
-                      Kategori
+                    <Label htmlFor="model" className="flex items-center gap-1.5 text-xs font-semibold">
+                      <Building2Icon className="size-3.5 text-primary" />
+                      Model
                     </Label>
                     <Input
-                      id="category"
-                      value={fields.category ?? ""}
-                      onChange={(e) => setField("category", e.target.value)}
-                      placeholder="UPS, Stabilizer, Battery"
+                      id="model"
+                      value={fields.model ?? ""}
+                      onChange={(e) => setField("model", e.target.value)}
+                      placeholder="Liebert GXT4, APC Smart-UPS..."
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="tahun_pembuatan" className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Label htmlFor="manufacture_year" className="flex items-center gap-1.5 text-xs font-semibold">
                       <CalendarIcon className="size-3.5 text-primary" />
                       Tahun Pembuatan
                     </Label>
                     <Input
-                      id="tahun_pembuatan"
+                      id="manufacture_year"
                       type="number"
                       min="1990"
                       max="2099"
-                      value={fields.tahun_pembuatan ?? ""}
+                      value={fields.manufacture_year ?? ""}
                       onChange={(e) =>
-                        setField("tahun_pembuatan", e.target.value ? Number(e.target.value) : null)
+                        setField("manufacture_year", e.target.value ? Number(e.target.value) : null)
                       }
                       placeholder="2024"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="brand" className="flex items-center gap-1.5 text-xs font-semibold">
-                      <Building2Icon className="size-3.5 text-primary" />
-                      Brand / Merk
-                    </Label>
-                    <Input
-                      id="brand"
-                      value={fields.brand ?? ""}
-                      onChange={(e) => setField("brand", e.target.value)}
-                      placeholder="Liebert, APC, Eaton"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="tipe_kode" className="flex items-center gap-1.5 text-xs font-semibold">
-                      <CpuIcon className="size-3.5 text-primary" />
-                      Tipe / Model Kode
-                    </Label>
-                    <Input
-                      id="tipe_kode"
-                      value={fields.tipe_kode ?? ""}
-                      onChange={(e) => setField("tipe_kode", e.target.value)}
-                      placeholder="GXT4-3000RT230"
-                    />
-                  </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="model_code" className="flex items-center gap-1.5 text-xs font-semibold">
+                    <CpuIcon className="size-3.5 text-primary" />
+                    Tipe / Model Kode
+                  </Label>
+                  <Input
+                    id="model_code"
+                    value={fields.model_code ?? ""}
+                    onChange={(e) => setField("model_code", e.target.value)}
+                    placeholder="GXT4-3000RT230"
+                  />
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -288,26 +263,26 @@ export function ProductEditMode({
               <AccordionContent className="pt-2 pb-4 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="input" className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Label htmlFor="input_voltage" className="flex items-center gap-1.5 text-xs font-semibold">
                       <ZapIcon className="size-3.5 text-amber-500" />
                       Input Voltage
                     </Label>
                     <Input
-                      id="input"
-                      value={fields.input ?? ""}
-                      onChange={(e) => setField("input", e.target.value)}
+                      id="input_voltage"
+                      value={fields.input_voltage ?? ""}
+                      onChange={(e) => setField("input_voltage", e.target.value)}
                       placeholder="220V / 1Ph / 50Hz"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="output" className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Label htmlFor="output_voltage" className="flex items-center gap-1.5 text-xs font-semibold">
                       <ZapIcon className="size-3.5 text-amber-500" />
                       Output Voltage
                     </Label>
                     <Input
-                      id="output"
-                      value={fields.output ?? ""}
-                      onChange={(e) => setField("output", e.target.value)}
+                      id="output_voltage"
+                      value={fields.output_voltage ?? ""}
+                      onChange={(e) => setField("output_voltage", e.target.value)}
                       placeholder="220V / 1Ph / 50Hz"
                     />
                   </div>
@@ -315,29 +290,29 @@ export function ProductEditMode({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="frekuensi" className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Label htmlFor="frequency" className="flex items-center gap-1.5 text-xs font-semibold">
                       <ZapIcon className="size-3.5 text-amber-500" />
                       Frekuensi
                     </Label>
                     <Input
-                      id="frekuensi"
-                      value={fields.frekuensi ?? ""}
-                      onChange={(e) => setField("frekuensi", e.target.value)}
+                      id="frequency"
+                      value={fields.frequency ?? ""}
+                      onChange={(e) => setField("frequency", e.target.value)}
                       placeholder="50 Hz"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="jumlah_socket" className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Label htmlFor="socket_count" className="flex items-center gap-1.5 text-xs font-semibold">
                       <ZapIcon className="size-3.5 text-amber-500" />
                       Jumlah Socket
                     </Label>
                     <Input
-                      id="jumlah_socket"
+                      id="socket_count"
                       type="number"
                       min="0"
-                      value={fields.jumlah_socket ?? ""}
+                      value={fields.socket_count ?? ""}
                       onChange={(e) =>
-                        setField("jumlah_socket", e.target.value ? Number(e.target.value) : null)
+                        setField("socket_count", e.target.value ? Number(e.target.value) : null)
                       }
                       placeholder="6"
                     />
@@ -345,14 +320,14 @@ export function ProductEditMode({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="range_daya" className="flex items-center gap-1.5 text-xs font-semibold">
+                  <Label htmlFor="power_capacity" className="flex items-center gap-1.5 text-xs font-semibold">
                     <ZapIcon className="size-3.5 text-amber-500" />
                     Range Daya
                   </Label>
                   <Input
-                    id="range_daya"
-                    value={fields.range_daya ?? ""}
-                    onChange={(e) => setField("range_daya", e.target.value)}
+                    id="power_capacity"
+                    value={fields.power_capacity ?? ""}
+                    onChange={(e) => setField("power_capacity", e.target.value)}
                     placeholder="1000VA - 3000VA"
                   />
                 </div>
@@ -383,25 +358,25 @@ export function ProductEditMode({
               <AccordionContent className="pt-2 pb-4 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="soft_fuse_protection" className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Label htmlFor="soft_fuse" className="flex items-center gap-1.5 text-xs font-semibold">
                       <ShieldCheckIcon className="size-3.5 text-emerald-500" />
                       Soft Fuse Protection
                     </Label>
                     <Input
-                      id="soft_fuse_protection"
-                      value={fields.soft_fuse_protection ?? ""}
-                      onChange={(e) => setField("soft_fuse_protection", e.target.value)}
+                      id="soft_fuse"
+                      value={fields.soft_fuse ?? ""}
+                      onChange={(e) => setField("soft_fuse", e.target.value)}
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="hard_fuse_protection" className="flex items-center gap-1.5 text-xs font-semibold">
+                    <Label htmlFor="hard_fuse" className="flex items-center gap-1.5 text-xs font-semibold">
                       <ShieldCheckIcon className="size-3.5 text-emerald-500" />
                       Hard Fuse Protection
                     </Label>
                     <Input
-                      id="hard_fuse_protection"
-                      value={fields.hard_fuse_protection ?? ""}
-                      onChange={(e) => setField("hard_fuse_protection", e.target.value)}
+                      id="hard_fuse"
+                      value={fields.hard_fuse ?? ""}
+                      onChange={(e) => setField("hard_fuse", e.target.value)}
                     />
                   </div>
                 </div>
@@ -475,67 +450,13 @@ export function ProductEditMode({
                           <SelectItem value={NO_SELECTION_VALUE}>— Tidak ada —</SelectItem>
                           {clients.map((c) => (
                             <SelectItem key={c.client_id} value={c.client_id}>
-                              {c.customer_name}
+                              {c.client_name}
                             </SelectItem>
                           ))}
                         </SelectGroup>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="current_branch_id" className="flex items-center gap-1.5 text-xs font-semibold">
-                    <Building2Icon className="size-3.5 text-primary" />
-                    Cabang / Gudang
-                  </Label>
-                  <Select
-                    value={fields.current_branch_id || NO_SELECTION_VALUE}
-                    onValueChange={(v) =>
-                      setField("current_branch_id", v === NO_SELECTION_VALUE ? null : v)
-                    }
-                  >
-                    <SelectTrigger id="current_branch_id" className="w-full">
-                      <SelectValue placeholder="Pilih cabang/gudang" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value={NO_SELECTION_VALUE}>— Tidak ada —</SelectItem>
-                        {branches.map((b) => (
-                          <SelectItem key={b.branch_id} value={b.branch_id}>
-                            {b.branch_name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            {/* 5. Catatan Tambahan */}
-            <AccordionItem
-              value="catatan"
-              className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-            >
-              <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-                <div className="flex items-center gap-2 text-foreground">
-                  <FileTextIcon className="size-4 text-primary" />
-                  <span>Catatan Tambahan</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pt-2 pb-4 space-y-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="tambahan_optional" className="flex items-center gap-1.5 text-xs font-semibold">
-                    <FileTextIcon className="size-3.5 text-primary" />
-                    Keterangan Opsional
-                  </Label>
-                  <Input
-                    id="tambahan_optional"
-                    value={fields.tambahan_optional ?? ""}
-                    onChange={(e) => setField("tambahan_optional", e.target.value)}
-                    placeholder="Catatan atau informasi khusus produk..."
-                  />
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -613,7 +534,7 @@ export function ProductEditMode({
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-t px-6 py-3.5 shadow-2xl flex items-center justify-end gap-3">
         <div className="max-w-5xl mx-auto w-full flex items-center justify-between">
           <div className="text-xs text-muted-foreground hidden sm:block">
-            Mode Edit: <span className="font-semibold text-foreground">{fields.nama_produk || "Produk"}</span>
+            Mode Edit: <span className="font-semibold text-foreground">{fields.product_name || "Produk"}</span>
           </div>
 
           <div className="flex items-center gap-3 ml-auto">

@@ -163,14 +163,12 @@ export default function DashboardPage() {
       ? "dari 6 bulan lalu"
       : "dari tahun lalu"
 
-  // Metric cards with Donut Pie Charts (Produk and Klien)
-  const totalAssetsVal = data.metrics.totalAssets || 1248
-  const activeAssetsVal = data.metrics.activeAssets || 1230
-  const serviceAssetsVal = totalAssetsVal - activeAssetsVal > 0 ? totalAssetsVal - activeAssetsVal : 18
+  // Metric cards with Donut Pie Charts (Produk and Klien) using real database data
+  const garansiProductsVal = data.metrics.garansiProducts ?? 0
+  const maintenanceProductsVal = data.metrics.maintenanceProducts ?? 0
 
-  const totalClientsVal = 132
-  const clientRepairVal = 6
-  const clientSafeVal = totalClientsVal - clientRepairVal
+  const clientSafeVal = data.metrics.clientsSafe ?? 0
+  const clientRepairVal = data.metrics.clientsInRepair ?? 0
 
   const metrics: MetricCardItem[] = [
     // Donut Pie Chart Produk
@@ -181,12 +179,12 @@ export default function DashboardPage() {
       items: [
         {
           label: "Produk Aman",
-          value: activeAssetsVal,
+          value: garansiProductsVal,
           color: "bg-emerald-500",
         },
         {
           label: "Produk Bermasalah",
-          value: serviceAssetsVal,
+          value: maintenanceProductsVal,
           color: "bg-red-500",
         },
       ],

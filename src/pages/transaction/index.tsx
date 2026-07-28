@@ -15,7 +15,6 @@ import {
   useTransactionTrend,
   useCreateTransactionMutation,
 } from "@/hooks/use-transactions"
-import { useBranches } from "@/hooks/use-branches"
 import { useClients } from "@/hooks/use-clients"
 import { useTableSchema } from "@/hooks/use-table-schema"
 import { mergeDynamicColumns } from "@/lib/dynamic-columns"
@@ -143,7 +142,7 @@ const PINNED_COLUMNS: ColumnDef<TransactionRowWithId>[] = [
     header: "Asal / Tujuan",
     cell: ({ row }) => {
       const { transaction_type, client, source_branch, destination_branch } = row.original
-      const clientName = client?.customer_name ?? "Klien"
+      const clientName = client?.client_name ?? "Klien"
       const srcName = source_branch?.branch_name ?? "Gudang Asal"
       const destName = destination_branch?.branch_name ?? "Gudang Tujuan"
 
@@ -245,7 +244,6 @@ export default function TransactionPage() {
   const { data: txns, loading: loadingTxns, error: errorTxns, refetch: refetchTxns } = useTransactions()
   const { stats, loading: loadingStats, error: errorStats } = useTransactionStats()
   const { data: trend, loading: loadingTrend, error: errorTrend } = useTransactionTrend(30)
-  const { data: branches } = useBranches()
   const { data: clients } = useClients()
   const createMutation = useCreateTransactionMutation()
 
@@ -520,52 +518,11 @@ export default function TransactionPage() {
             <SelectGroup>
               <SelectItem value={NO_SELECTION_VALUE}>— Tidak ada —</SelectItem>
               {clients.map((c) => (
-                <SelectItem key={c.client_id} value={c.client_id}>{c.customer_name}</SelectItem>
+                <SelectItem key={c.client_id} value={c.client_id}>{c.client_name}</SelectItem>
               ))}
             </SelectGroup>
           </SelectContent>
         </Select>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="source_branch_id">Cabang Asal</Label>
-          <Select
-            value={fields.source_branch_id || NO_SELECTION_VALUE}
-            onValueChange={(v) => setField("source_branch_id", v === NO_SELECTION_VALUE ? "" : v)}
-          >
-            <SelectTrigger id="source_branch_id" className="w-full">
-              <SelectValue placeholder="Pilih cabang" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value={NO_SELECTION_VALUE}>— Tidak ada —</SelectItem>
-                {branches.map((b) => (
-                  <SelectItem key={b.branch_id} value={b.branch_id}>{b.branch_name}</SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="destination_branch_id">Cabang Tujuan</Label>
-          <Select
-            value={fields.destination_branch_id || NO_SELECTION_VALUE}
-            onValueChange={(v) => setField("destination_branch_id", v === NO_SELECTION_VALUE ? "" : v)}
-          >
-            <SelectTrigger id="destination_branch_id" className="w-full">
-              <SelectValue placeholder="Pilih cabang" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value={NO_SELECTION_VALUE}>— Tidak ada —</SelectItem>
-                {branches.map((b) => (
-                  <SelectItem key={b.branch_id} value={b.branch_id}>{b.branch_name}</SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <div className="flex flex-col gap-1 pt-1">

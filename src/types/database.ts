@@ -40,16 +40,13 @@ export type BranchRow = {
 export type ClientRow = {
   client_id: string; // UUID
   client_code: string;
-  customer_name: string;
-  customer_name_alias: string | null; // Alias/nickname for the customer — added in later migration
+  client_name: string;
   email: string | null;
   phone_number: string | null;
-  whatsapp_number: string | null;
   address: string | null;
   city: string | null;
   province: string | null;
   postal_code: string | null;
-  notes: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -59,59 +56,63 @@ export type ClientRow = {
 // Generic image relation — reusable for maintenance docs, reports, audits etc.
 
 export type ProductImageRow = {
-  id: string; // UUID PK
-  product_id: string; // FK → products.product_id
-  storage_path: string; // Path inside 'product-images' bucket (full resolution)
-  thumbnail_path: string | null; // Path inside 'product-images' bucket (max 400px)
+  image_id: string; // UUID PK
+  step_id: string; // FK → product_steps.step_id
+  storage_path: string;
+  thumbnail_path: string | null;
   file_name: string | null;
-  file_size: number | null; // Bytes
-  mime_type: string; // Always 'image/webp' for new uploads
-  width: number | null; // Full image width in pixels
-  height: number | null; // Full image height in pixels
-  sort_order: number; // Ordering within the product gallery
-  uploaded_by: string | null; // FK → auth.users(id)
-  created_at: string;
+  mime_type: string | null;
+  file_size: number | null;
+  sort_order: number;
+  uploaded_at: string;
+  // Optional fields for UI component compatibility
+  id?: string;
+  product_id?: string | null;
+  width?: number | null;
+  height?: number | null;
+  uploaded_by?: string | null;
+  created_at?: string;
 };
 
-export type ProductImageInsert = Omit<ProductImageRow, "id" | "created_at">;
-export type ProductImageUpdate = Partial<
-  Omit<ProductImageRow, "id" | "product_id" | "created_at">
->;
+export type ProductImageInsert = {
+  image_id?: string;
+  step_id?: string;
+  product_id?: string;
+  storage_path: string;
+  thumbnail_path?: string | null;
+  file_name?: string | null;
+  mime_type?: string | null;
+  file_size?: number | null;
+  sort_order?: number;
+  width?: number | null;
+  height?: number | null;
+  uploaded_by?: string | null;
+};
+export type ProductImageUpdate = Partial<ProductImageInsert>;
 
-export type ProductStatus =
-  | "active"
-  | "deployed"
-  | "sold"
-  | "maintenance"
-  | "inactive"
-  | "retired";
+export type ProductStatus = "warranty" | "maintenance";
 
 export type ProductRow = {
   product_id: string; // UUID — surrogate PK
-  nomor_seri: string; // UNIQUE — immutable, used by QR codes
+  serial_number: string; // UNIQUE — immutable, used by QR codes
   product_code: string | null;
-  nama_produk: string;
-  category: string | null;
-  brand: string | null;
-  tipe_kode: string | null;
-  tahun_pembuatan: number | null;
-  input: string | null;
-  output: string | null;
-  frekuensi: string | null;
-  jumlah_socket: number | null;
-  range_daya: string | null;
-  soft_fuse_protection: string | null;
-  hard_fuse_protection: string | null;
+  product_name: string;
+  model: string | null;
+  model_code: string | null;
+  manufacture_year: number | null;
+  input_voltage: string | null;
+  output_voltage: string | null;
+  frequency: string | null;
+  socket_count: number | null;
+  power_capacity: string | null;
+  soft_fuse: string | null;
+  hard_fuse: string | null;
   ground_output: string | null;
-  tambahan_optional: string | null;
   current_branch_id: string | null; // FK → branches.branch_id
   current_client_id: string | null; // FK → clients.client_id
   status: ProductStatus;
   created_at: string;
   updated_at: string;
-  // NOTE: Legacy positional image columns (gambar_depan/kanan/kiri/belakang)
-  // were removed in migration 013_refactor_product_images.sql.
-  // Images are now stored in the product_images table.
 };
 
 export type TransactionType = "sale" | "purchase" | "return" | "transfer";
@@ -230,7 +231,7 @@ export type ScanLogInsert = Omit<ScanLogRow, "id" | "scanned_at">;
 // ─── Update Types (all fields optional) ───────────────────────────────────────
 
 export type ProductUpdate = Partial<
-  Omit<ProductRow, "product_id" | "nomor_seri" | "created_at" | "updated_at">
+  Omit<ProductRow, "product_id" | "serial_number" | "created_at" | "updated_at">
 >;
 export type TransactionUpdate = Partial<
   Omit<TransactionRow, "transaction_id" | "created_at" | "updated_at">
@@ -266,6 +267,56 @@ export type ScanStatsRow = {
   unique_products_scanned: number;
   last_scanned_at: string | null;
 };
+
+// ─── Worker Module Types ──────────────────────────────────────────────────────
+
+export type WorkerPositionRow = {
+  position_id: string; // UUID PK
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkerRoleRow = {
+  role_id: string; // UUID PK
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkerRow = {
+  worker_id: string; // UUID PK
+  worker_code: string; // UNIQUE
+  full_name: string;
+  nickname: string | null;
+  profile_image_path: string | null;
+  phone_number: string | null;
+  email: string | null;
+  position_id: string | null; // FK → worker_positions
+  joined_date: string | null; // DATE as ISO string (YYYY-MM-DD)
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkerAssignmentRow = {
+  assignment_id: string; // UUID PK
+  step_id: string; // FK → product_event_steps
+  worker_id: string; // FK → workers
+  role_id: string; // FK → worker_roles
+  assigned_at: string; // TIMESTAMPTZ
+  completed_at: string | null; // TIMESTAMPTZ
+  created_at: string;
+};
+
+export type WorkerOperationalStatus = "In Installation" | "In Maintenance" | "Inactive";
+
+export type WorkerPositionInsert = Omit<WorkerPositionRow, "created_at" | "updated_at"> & { position_id?: string };
+export type WorkerRoleInsert = Omit<WorkerRoleRow, "created_at" | "updated_at"> & { role_id?: string };
+export type WorkerInsert = Omit<WorkerRow, "worker_id" | "created_at" | "updated_at"> & { worker_id?: string };
+export type WorkerUpdate = Partial<Omit<WorkerRow, "worker_id" | "created_at" | "updated_at">>;
+export type WorkerAssignmentInsert = Omit<WorkerAssignmentRow, "assignment_id" | "created_at"> & { assignment_id?: string };
 
 // ─── Supabase Database type for createClient<Database>() ─────────────────────
 

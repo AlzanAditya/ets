@@ -33,7 +33,7 @@ import SettingsPage from "@/pages/settings"
 import TransactionPage from "@/pages/transaction"
 import TaxPage from "@/pages/tax"
 import AIAgentPage from "@/pages/ai-agent"
-import BranchesPage from "@/pages/branches"
+import WorkersPage from "@/pages/workers"
 import ImagesPage from "@/pages/images"
 import QrStatisticsPage from "@/pages/qr-statistics"
 import { useRealtimeSync } from "@/hooks/use-realtime-sync"
@@ -161,17 +161,24 @@ export default function App() {
                   <Route path="products"        element={<ProductsPage />} />
                   <Route path="products/add"    element={<ProductsPage />} />
                   <Route path="products/:id"    element={<ProductsPage />} />
+                  <Route path="product"         element={<Navigate to="/products" replace />} />
+                  <Route path="product/add"     element={<Navigate to="/products/add" replace />} />
+                  <Route path="product/:id"     element={<ProductsPage />} />
+                  <Route path="clients"         element={<ClientPage />} />
+                  <Route path="clients/add"     element={<ClientPage />} />
+                  <Route path="clients/:id"     element={<ClientPage />} />
+                  <Route path="client"          element={<Navigate to="/clients" replace />} />
+                  <Route path="client/add"      element={<Navigate to="/clients/add" replace />} />
+                  <Route path="client/:id"      element={<ClientPage />} />
                   <Route path="tax"             element={<TaxPage />} />
                   <Route path="ai-agent"        element={<AIAgentPage />} />
-                  <Route path="branches"        element={<BranchesPage />} />
+                  <Route path="workers"         element={<WorkersPage />} />
+                  <Route path="branches"        element={<Navigate to="/workers" replace />} />
                   <Route path="images"          element={<ImagesPage />} />
                   <Route path="qr-statistics"   element={<QrStatisticsPage />} />
                   <Route path="transaction"     element={<TransactionPage />} />
                   <Route path="transaction/add" element={<TransactionPage />} />
                   <Route path="invoice"         element={<InvoicePage />} />
-                  <Route path="client"          element={<ClientPage />} />
-                  <Route path="client/add"      element={<ClientPage />} />
-                  <Route path="client/:id"      element={<ClientPage />} />
                   <Route path="reports"         element={<ReportsPage />} />
                   <Route path="settings"        element={<SettingsPage />} />
                   <Route path="*"               element={<Navigate to="/dashboard" replace />} />

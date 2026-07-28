@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "ETS Web Internal",
+  "description": "Internal ETS Web Application cloned from repository",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

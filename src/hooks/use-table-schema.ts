@@ -14,7 +14,7 @@ export type TableName =
   | "products"
   | "transactions"
   | "clients"
-  | "branches"
+  | "workers"
   | "scan_logs"
   | "transaction_items"
   | "inventory_movements";
@@ -25,9 +25,45 @@ interface UseTableSchemaResult {
   error: string | null;
 }
 
-// ─── Cache ────────────────────────────────────────────────────────────────────
+// ─── Cache & Fallbacks ────────────────────────────────────────────────────────
 // Module-level cache so we don't re-fetch on every mount.
 const schemaCache = new Map<string, ColumnSchema[]>();
+
+const STATIC_TABLE_SCHEMAS: Record<TableName, ColumnSchema[]> = {
+  products: [
+    { column_name: "product_id", data_type: "uuid", is_nullable: "NO", column_default: null },
+    { column_name: "serial_number", data_type: "text", is_nullable: "NO", column_default: null },
+    { column_name: "product_name", data_type: "text", is_nullable: "NO", column_default: null },
+    { column_name: "product_code", data_type: "text", is_nullable: "YES", column_default: null },
+    { column_name: "status", data_type: "text", is_nullable: "NO", column_default: null },
+    { column_name: "qr_code_url", data_type: "text", is_nullable: "YES", column_default: null },
+    { column_name: "created_at", data_type: "timestamp with time zone", is_nullable: "YES", column_default: null },
+  ],
+  transactions: [
+    { column_name: "transaction_id", data_type: "uuid", is_nullable: "NO", column_default: null },
+    { column_name: "transaction_number", data_type: "text", is_nullable: "NO", column_default: null },
+    { column_name: "client_id", data_type: "uuid", is_nullable: "YES", column_default: null },
+    { column_name: "created_at", data_type: "timestamp with time zone", is_nullable: "YES", column_default: null },
+  ],
+  clients: [
+    { column_name: "client_id", data_type: "uuid", is_nullable: "NO", column_default: null },
+    { column_name: "client_name", data_type: "text", is_nullable: "NO", column_default: null },
+    { column_name: "client_code", data_type: "text", is_nullable: "YES", column_default: null },
+    { column_name: "created_at", data_type: "timestamp with time zone", is_nullable: "YES", column_default: null },
+  ],
+  workers: [
+    { column_name: "worker_id", data_type: "uuid", is_nullable: "NO", column_default: null },
+    { column_name: "name", data_type: "text", is_nullable: "NO", column_default: null },
+    { column_name: "role", data_type: "text", is_nullable: "YES", column_default: null },
+  ],
+  scan_logs: [
+    { column_name: "id", data_type: "uuid", is_nullable: "NO", column_default: null },
+    { column_name: "serial_number", data_type: "text", is_nullable: "NO", column_default: null },
+    { column_name: "scanned_at", data_type: "timestamp with time zone", is_nullable: "YES", column_default: null },
+  ],
+  transaction_items: [],
+  inventory_movements: [],
+};
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -92,13 +128,11 @@ export function useTableSchema(tableName: TableName): UseTableSchemaResult {
         if (cancelled) return;
 
         if (sbError) {
-          // Fallback: schema endpoint may not be exposed. Silently degrade.
-          console.warn(
-            `[useTableSchema] Could not fetch schema for "${tableName}":`,
-            sbError.message,
-          );
-          setError(null); // Non-fatal — table works with pre-defined columns
-          setColumns([]);
+          // Fallback: schema endpoint may not be exposed in PostgREST. Silently degrade to fallback.
+          const fallbackCols = STATIC_TABLE_SCHEMAS[tableName] ?? [];
+          schemaCache.set(tableName, fallbackCols);
+          setColumns(fallbackCols);
+          setError(null);
           setLoading(false);
           return;
         }
@@ -108,12 +142,10 @@ export function useTableSchema(tableName: TableName): UseTableSchemaResult {
         setColumns(cols);
       } catch (err: any) {
         if (cancelled) return;
-        console.warn(
-          `[useTableSchema] Unexpected error fetching schema:`,
-          err?.message,
-        );
-        setError(null); // Non-fatal
-        setColumns([]);
+        const fallbackCols = STATIC_TABLE_SCHEMAS[tableName] ?? [];
+        schemaCache.set(tableName, fallbackCols);
+        setColumns(fallbackCols);
+        setError(null);
       } finally {
         if (!cancelled) setLoading(false);
       }

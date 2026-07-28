@@ -28,10 +28,13 @@
 
 import { supabase } from '@/lib/supabase'
 import { safeUUID } from '@/lib/utils'
+import { optimizeAvatarImage, optimizeImage } from '@/lib/image-optimizer'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const IMAGE_BUCKET = 'product-images'
+export const CLIENT_BUCKET = 'client-assets'
+export const PRODUCT_ASSETS_BUCKET = 'product-assets'
 /** Signed URL expiry in seconds (1 hour). URLs are cached for this duration. */
 const SIGNED_URL_TTL_SECONDS = 3600
 
@@ -122,6 +125,73 @@ export async function uploadImagePair(
 
   return { fullPath, thumbPath }
 }
+
+/**
+ * Upload client profile avatar to 'client-assets' bucket under '{client_id}/profile.webp'.
+ * Automatically resizes image to 300x300 WebP square and overwrites existing file.
+ */
+export async function uploadClientAvatar(clientId: string, rawFile: File): Promise<string> {
+  const { file: avatarFile, previewUrl } = await optimizeAvatarImage(rawFile, 300)
+  const path = `${clientId}/profile.webp`
+
+  const { error } = await supabase.storage
+    .from(CLIENT_BUCKET)
+    .upload(path, avatarFile, {
+      contentType: 'image/webp',
+      upsert: true,
+    })
+
+  if (error) {
+    console.error('Client avatar upload error:', error.message)
+    // Fallback: Return object URL preview if storage fails
+    return previewUrl
+  }
+
+  // Get public URL or signed URL with timestamp cache buster
+  const { data } = supabase.storage.from(CLIENT_BUCKET).getPublicUrl(path)
+  const finalUrl = data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : previewUrl
+  return finalUrl
+}
+
+/**
+ * Get client avatar URL for a given clientId from 'client-assets' bucket.
+ */
+export function getClientAvatarUrl(clientId: string): string {
+  const path = `${clientId}/profile.webp`
+  const { data } = supabase.storage.from(CLIENT_BUCKET).getPublicUrl(path)
+  return data?.publicUrl ?? ''
+}
+
+/**
+ * Upload product step image pair to 'product-assets' bucket under:
+ * 'product-assets/{product_id}/{event_id}/{step_type}/...'
+ *
+ * @param stepType Must be 'delivery' | 'installation' | 'inspection' | 'report'
+ */
+export async function uploadProductStepImagePair(
+  productId: string,
+  eventId: string,
+  stepType: 'delivery' | 'installation' | 'inspection' | 'report',
+  rawFile: File
+): Promise<UploadedImagePaths & { width: number; height: number }> {
+  const optimized = await optimizeImage(rawFile)
+  const prefix = `${productId}/${eventId}/${stepType}`
+
+  const { fullPath, thumbPath } = await uploadImagePair(
+    optimized.full,
+    optimized.thumb,
+    prefix,
+    PRODUCT_ASSETS_BUCKET
+  )
+
+  return {
+    fullPath,
+    thumbPath,
+    width: optimized.width,
+    height: optimized.height,
+  }
+}
+
 
 // ─── Signed URL retrieval (batched + cached) ──────────────────────────────────
 

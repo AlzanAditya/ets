@@ -8,7 +8,7 @@ export const clientsService = {
       .from('clients')
       .select('*')
       .is('deleted_at', null)
-      .order('customer_name', { ascending: true })
+      .order('client_name', { ascending: true })
 
     if (error) throw new Error(`Failed to fetch clients: ${error.message}`)
     return data ?? []
@@ -71,5 +71,31 @@ export const clientsService = {
 
     if (error) throw new Error(`Failed to count clients: ${error.message}`)
     return count ?? 0
+  },
+
+  /**
+   * Get breakdown counts for clients (safe vs in repair/maintenance).
+   */
+  async getClientStatusSummary(): Promise<{ totalClients: number; clientsInRepair: number; clientsSafe: number }> {
+    const [clientsRes, maintenanceProductsRes] = await Promise.all([
+      supabase.from('clients').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+      supabase.from('products').select('current_client_id').eq('status', 'maintenance').not('current_client_id', 'is', null),
+    ])
+
+    if (clientsRes.error) console.error('Error fetching client count:', clientsRes.error)
+    if (maintenanceProductsRes.error) console.error('Error fetching maintenance products for clients:', maintenanceProductsRes.error)
+
+    const totalClients = clientsRes.count ?? 0
+    const uniqueClientsInRepair = new Set(
+      (maintenanceProductsRes.data ?? []).map((p) => p.current_client_id).filter(Boolean)
+    ).size
+
+    const clientsSafe = Math.max(0, totalClients - uniqueClientsInRepair)
+
+    return {
+      totalClients,
+      clientsInRepair: uniqueClientsInRepair,
+      clientsSafe,
+    }
   },
 }

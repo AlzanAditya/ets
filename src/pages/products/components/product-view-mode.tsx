@@ -1,72 +1,39 @@
 import * as React from "react";
 import {
-  PackageIcon,
   ZapIcon,
-  ShieldCheckIcon,
-  FileTextIcon,
   PencilIcon,
   ArrowLeftIcon,
   QrCodeIcon,
-  LandmarkIcon,
-  UserCheckIcon,
   Building2Icon,
-  TagIcon,
-  CalendarIcon,
-  CpuIcon,
-  ImageIcon,
+  ShieldCheckIcon,
+  Wrench,
+  ChevronDownIcon,
+  ActivityIcon,
+  DownloadIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
+import { ProductEventAccordion } from "./product-event-accordion";
 import { ProductActivityTimeline } from "./product-activity-timeline";
-import type { ProductWithRelations } from "@/services/products.service";
+import { productsService, type ProductWithRelations } from "@/services/products.service";
+import { productEventsService, type ProductEventData, STEP_TYPE_TITLES } from "@/services/product-events.service";
+import { exportImages } from "@/lib/image-export";
 import { cn } from "@/lib/utils";
 
-const STATUS_LABELS: Record<string, string> = {
-  active: "Aktif (Gudang)",
-  deployed: "Terpasang (Klien)",
-  sold: "Terjual",
-  maintenance: "Servis / Maintenance",
-  inactive: "Nonaktif",
-  retired: "Pensiun",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  deployed: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  sold: "bg-violet-500/10 text-violet-600 border-violet-500/20",
-  maintenance: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  inactive: "bg-muted text-muted-foreground border-transparent",
-  retired: "bg-destructive/10 text-destructive border-destructive/20",
-};
-
-interface ValueDisplayProps {
+interface FieldRowProps {
   label: string;
   value?: string | number | null;
-  icon?: React.ElementType;
   className?: string;
-  badge?: React.ReactNode;
+  isFullWidth?: boolean;
 }
 
-function ValueDisplay({ label, value, icon: Icon, className, badge }: ValueDisplayProps) {
+function FieldRow({ label, value, className, isFullWidth }: FieldRowProps) {
   const displayVal = value !== null && value !== undefined && String(value).trim() !== "" ? String(value) : "—";
   return (
-    <div className={cn("space-y-1 p-2.5 rounded-xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors", className)}>
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-        {Icon && <Icon className="size-3.5 text-primary/70 shrink-0" />}
-        <span>{label}</span>
-      </div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-foreground break-words">
-          {displayVal}
-        </span>
-        {badge}
-      </div>
+    <div className={cn("flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4 text-xs sm:text-sm", isFullWidth && "col-span-full", className)}>
+      <span className="text-zinc-400 shrink-0 sm:w-36">{label}</span>
+      <span className="text-zinc-100 font-medium break-words">{displayVal}</span>
     </div>
   );
 }
@@ -82,220 +49,333 @@ export function ProductViewMode({
   product,
   onEdit,
   onBack,
-  signedImages = [],
 }: ProductViewModeProps) {
-  return (
-    <div className="max-w-5xl mx-auto px-4 lg:px-6 w-full space-y-6 pb-12">
-      {/* ── Top Header Bar ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 rounded-full sm:hidden"
-              onClick={onBack}
-            >
-              <ArrowLeftIcon className="size-4" />
-            </Button>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              {product.nama_produk}
-            </h1>
-            <Badge
-              variant="outline"
-              className={cn("text-xs font-semibold px-2.5 py-0.5", STATUS_COLORS[product.status] ?? "")}
-            >
-              {STATUS_LABELS[product.status] ?? product.status}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground font-mono">
-            <span>SN: <strong className="text-foreground font-bold">{product.nomor_seri}</strong></span>
-            {product.product_code && (
-              <>
-                <span>•</span>
-                <span>Kode: <strong className="text-foreground">{product.product_code}</strong></span>
-              </>
-            )}
-            {product.brand && (
-              <>
-                <span>•</span>
-                <span className="font-sans">Brand: <strong className="text-foreground">{product.brand}</strong></span>
-              </>
-            )}
-          </div>
-        </div>
+  const [currentProduct, setCurrentProduct] = React.useState<ProductWithRelations>(product);
+  const [events, setEvents] = React.useState<ProductEventData[]>([]);
+  const [showFullSpecs, setShowFullSpecs] = React.useState(false);
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 shrink-0">
+  // Sync prop changes
+  React.useEffect(() => {
+    setCurrentProduct(product);
+  }, [product]);
+
+  // Load events to determine if installation is active
+  const refreshData = React.useCallback(async () => {
+    try {
+      const [latestEvents, updatedProd] = await Promise.all([
+        productEventsService.getProductEvents(product.product_id),
+        productsService.getProductBySerial(product.serial_number),
+      ]);
+      if (latestEvents) setEvents(latestEvents);
+      if (updatedProd) setCurrentProduct(updatedProd);
+    } catch (err) {
+      console.warn("Failed to refresh product data:", err);
+    }
+  }, [product.product_id, product.serial_number]);
+
+  React.useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  // Determine status flags according to Requirement 9
+  const isInstallationActive = events.some(
+    (e) => e.event_type === "installation" && e.status === "active"
+  );
+  const isMaintenance = currentProduct.status === "maintenance";
+
+  // Accent styles according to Requirement 9
+  let avatarRingClass = "border-emerald-500/30 bg-emerald-950/40 text-emerald-400";
+  let statusBadgeClass = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+  let statusLabel = "Bergaransi";
+  let editBtnClass = "bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400";
+  let modelTagClass = "bg-emerald-950/30 border-emerald-500/20 text-emerald-300";
+
+  if (isMaintenance) {
+    avatarRingClass = "border-amber-500/30 bg-amber-950/40 text-amber-400";
+    statusBadgeClass = "bg-amber-500/20 text-amber-400 border-amber-500/30";
+    statusLabel = "Maintenance";
+    editBtnClass = "bg-amber-500 text-zinc-950 font-bold hover:bg-amber-400";
+    modelTagClass = "bg-amber-950/30 border-amber-500/20 text-amber-300";
+  } else if (isInstallationActive) {
+    avatarRingClass = "border-emerald-500/30 bg-emerald-950/40 text-emerald-400";
+    statusBadgeClass = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+    statusLabel = "Bergaransi";
+    editBtnClass = "bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400";
+    modelTagClass = "bg-emerald-950/30 border-emerald-500/20 text-emerald-300";
+  }
+
+  // Total photos count across all events and steps
+  const totalPhotoCount = React.useMemo(() => {
+    return events.reduce(
+      (acc, evt) => acc + evt.steps.reduce((sAcc, step) => sAcc + step.images.length, 0),
+      0
+    );
+  }, [events]);
+
+  const [isExportingAll, setIsExportingAll] = React.useState(false);
+
+  const handleExportAllImages = async () => {
+    if (totalPhotoCount === 0) {
+      toast.info("Tidak ada foto untuk diunduh pada produk ini.");
+      return;
+    }
+
+    const allImages = events.flatMap((evt) =>
+      evt.steps.flatMap((step) =>
+        step.images.map((img) => ({
+          source: img.signedUrl || img.storage_path,
+          fileName: img.file_name || undefined,
+          context: {
+            event: evt.title || evt.event_type,
+            step: STEP_TYPE_TITLES[step.step_type] || step.title,
+            productCode: currentProduct.product_code || "",
+            serialNumber: currentProduct.serial_number || "",
+          },
+        }))
+      )
+    );
+
+    setIsExportingAll(true);
+    const toastId = toast.loading(`Mempersiapkan unduhan ${allImages.length} foto...`);
+
+    try {
+      await exportImages({
+        images: allImages,
+        pipeline: ["convert:jpeg", "zip", "download"],
+        jpegQuality: 0.9,
+        zip: {
+          name: `${currentProduct.serial_number}_${currentProduct.product_name || "Produk"}_Semua_Foto`,
+          folderStrategy: "event-step",
+        },
+        fileNaming: {
+          template: "{event}-{step}_{index}",
+          indexPadding: 3,
+        },
+        onProgress: (p) => {
+          if (p.stage === "fetching" || p.stage === "converting") {
+            toast.loading(`Memproses foto (${p.currentFileIndex}/${p.totalFiles})...`, { id: toastId });
+          } else if (p.stage === "zipping") {
+            toast.loading(`Membuat berkas ZIP (${p.percentage}%)...`, { id: toastId });
+          } else if (p.stage === "downloading") {
+            toast.loading("Memulai pengunduhan ZIP...", { id: toastId });
+          }
+        },
+        onComplete: (res) => {
+          if (res.success) {
+            toast.success(`Berhasil mengunduh ${res.exportedCount} foto dalam format ZIP`, { id: toastId });
+          } else {
+            toast.error(`Ekspor selesai dengan ${res.failedCount} berkas gagal`, { id: toastId });
+          }
+        },
+        onError: (err) => {
+          toast.error(`Gagal mengekspor foto: ${err.message}`, { id: toastId });
+        },
+      });
+    } catch (err: any) {
+      toast.error(`Gagal mengekspor foto: ${err?.message || err}`, { id: toastId });
+    } finally {
+      setIsExportingAll(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 w-full space-y-6 pb-16">
+      {/* ── Header Navigation Bar ── */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onBack}
+          className="gap-1.5 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+        >
+          <ArrowLeftIcon className="size-4" />
+          <span>Kembali ke Daftar Produk</span>
+        </Button>
+
+        <div className="flex items-center gap-2">
+          {/* Level 1: Download All Photos Button */}
           <Button
             variant="outline"
             size="sm"
-            onClick={onBack}
-            className="hidden sm:inline-flex gap-1.5 text-xs rounded-xl"
+            onClick={handleExportAllImages}
+            disabled={isExportingAll || totalPhotoCount === 0}
+            className="gap-1.5 text-xs rounded-xl bg-zinc-900/90 border-zinc-800 hover:bg-zinc-800 text-zinc-200 transition-colors"
+            title={
+              totalPhotoCount === 0
+                ? "Tidak ada foto untuk diunduh"
+                : "Unduh semua foto produk dalam format ZIP"
+            }
           >
-            <ArrowLeftIcon className="size-3.5" />
-            Kembali
+            <DownloadIcon className="size-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Unduh Semua Foto</span>
+            <span className="sm:hidden">Unduh Foto</span>
+            {totalPhotoCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold">
+                {totalPhotoCount}
+              </span>
+            )}
           </Button>
 
           <a
-            href={`https://qr.zanxa.studio/p/${product.nomor_seri}`}
+            href={`https://qr.zanxa.studio/p/${currentProduct.serial_number}`}
             target="_blank"
             rel="noopener noreferrer"
           >
             <Button variant="outline" size="sm" className="gap-1.5 text-xs rounded-xl">
               <QrCodeIcon className="size-3.5 text-emerald-500" />
-              QR Code
+              <span>QR Code</span>
             </Button>
           </a>
+        </div>
+      </div>
+
+      {/* ── Main Product Card ── */}
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-950 text-zinc-100 p-5 sm:p-6 shadow-xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            {/* REQUIREMENT 9: Product Avatar Ring & Icon adapting to status */}
+            <div
+              className={cn(
+                "flex size-12 sm:size-14 shrink-0 items-center justify-center rounded-2xl border shadow-inner transition-colors",
+                avatarRingClass
+              )}
+            >
+              {isMaintenance ? (
+                <Wrench className="size-6 sm:size-7 animate-pulse text-amber-400" />
+              ) : isInstallationActive ? (
+                <Wrench className="size-6 sm:size-7 animate-pulse text-emerald-400" />
+              ) : (
+                <ShieldCheckIcon className="size-6 sm:size-7 text-emerald-400" />
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                  {currentProduct.product_name}
+                </h1>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
+                <span>Serial No.</span>
+                <span className="px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 font-bold text-zinc-200">
+                  {currentProduct.serial_number}
+                </span>
+              </div>
+            </div>
+          </div>
 
           <Button
             onClick={onEdit}
             size="sm"
-            className="gap-1.5 text-xs font-semibold rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+            className={cn("text-xs gap-1.5 rounded-xl self-start shrink-0 px-3.5 shadow-sm transition-colors", editBtnClass)}
           >
             <PencilIcon className="size-3.5" />
-            Edit Produk
+            <span>Edit</span>
           </Button>
+        </div>
+
+        {/* Client & Status Badges */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* Client badge */}
+          {currentProduct.client && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900/90 border border-zinc-800 text-zinc-200 text-xs font-semibold">
+              <Building2Icon className="size-3.5 text-zinc-400" />
+              <span>{currentProduct.client.client_name}</span>
+            </div>
+          )}
+
+          {/* REQUIREMENT 9: Status badge adaptivity */}
+          <Badge
+            variant="outline"
+            className={cn("text-xs font-bold px-3 py-1 gap-1.5 rounded-xl border transition-colors", statusBadgeClass)}
+          >
+            {isMaintenance ? (
+              <Wrench className="size-3.5" />
+            ) : isInstallationActive ? (
+              <Wrench className="size-3.5" />
+            ) : (
+              <ShieldCheckIcon className="size-3.5" />
+            )}
+            <span>{statusLabel}</span>
+          </Badge>
+        </div>
+
+        {/* Quick Spec Tags */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {currentProduct.model && (
+            <span className={cn("px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors", modelTagClass)}>
+              {currentProduct.model}
+            </span>
+          )}
+          {currentProduct.frequency && (
+            <span className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-mono font-medium flex items-center gap-1">
+              <ZapIcon className="size-3 text-emerald-400" />
+              {currentProduct.frequency}
+            </span>
+          )}
+          {currentProduct.input_voltage && (
+            <span className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-mono font-medium flex items-center gap-1">
+              <ZapIcon className="size-3 text-amber-400" />
+              {currentProduct.input_voltage}
+            </span>
+          )}
+          {currentProduct.power_capacity && (
+            <span className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-mono font-medium flex items-center gap-1">
+              <ZapIcon className="size-3 text-blue-400" />
+              {currentProduct.power_capacity}
+            </span>
+          )}
+        </div>
+
+        {/* Expandable Technical Specs Drawer */}
+        <div className="pt-2 border-t border-zinc-800/80">
+          <button
+            onClick={() => setShowFullSpecs(!showFullSpecs)}
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 py-1 transition-colors font-medium cursor-pointer"
+          >
+            <span>{showFullSpecs ? "Sembunyikan Spesifikasi" : "Tampilkan Spesifikasi"}</span>
+            <ChevronDownIcon className={cn("size-3.5 transition-transform duration-200", showFullSpecs && "rotate-180")} />
+          </button>
+
+          {showFullSpecs && (
+            <div className="pt-3 pb-1 grid grid-cols-1 sm:grid-cols-2 gap-y-2.5 gap-x-6 border-t border-zinc-900 mt-2">
+              <FieldRow label="Nomor Seri" value={currentProduct.serial_number} />
+              <FieldRow label="Kode Produk" value={currentProduct.product_code} />
+              <FieldRow label="Nama Produk" value={currentProduct.product_name} isFullWidth />
+              <FieldRow label="Model Kode" value={currentProduct.model_code} />
+              <FieldRow label="Tahun Pembuatan" value={currentProduct.manufacture_year} />
+              <FieldRow label="Input Voltage" value={currentProduct.input_voltage} />
+              <FieldRow label="Output Voltage" value={currentProduct.output_voltage} />
+              <FieldRow label="Frekuensi" value={currentProduct.frequency} />
+              <FieldRow label="Jumlah Socket" value={currentProduct.socket_count} />
+              <FieldRow label="Soft Fuse" value={currentProduct.soft_fuse} />
+              <FieldRow label="Hard Fuse" value={currentProduct.hard_fuse} />
+              <FieldRow label="Ground Output" value={currentProduct.ground_output} isFullWidth />
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Main Content Grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Accordions for Product Info & Specs */}
-        <div className="lg:col-span-2 space-y-4">
-          <Accordion
-            type="multiple"
-            defaultValue={["informasi", "spesifikasi", "catatan"]}
-            className="w-full space-y-3"
-          >
-            {/* Accordion 1: Informasi Produk */}
-            <AccordionItem
-              value="informasi"
-              className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-            >
-              <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-                <div className="flex items-center gap-2 text-foreground">
-                  <PackageIcon className="size-4 text-primary" />
-                  <span>Informasi Produk</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pt-2 pb-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <ValueDisplay label="Nomor Seri" value={product.nomor_seri} icon={TagIcon} />
-                  <ValueDisplay label="Kode Produk" value={product.product_code} icon={TagIcon} />
-                  <ValueDisplay label="Nama Produk" value={product.nama_produk} icon={PackageIcon} className="sm:col-span-2" />
-                  <ValueDisplay label="Kategori" value={product.category} icon={TagIcon} />
-                  <ValueDisplay label="Brand" value={product.brand} icon={Building2Icon} />
-                  <ValueDisplay label="Tipe / Model" value={product.tipe_kode} icon={CpuIcon} />
-                  <ValueDisplay label="Tahun Pembuatan" value={product.tahun_pembuatan} icon={CalendarIcon} />
-                  <ValueDisplay
-                    label="Status"
-                    value={STATUS_LABELS[product.status] ?? product.status}
-                    icon={TagIcon}
-                  />
-                  <ValueDisplay
-                    label="Klien Pemegang"
-                    value={product.client ? product.client.customer_name : "Tidak ada"}
-                    icon={UserCheckIcon}
-                  />
-                  <ValueDisplay
-                    label="Cabang / Gudang"
-                    value={product.branch ? product.branch.branch_name : "Tidak ada"}
-                    icon={LandmarkIcon}
-                  />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
+      {/* ── Event & Sub Event Accordions ── */}
+      <div className="space-y-3 pt-2">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+          <ActivityIcon className="size-4 text-primary" />
+          <span>Riwayat Event &amp; Dokumentasi</span>
+        </h2>
 
-            {/* Accordion 2: Spesifikasi Produk */}
-            <AccordionItem
-              value="spesifikasi"
-              className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-            >
-              <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-                <div className="flex items-center gap-2 text-foreground">
-                  <ZapIcon className="size-4 text-amber-500" />
-                  <span>Spesifikasi Produk</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pt-2 pb-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <ValueDisplay label="Input" value={product.input} icon={ZapIcon} />
-                  <ValueDisplay label="Output" value={product.output} icon={ZapIcon} />
-                  <ValueDisplay label="Frekuensi" value={product.frekuensi} icon={ZapIcon} />
-                  <ValueDisplay label="Jumlah Socket" value={product.jumlah_socket} icon={ZapIcon} />
-                  <ValueDisplay label="Range Daya" value={product.range_daya} icon={ZapIcon} className="sm:col-span-2" />
-                  <ValueDisplay label="Soft Fuse Protection" value={product.soft_fuse_protection} icon={ShieldCheckIcon} />
-                  <ValueDisplay label="Hard Fuse Protection" value={product.hard_fuse_protection} icon={ShieldCheckIcon} />
-                  <ValueDisplay label="Ground Output" value={product.ground_output} icon={ShieldCheckIcon} className="sm:col-span-2" />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            {/* Accordion 3: Catatan */}
-            <AccordionItem
-              value="catatan"
-              className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
-            >
-              <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
-                <div className="flex items-center gap-2 text-foreground">
-                  <FileTextIcon className="size-4 text-primary" />
-                  <span>Catatan</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="pt-2 pb-4">
-                <ValueDisplay
-                  label="Keterangan / Tambahan Opsional"
-                  value={product.tambahan_optional}
-                  icon={FileTextIcon}
-                />
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-
-        {/* Right Column: Photo Gallery Card */}
-        <div className="space-y-4">
-          <div className="bg-card border rounded-2xl p-5 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <ImageIcon className="size-4 text-primary" />
-                Foto Produk ({signedImages.length})
-              </h3>
-            </div>
-
-            {signedImages.length === 0 ? (
-              <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-muted-foreground/60 bg-muted/20">
-                <ImageIcon className="size-8 opacity-40" />
-                <span className="text-xs">Tidak ada foto produk</span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {signedImages.map((img, idx) => (
-                  <a
-                    key={img.storagePath}
-                    href={img.fullUrl ?? img.thumbUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group relative aspect-square overflow-hidden rounded-xl border bg-muted"
-                  >
-                    <img
-                      src={img.thumbUrl ?? img.fullUrl ?? ""}
-                      alt={`Foto Produk ${idx + 1}`}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <ProductEventAccordion
+          productId={currentProduct.product_id}
+          onEventsUpdated={refreshData}
+        />
       </div>
 
       {/* ── Product Activity Timeline Section ── */}
-      <div className="pt-4 border-t">
-        <ProductActivityTimeline productId={product.product_id} product={product} />
+      <div className="pt-6 border-t space-y-3">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+          Log Aktivitas
+        </h2>
+        <ProductActivityTimeline productId={currentProduct.product_id} product={currentProduct} />
       </div>
     </div>
   );

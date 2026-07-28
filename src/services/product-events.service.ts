@@ -1,0 +1,686 @@
+import { supabase } from "@/lib/supabase";
+import { safeUUID } from "@/lib/utils";
+import { uploadProductStepImagePair, PRODUCT_ASSETS_BUCKET, getSignedUrls } from "@/lib/image-service";
+import { productsService } from "@/services/products.service";
+
+export type EventType = "installation" | "maintenance";
+export type StepType = "delivery" | "installation" | "inspection" | "report";
+export type StepStatus = "locked" | "active" | "completed";
+
+export interface ProductStepImage {
+  id: string;
+  storage_path: string;
+  thumbnail_path?: string | null;
+  file_name?: string | null;
+  sort_order: number;
+  signedUrl?: string;
+}
+
+export interface ProductStepData {
+  step_id: string;
+  event_id: string;
+  step_type: StepType;
+  title: string;
+  sequence_number: number;
+  status: StepStatus;
+  completed_at: string | null; // Timestamp recorded ONLY when step is completed
+  notes: string | null;
+  images: ProductStepImage[];
+}
+
+export interface ProductEventData {
+  event_id: string;
+  product_id: string;
+  event_type: EventType;
+  title: string; // e.g. "INSTALASI", "MAINTENANCE #1"
+  sequence_number: number;
+  status: "active" | "completed";
+  completed_at: string | null; // Recorded ONLY if event and ALL sub-events are completed
+  created_at: string;
+  steps: ProductStepData[];
+}
+
+const STORAGE_KEY_PREFIX = "product_events_v2_";
+
+export const STEP_TYPE_LABELS: Record<StepType, string> = {
+  delivery: "PENGIRIMAN",
+  installation: "PEMASANGAN",
+  inspection: "PENGECEKAN",
+  report: "REPORT",
+};
+
+export const STEP_TYPE_TITLES: Record<StepType, string> = {
+  delivery: "Pengiriman",
+  installation: "Pemasangan",
+  inspection: "Pengecekan",
+  report: "Report",
+};
+
+/**
+ * Helper to build default Installation event
+ */
+export function buildDefaultInstallationEvent(productId: string): ProductEventData {
+  const eventId = safeUUID();
+  const createdAt = new Date().toISOString();
+
+  return {
+    event_id: eventId,
+    product_id: productId,
+    event_type: "installation",
+    title: "INSTALASI",
+    sequence_number: 1,
+    status: "active",
+    completed_at: null,
+    created_at: createdAt,
+    steps: [
+      {
+        step_id: safeUUID(),
+        event_id: eventId,
+        step_type: "delivery",
+        title: "PENGIRIMAN",
+        sequence_number: 1,
+        status: "active",
+        completed_at: null,
+        notes: null,
+        images: [],
+      },
+      {
+        step_id: safeUUID(),
+        event_id: eventId,
+        step_type: "installation",
+        title: "PEMASANGAN",
+        sequence_number: 2,
+        status: "locked",
+        completed_at: null,
+        notes: null,
+        images: [],
+      },
+      {
+        step_id: safeUUID(),
+        event_id: eventId,
+        step_type: "inspection",
+        title: "PENGECEKAN",
+        sequence_number: 3,
+        status: "locked",
+        completed_at: null,
+        notes: null,
+        images: [],
+      },
+      {
+        step_id: safeUUID(),
+        event_id: eventId,
+        step_type: "report",
+        title: "REPORT",
+        sequence_number: 4,
+        status: "locked",
+        completed_at: null,
+        notes: null,
+        images: [],
+      },
+    ],
+  };
+}
+
+/**
+ * Helper to build a new Maintenance event
+ */
+export function buildNewMaintenanceEvent(productId: string, maintenanceCount: number): ProductEventData {
+  const eventId = safeUUID();
+  const createdAt = new Date().toISOString();
+  const title = `MAINTENANCE #${maintenanceCount}`;
+
+  return {
+    event_id: eventId,
+    product_id: productId,
+    event_type: "maintenance",
+    title,
+    sequence_number: maintenanceCount + 1,
+    status: "active",
+    completed_at: null,
+    created_at: createdAt,
+    steps: [
+      {
+        step_id: safeUUID(),
+        event_id: eventId,
+        step_type: "inspection",
+        title: "PENGECEKAN",
+        sequence_number: 1,
+        status: "active",
+        completed_at: null,
+        notes: null,
+        images: [],
+      },
+      {
+        step_id: safeUUID(),
+        event_id: eventId,
+        step_type: "report",
+        title: "REPORT",
+        sequence_number: 2,
+        status: "locked",
+        completed_at: null,
+        notes: null,
+        images: [],
+      },
+    ],
+  };
+}
+
+/**
+ * Helper to sync event and steps directly into product_events, product_event_steps, and product_steps Supabase tables
+ */
+async function syncEventToDB(event: ProductEventData): Promise<void> {
+  if (!event || !event.event_id) return;
+  try {
+    const eventPayload = {
+      event_id: event.event_id,
+      product_id: event.product_id,
+      event_type: event.event_type,
+      sequence_number: event.sequence_number,
+      status: event.status,
+      completed_at: event.completed_at,
+      created_at: event.created_at || new Date().toISOString(),
+    };
+
+    const { error: evtErr } = await (supabase as any)
+      .from("product_events")
+      .upsert(eventPayload, { onConflict: "event_id" });
+    if (evtErr) {
+      console.error("Failed to upsert product_events row:", evtErr.message || evtErr);
+    }
+
+    if (event.steps && event.steps.length > 0) {
+      const stepRows = event.steps.map((st) => ({
+        step_id: st.step_id,
+        event_id: event.event_id,
+        step_type: st.step_type,
+        sequence_number: st.sequence_number,
+        status: st.status,
+        completed_at: st.completed_at,
+        notes: st.notes,
+      }));
+
+      // Try primary table product_event_steps first
+      const { error: stepsErr1 } = await (supabase as any)
+        .from("product_event_steps")
+        .upsert(stepRows, { onConflict: "step_id" });
+
+      if (stepsErr1) {
+        console.warn("Upsert product_event_steps failed, trying product_steps fallback:", stepsErr1.message || stepsErr1);
+        const { error: stepsErr2 } = await (supabase as any)
+          .from("product_steps")
+          .upsert(stepRows, { onConflict: "step_id" });
+        if (stepsErr2) {
+          console.error("Failed to upsert product_steps fallback:", stepsErr2.message || stepsErr2);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("syncEventToDB error:", err);
+  }
+}
+
+export const productEventsService = {
+  /**
+   * Fetch all events & steps for a product with signed image URLs.
+   */
+  async getProductEvents(productId: string): Promise<ProductEventData[]> {
+    if (!productId) return [];
+
+    try {
+      // 1. Query Supabase product_events table if available
+      let dbEvents: any[] | null = null;
+      let error: any = null;
+
+      const res1 = await (supabase as any)
+        .from("product_events")
+        .select(`
+          *,
+          steps:product_event_steps(
+            *,
+            images:product_images(*)
+          )
+        `)
+        .eq("product_id", productId)
+        .order("sequence_number", { ascending: true });
+
+      if (res1.error) {
+        const res2 = await (supabase as any)
+          .from("product_events")
+          .select(`
+            *,
+            steps:product_steps(
+              *,
+              images:product_images(*)
+            )
+          `)
+          .eq("product_id", productId)
+          .order("sequence_number", { ascending: true });
+        dbEvents = res2.data;
+        error = res2.error;
+      } else {
+        dbEvents = res1.data;
+        error = res1.error;
+      }
+
+      if (!error && dbEvents && dbEvents.length > 0) {
+        // Resolve signed URLs for images
+        const allPaths: string[] = [];
+        dbEvents.forEach((e: any) => {
+          e.steps?.forEach((s: any) => {
+            s.images?.forEach((img: any) => {
+              if (img.storage_path) allPaths.push(img.storage_path);
+            });
+          });
+        });
+
+        const signedMap = allPaths.length > 0 ? await getSignedUrls(allPaths, PRODUCT_ASSETS_BUCKET) : {};
+
+        return dbEvents.map((e: any) => ({
+          event_id: e.event_id || e.id,
+          product_id: e.product_id,
+          event_type: e.event_type,
+          title: e.title || (e.event_type === "installation" ? "INSTALASI" : "MAINTENANCE"),
+          sequence_number: e.sequence_number || 1,
+          status: e.status,
+          completed_at: e.completed_at,
+          created_at: e.created_at,
+          steps: (e.steps || []).sort((a: any, b: any) => a.sequence_number - b.sequence_number).map((s: any) => ({
+            step_id: s.step_id || s.id,
+            event_id: s.event_id,
+            step_type: s.step_type,
+            title: STEP_TYPE_LABELS[s.step_type as StepType] || s.title || s.step_type,
+            sequence_number: s.sequence_number,
+            status: s.status,
+            completed_at: s.completed_at,
+            notes: s.notes,
+            images: (s.images || []).map((img: any) => ({
+              id: img.image_id || img.id,
+              storage_path: img.storage_path,
+              thumbnail_path: img.thumbnail_path,
+              file_name: img.file_name,
+              sort_order: img.sort_order || 0,
+              signedUrl: signedMap[img.storage_path] || img.thumbnail_path || img.storage_path,
+            })).sort((a: any, b: any) => a.sort_order - b.sort_order),
+          })),
+        }));
+      }
+    } catch (err) {
+      console.warn("Database fetch for product_events failed, falling back to cached state:", err);
+    }
+
+    // 2. Fallback to localStorage state
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_PREFIX + productId);
+      if (raw) {
+        const events: ProductEventData[] = JSON.parse(raw);
+        return events;
+      }
+    } catch (e) {
+      console.error("Failed to parse product events from storage:", e);
+    }
+
+    // Initial default installation event
+    const initial = [buildDefaultInstallationEvent(productId)];
+    try {
+      localStorage.setItem(STORAGE_KEY_PREFIX + productId, JSON.stringify(initial));
+    } catch {}
+    
+    // Sync initial default event to DB in background
+    syncEventToDB(initial[0]);
+
+    return initial;
+  },
+
+  /**
+   * Complete step using direct DB upserts + RPC fallback + local state
+   */
+  async completeStep(productId: string, eventId: string, stepId: string): Promise<ProductEventData[]> {
+    // Attempt RPC call first
+    try {
+      const { error } = await (supabase.rpc as any)("complete_step", {
+        p_step_id: stepId,
+      });
+      if (error) {
+        // Try alternative parameter name
+        await (supabase.rpc as any)("complete_step", { step_id: stepId });
+      }
+    } catch (err) {
+      console.warn("RPC complete_step invocation failed:", err);
+    }
+
+    // Update local state / cached model
+    const events = await this.getProductEvents(productId);
+    const nowIso = new Date().toISOString();
+
+    const updatedEvents = events.map((event) => {
+      if (event.event_id !== eventId) return event;
+
+      let stepCompleted = false;
+      const updatedSteps = event.steps.map((step) => {
+        if (step.step_id === stepId) {
+          stepCompleted = true;
+          return {
+            ...step,
+            status: "completed" as StepStatus,
+            completed_at: nowIso,
+          };
+        }
+        // Unlock next step if previous just completed
+        if (stepCompleted && step.status === "locked") {
+          stepCompleted = false; // reset flag after unlocking next
+          return {
+            ...step,
+            status: "active" as StepStatus,
+          };
+        }
+        return step;
+      });
+
+      return {
+        ...event,
+        steps: updatedSteps,
+      };
+    });
+
+    try {
+      localStorage.setItem(STORAGE_KEY_PREFIX + productId, JSON.stringify(updatedEvents));
+    } catch {}
+
+    // Direct DB sync for product_events & product_steps
+    const targetEvent = updatedEvents.find((e) => e.event_id === eventId);
+    if (targetEvent) {
+      await syncEventToDB(targetEvent);
+    }
+
+    return updatedEvents;
+  },
+
+  /**
+   * Complete event using direct DB upserts + RPC + local state
+   */
+  async completeEvent(productId: string, eventId: string): Promise<ProductEventData[]> {
+    try {
+      const { error } = await (supabase.rpc as any)("complete_event", {
+        p_event_id: eventId,
+      });
+      if (error) {
+        await (supabase.rpc as any)("complete_event", { event_id: eventId });
+      }
+    } catch (err) {
+      console.warn("RPC complete_event invocation failed:", err);
+    }
+
+    const events = await this.getProductEvents(productId);
+    const nowIso = new Date().toISOString();
+
+    const updatedEvents = events.map((event) => {
+      if (event.event_id !== eventId) return event;
+
+      // Verify all steps are completed
+      const allStepsCompleted = event.steps.every((s) => s.status === "completed");
+      if (!allStepsCompleted) {
+        throw new Error("Tidak dapat menyelesaikan event karena masih ada step yang belum selesai.");
+      }
+
+      return {
+        ...event,
+        status: "completed" as const,
+        completed_at: nowIso, // Record event completion timestamp only when entire event finishes
+      };
+    });
+
+    try {
+      localStorage.setItem(STORAGE_KEY_PREFIX + productId, JSON.stringify(updatedEvents));
+    } catch {}
+
+    // Direct DB sync for product_events & product_steps
+    const targetEvent = updatedEvents.find((e) => e.event_id === eventId);
+    if (targetEvent) {
+      await syncEventToDB(targetEvent);
+    }
+
+    // Check if any active maintenance events remain
+    const hasActiveMaintenance = updatedEvents.some(
+      (e) => e.event_type === "maintenance" && e.status === "active"
+    );
+    if (!hasActiveMaintenance) {
+      try {
+        await productsService.updateProduct(productId, { status: "warranty" });
+      } catch (err) {
+        console.warn("Failed to update product status to warranty in DB:", err);
+      }
+    }
+
+    return updatedEvents;
+  },
+
+  /**
+   * Create a new Maintenance Event for a product
+   */
+  async createMaintenanceEvent(productId: string): Promise<ProductEventData[]> {
+    try {
+      const { error } = await (supabase.rpc as any)("create_maintenance_event", {
+        p_product_id: productId,
+      });
+      if (error) {
+        await (supabase.rpc as any)("create_maintenance_event", { product_id: productId });
+      }
+    } catch (err) {
+      console.warn("RPC create_maintenance_event failed:", err);
+    }
+
+    const events = await this.getProductEvents(productId);
+    const maintenanceCount = events.filter((e) => e.event_type === "maintenance").length + 1;
+    const newMaintEvent = buildNewMaintenanceEvent(productId, maintenanceCount);
+
+    const updatedEvents = [...events, newMaintEvent];
+
+    try {
+      localStorage.setItem(STORAGE_KEY_PREFIX + productId, JSON.stringify(updatedEvents));
+    } catch {}
+
+    // Direct DB sync for new event & steps
+    await syncEventToDB(newMaintEvent);
+
+    // Automatically set product status to maintenance
+    try {
+      await productsService.updateProduct(productId, { status: "maintenance" });
+    } catch (err) {
+      console.warn("Failed to update product status to maintenance in DB:", err);
+    }
+
+    return updatedEvents;
+  },
+
+  /**
+   * Batch upload multiple files to step gallery
+   */
+  async uploadMultipleStepImages(
+    productId: string,
+    eventId: string,
+    stepId: string,
+    stepType: StepType,
+    files: File[]
+  ): Promise<ProductEventData[]> {
+    if (!files || files.length === 0) return this.getProductEvents(productId);
+
+    let currentEvents: ProductEventData[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const res = await this.uploadStepImage(productId, eventId, stepId, stepType, file);
+      currentEvents = res.eventData;
+    }
+    return currentEvents;
+  },
+
+  /**
+   * Upload image to product step gallery using bucket 'product-assets'
+   * Path: product-assets/{product_id}/{event_id}/{step_type}/...
+   */
+  async uploadStepImage(
+    productId: string,
+    eventId: string,
+    stepId: string,
+    stepType: StepType,
+    file: File
+  ): Promise<{ eventData: ProductEventData[]; newImage: ProductStepImage }> {
+    // 0. Ensure parent event & steps exist in DB so foreign key product_images_step_id_fkey is satisfied
+    try {
+      const currentEvents = await this.getProductEvents(productId);
+      const targetEvt = currentEvents.find((e) => e.event_id === eventId);
+      if (targetEvt) {
+        await syncEventToDB(targetEvt);
+      }
+    } catch (err) {
+      console.warn("Pre-upload event sync error:", err);
+    }
+
+    // 1. Upload to product-assets storage
+    const uploaded = await uploadProductStepImagePair(productId, eventId, stepType, file);
+
+    // 2. Insert to product_images table in DB
+    let imageId = safeUUID();
+    let signedUrl = uploaded.fullPath;
+
+    const currentSortOrder = Math.floor(Date.now() / 1000) % 1000000;
+
+    try {
+      const inserted = await productsService.addProductImage({
+        image_id: imageId,
+        step_id: stepId,
+        storage_path: uploaded.fullPath,
+        thumbnail_path: uploaded.thumbPath,
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: "image/webp",
+        sort_order: currentSortOrder,
+      });
+      if (inserted && inserted.image_id) {
+        imageId = inserted.image_id;
+      }
+    } catch (err) {
+      console.error("Failed to insert product_images row to Supabase DB:", err);
+    }
+
+    // Get signed URL for preview
+    try {
+      const signed = await getSignedUrls([uploaded.fullPath], PRODUCT_ASSETS_BUCKET);
+      if (signed[uploaded.fullPath]) {
+        signedUrl = signed[uploaded.fullPath];
+      }
+    } catch {}
+
+    const newImg: ProductStepImage = {
+      id: imageId,
+      storage_path: uploaded.fullPath,
+      thumbnail_path: uploaded.thumbPath,
+      file_name: file.name,
+      sort_order: currentSortOrder,
+      signedUrl: signedUrl || URL.createObjectURL(file),
+    };
+
+    // 3. Update local events state
+    const events = await this.getProductEvents(productId);
+    const updatedEvents = events.map((e) => {
+      if (e.event_id !== eventId) return e;
+      return {
+        ...e,
+        steps: e.steps.map((s) => {
+          if (s.step_id !== stepId) return s;
+          return {
+            ...s,
+            images: [...s.images, newImg].sort((a, b) => a.sort_order - b.sort_order),
+          };
+        }),
+      };
+    });
+
+    try {
+      localStorage.setItem(STORAGE_KEY_PREFIX + productId, JSON.stringify(updatedEvents));
+    } catch {}
+
+    // Direct DB sync for event & steps
+    const targetEvent = updatedEvents.find((e) => e.event_id === eventId);
+    if (targetEvent) {
+      await syncEventToDB(targetEvent);
+    }
+
+    return { eventData: updatedEvents, newImage: newImg };
+  },
+
+  /**
+   * Delete step image
+   */
+  async deleteStepImage(productId: string, eventId: string, stepId: string, imageId: string): Promise<ProductEventData[]> {
+    try {
+      await productsService.deleteProductImage(imageId);
+    } catch (err) {
+      console.warn("DB delete image failed:", err);
+    }
+
+    const events = await this.getProductEvents(productId);
+    const updatedEvents = events.map((e) => {
+      if (e.event_id !== eventId) return e;
+      return {
+        ...e,
+        steps: e.steps.map((s) => {
+          if (s.step_id !== stepId) return s;
+          return {
+            ...s,
+            images: s.images.filter((img) => img.id !== imageId),
+          };
+        }),
+      };
+    });
+
+    try {
+      localStorage.setItem(STORAGE_KEY_PREFIX + productId, JSON.stringify(updatedEvents));
+    } catch {}
+
+    return updatedEvents;
+  },
+
+  /**
+   * Reorder step images
+   */
+  async reorderStepImages(
+    productId: string,
+    eventId: string,
+    stepId: string,
+    reorderedImages: ProductStepImage[]
+  ): Promise<ProductEventData[]> {
+    const updatedWithOrders = reorderedImages.map((img, idx) => ({
+      ...img,
+      sort_order: idx + 1,
+    }));
+
+    try {
+      await productsService.updateImageSortOrder(
+        updatedWithOrders.map((i) => ({ id: i.id, sort_order: i.sort_order }))
+      );
+    } catch (err) {
+      console.warn("Failed to sync image sort order to DB:", err);
+    }
+
+    const events = await this.getProductEvents(productId);
+    const updatedEvents = events.map((e) => {
+      if (e.event_id !== eventId) return e;
+      return {
+        ...e,
+        steps: e.steps.map((s) => {
+          if (s.step_id !== stepId) return s;
+          return {
+            ...s,
+            images: updatedWithOrders,
+          };
+        }),
+      };
+    });
+
+    try {
+      localStorage.setItem(STORAGE_KEY_PREFIX + productId, JSON.stringify(updatedEvents));
+    } catch {}
+
+    return updatedEvents;
+  },
+};

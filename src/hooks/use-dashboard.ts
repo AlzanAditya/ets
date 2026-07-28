@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query-keys'
 import { productsService } from '@/services/products.service'
+import { clientsService } from '@/services/clients.service'
 import { transactionsService } from '@/services/transactions.service'
 import { scanLogsService } from '@/services/scan-logs.service'
 import type { ProductRow, TransactionRow } from '@/types/database'
@@ -13,6 +14,11 @@ interface DashboardData {
     scansThisMonth: number
     activeAssets: number
     totalAssets: number
+    garansiProducts: number
+    maintenanceProducts: number
+    totalClients: number
+    clientsInRepair: number
+    clientsSafe: number
   }
   chartData: {
     date: string
@@ -35,8 +41,8 @@ export function useDashboard(days = 30): UseDashboardResult {
     queryKey: queryKeys.dashboard(days),
     queryFn: async (): Promise<DashboardData> => {
       const [
-        totalAssets,
-        activeAssets,
+        productStatus,
+        clientStatus,
         txnStats,
         scanStats,
         scanTrend,
@@ -44,8 +50,8 @@ export function useDashboard(days = 30): UseDashboardResult {
         recentTxns,
         recentProducts,
       ] = await Promise.all([
-        productsService.getProductCount(), // All non-retired
-        productsService.getProductCount('active'), // Active
+        productsService.getProductStatusSummary(),
+        clientsService.getClientStatusSummary(),
         transactionsService.getTransactionStats(),
         scanLogsService.getScanStats(),
         scanLogsService.getScanTrend(days),
@@ -90,8 +96,13 @@ export function useDashboard(days = 30): UseDashboardResult {
           revenueTrend: { delta: revenueDelta, trend: revenueTrendSign },
           totalScans: scanStats.total_scans,
           scansThisMonth: scanStats.scans_this_month,
-          activeAssets,
-          totalAssets,
+          activeAssets: productStatus.warranty,
+          totalAssets: productStatus.total,
+          garansiProducts: productStatus.warranty,
+          maintenanceProducts: productStatus.maintenance,
+          totalClients: clientStatus.totalClients,
+          clientsInRepair: clientStatus.clientsInRepair,
+          clientsSafe: clientStatus.clientsSafe,
         },
         chartData,
         recentTransactions: recentTxns,

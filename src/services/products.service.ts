@@ -21,8 +21,45 @@ export interface GetProductsParams {
 
 export interface ProductWithRelations extends ProductRow {
   branch?: { branch_name: string; branch_code: string } | null;
-  client?: { customer_name: string; client_code: string } | null;
+  client?: { client_name: string; client_code: string } | null;
   images?: ProductImageRow[];
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Safely fetch and attach product_images to a list of product objects.
+ * Uses a direct .in('product_id', ids) query to bypass PostgREST relationship requirements.
+ */
+async function attachProductImages(products: ProductWithRelations[]): Promise<ProductWithRelations[]> {
+  if (!products || products.length === 0) return [];
+  const productIds = products.map((p) => p.product_id).filter(Boolean);
+  if (productIds.length === 0) return products;
+
+  try {
+    const { data: images } = await supabase
+      .from("product_images")
+      .select("*")
+      .in("product_id", productIds)
+      .order("sort_order", { ascending: true });
+
+    if (images && images.length > 0) {
+      const imgMap: Record<string, ProductImageRow[]> = {};
+      images.forEach((img: any) => {
+        if (!imgMap[img.product_id]) imgMap[img.product_id] = [];
+        imgMap[img.product_id].push(img);
+      });
+
+      return products.map((p) => ({
+        ...p,
+        images: imgMap[p.product_id] ?? p.images ?? [],
+      }));
+    }
+  } catch (err) {
+    console.warn("Could not fetch product_images separately:", err);
+  }
+
+  return products.map((p) => ({ ...p, images: p.images ?? [] }));
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -50,36 +87,65 @@ export const productsService = {
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(customer_name, client_code),
-        images:product_images(*)
+        client:clients(client_name, client_code)
       `,
       )
       .order("created_at", { ascending: false })
-      .order("sort_order", {
-        referencedTable: "product_images",
-        ascending: true,
-      })
       .range(offset, offset + limit - 1);
 
     if (status) {
-      query = query.eq("status", status);
-    } else {
-      query = query.neq("status", "retired");
+      if (status === "warranty" || (status as string) === "garansi") {
+        query = query.or("status.eq.warranty,status.eq.garansi");
+      } else {
+        query = query.eq("status", status);
+      }
     }
 
     if (search) {
       query = query.or(
-        `nomor_seri.ilike.%${search}%,nama_produk.ilike.%${search}%,product_code.ilike.%${search}%`,
+        `serial_number.ilike.%${search}%,product_name.ilike.%${search}%,product_code.ilike.%${search}%`,
       );
     }
 
     if (branch_id) query = query.eq("current_branch_id", branch_id);
     if (client_id) query = query.eq("current_client_id", client_id);
 
-    const { data, error } = await query;
+    let data: any[] | null = null;
+    const res = await query;
 
-    if (error) throw new Error(`Failed to fetch products: ${error.message}`);
-    return (data ?? []) as ProductWithRelations[];
+    if (res.error) {
+      let fallbackQuery = supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (status) {
+        if (status === "warranty" || (status as string) === "garansi") {
+          fallbackQuery = fallbackQuery.or("status.eq.warranty,status.eq.garansi");
+        } else {
+          fallbackQuery = fallbackQuery.eq("status", status);
+        }
+      }
+      if (search) {
+        fallbackQuery = fallbackQuery.or(
+          `serial_number.ilike.%${search}%,product_name.ilike.%${search}%,product_code.ilike.%${search}%`,
+        );
+      }
+      if (branch_id) fallbackQuery = fallbackQuery.eq("current_branch_id", branch_id);
+      if (client_id) fallbackQuery = fallbackQuery.eq("current_client_id", client_id);
+
+      const fallbackRes = await fallbackQuery;
+      if (fallbackRes.error) {
+        throw new Error(`Failed to fetch products: ${fallbackRes.error.message}`);
+      }
+      data = fallbackRes.data;
+    } else {
+      data = res.data;
+    }
+
+    const products = (data ?? []) as ProductWithRelations[];
+    return attachProductImages(products);
   },
 
   /**
@@ -88,60 +154,81 @@ export const productsService = {
   async getProductById(
     product_id: string,
   ): Promise<ProductWithRelations | null> {
-    const { data, error } = await supabase
+    let data: any = null;
+    const res = await supabase
       .from("products")
       .select(
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(customer_name, client_code),
-        images:product_images(*)
+        client:clients(client_name, client_code)
       `,
       )
       .eq("product_id", product_id)
-      .order("sort_order", {
-        referencedTable: "product_images",
-        ascending: true,
-      })
       .single();
 
-    if (error && error.code !== "PGRST116") {
-      throw new Error(`Failed to fetch product: ${error.message}`);
+    if (res.error && res.error.code !== "PGRST116") {
+      // Fallback simple query
+      const fallback = await supabase
+        .from("products")
+        .select("*")
+        .eq("product_id", product_id)
+        .single();
+
+      if (fallback.error && fallback.error.code !== "PGRST116") {
+        throw new Error(`Failed to fetch product: ${fallback.error.message}`);
+      }
+      data = fallback.data;
+    } else {
+      data = res.data;
     }
-    return (data as unknown as ProductWithRelations) ?? null;
+
+    if (!data) return null;
+    const [withImages] = await attachProductImages([data as unknown as ProductWithRelations]);
+    return withImages ?? null;
   },
 
   /**
-   * Fetch single product by nomor_seri (for QR compatibility).
+   * Fetch single product by serial_number (for QR compatibility).
    */
   async getProductBySerial(
-    nomor_seri: string,
+    serial_number: string,
   ): Promise<ProductWithRelations | null> {
-    const { data, error } = await supabase
+    let data: any = null;
+    const res = await supabase
       .from("products")
       .select(
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(customer_name, client_code),
-        images:product_images(*)
+        client:clients(client_name, client_code)
       `,
       )
-      .eq("nomor_seri", nomor_seri)
-      .order("sort_order", {
-        referencedTable: "product_images",
-        ascending: true,
-      })
+      .eq("serial_number", serial_number)
       .single();
 
-    if (error && error.code !== "PGRST116") {
-      throw new Error(`Failed to fetch product: ${error.message}`);
+    if (res.error && res.error.code !== "PGRST116") {
+      const fallback = await supabase
+        .from("products")
+        .select("*")
+        .eq("serial_number", serial_number)
+        .single();
+
+      if (fallback.error && fallback.error.code !== "PGRST116") {
+        throw new Error(`Failed to fetch product: ${fallback.error.message}`);
+      }
+      data = fallback.data;
+    } else {
+      data = res.data;
     }
-    return (data as unknown as ProductWithRelations) ?? null;
+
+    if (!data) return null;
+    const [withImages] = await attachProductImages([data as unknown as ProductWithRelations]);
+    return withImages ?? null;
   },
 
   /**
-   * Count total products (excluding retired).
+   * Count total products by status (warranty vs maintenance).
    */
   async getProductCount(status?: ProductRow["status"]): Promise<number> {
     let query = supabase
@@ -149,15 +236,38 @@ export const productsService = {
       .select("*", { count: "exact", head: true });
 
     if (status) {
-      query = query.eq("status", status);
-    } else {
-      query = query.neq("status", "retired");
+      if (status === "warranty" || (status as string) === "garansi") {
+        query = query.or("status.eq.warranty,status.eq.garansi");
+      } else {
+        query = query.eq("status", status);
+      }
     }
 
     const { count, error } = await query;
 
     if (error) throw new Error(`Failed to count products: ${error.message}`);
     return count ?? 0;
+  },
+
+  /**
+   * Get breakdown counts for warranty, maintenance, and total.
+   */
+  async getProductStatusSummary(): Promise<{ warranty: number; maintenance: number; total: number }> {
+    const [warrantyRes, maintenanceRes, totalRes] = await Promise.all([
+      supabase.from("products").select("*", { count: "exact", head: true }).or("status.eq.warranty,status.eq.garansi"),
+      supabase.from("products").select("*", { count: "exact", head: true }).eq("status", "maintenance"),
+      supabase.from("products").select("*", { count: "exact", head: true }),
+    ]);
+
+    if (warrantyRes.error) console.error("Error fetching warranty count:", warrantyRes.error);
+    if (maintenanceRes.error) console.error("Error fetching maintenance count:", maintenanceRes.error);
+    if (totalRes.error) console.error("Error fetching total product count:", totalRes.error);
+
+    return {
+      warranty: warrantyRes.count ?? 0,
+      maintenance: maintenanceRes.count ?? 0,
+      total: totalRes.count ?? 0,
+    };
   },
 
   /**
@@ -180,7 +290,7 @@ export const productsService = {
 
   /**
    * Update an existing product by product_id.
-   * nomor_seri is immutable — excluded from update type.
+   * serial_number is immutable — excluded from update type.
    */
   async updateProduct(
     product_id: string,
@@ -218,23 +328,36 @@ export const productsService = {
    * Fetch recently added products (for dashboard table).
    */
   async getRecentProducts(limit = 10): Promise<ProductWithRelations[]> {
-    const { data, error } = await supabase
+    let data: any[] | null = null;
+    const res = await supabase
       .from("products")
       .select(
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(customer_name, client_code),
-        images:product_images(*)
+        client:clients(client_name, client_code)
       `,
       )
-      .neq("status", "retired")
       .order("created_at", { ascending: false })
       .limit(limit);
 
-    if (error)
-      throw new Error(`Failed to fetch recent products: ${error.message}`);
-    return (data ?? []) as ProductWithRelations[];
+    if (res.error) {
+      const fallback = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (fallback.error) {
+        throw new Error(`Failed to fetch recent products: ${fallback.error.message}`);
+      }
+      data = fallback.data;
+    } else {
+      data = res.data;
+    }
+
+    const products = (data ?? []) as ProductWithRelations[];
+    return attachProductImages(products);
   },
 
   // ─── Image Management ────────────────────────────────────────────────────────
@@ -280,7 +403,7 @@ export const productsService = {
     const { error } = await supabase
       .from("product_images")
       .delete()
-      .eq("id", imageId);
+      .eq("image_id", imageId);
 
     if (error)
       throw new Error(
@@ -297,7 +420,7 @@ export const productsService = {
   ): Promise<void> {
     await Promise.all(
       updates.map(({ id, sort_order }) =>
-        supabase.from("product_images").update({ sort_order }).eq("id", id),
+        supabase.from("product_images").update({ sort_order }).eq("image_id", id),
       ),
     );
   },

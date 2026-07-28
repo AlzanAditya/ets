@@ -32,7 +32,7 @@ const TOP_NAV_ITEMS = [
 const BOTTOM_NAV_ITEMS = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGridIcon },
   { title: "Products", url: "/products", icon: PackageIcon },
-  { title: "Clients", url: "/client", icon: UsersIcon },
+  { title: "Clients", url: "/clients", icon: UsersIcon },
   { title: "Reports", url: "/reports", icon: FileChartColumnIcon },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const
@@ -133,7 +133,9 @@ export function MobileNavbar() {
   }
 
   const active = (url: string) =>
-    location.pathname === url || (url === "/dashboard" && location.pathname === "/")
+    location.pathname === url ||
+    (url === "/dashboard" && location.pathname === "/") ||
+    (url !== "/dashboard" && (location.pathname.startsWith(`${url}/`) || location.pathname.startsWith(`${url}?`)))
 
   function go(url: string) {
     navigate(url)
@@ -165,8 +167,9 @@ export function MobileNavbar() {
           className={cn(
             "absolute left-0 right-0 z-10",
             "flex items-stretch",
-            "border-t border-border/40 bg-background/95 backdrop-blur-md",
-            "transition-transform",
+            "bg-background/95 backdrop-blur-md border-t border-border/40",
+            topRowVisible && "shadow-[0_-16px_32px_-4px_rgba(0,0,0,0.5)] dark:shadow-[0_-20px_40px_-4px_rgba(0,0,0,0.9)]",
+            "transition-all duration-300",
           )}
           style={{
             bottom: ROW_H,
@@ -221,7 +224,8 @@ export function MobileNavbar() {
           className={cn(
             "relative z-20",
             "flex items-stretch",
-            "border-t border-border/40 bg-background/95 backdrop-blur-md",
+            "bg-background/95 backdrop-blur-md border-t border-border/40 transition-all duration-300",
+            !topRowVisible && "shadow-[0_-16px_32px_-4px_rgba(0,0,0,0.5)] dark:shadow-[0_-20px_40px_-4px_rgba(0,0,0,0.9)]",
           )}
           style={{ height: ROW_H }}
         >

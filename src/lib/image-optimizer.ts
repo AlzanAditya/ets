@@ -114,3 +114,51 @@ export async function optimizeImage(file: File): Promise<OptimizedImage> {
     previewUrl,
   }
 }
+
+/**
+ * Resize and center crop an image into a 300x300 WebP square File for client avatars.
+ */
+export async function optimizeAvatarImage(file: File, targetSize = 300): Promise<{ file: File; previewUrl: string }> {
+  const img = await loadImage(file)
+  const canvas = document.createElement('canvas')
+  canvas.width = targetSize
+  canvas.height = targetSize
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas 2D context not available')
+
+  // Center-crop (cover) fit
+  const sw = img.naturalWidth
+  const sh = img.naturalHeight
+  const aspect = sw / sh
+
+  let sx = 0, sy = 0, sWidth = sw, sHeight = sh
+  if (aspect > 1) {
+    // Landscape
+    sWidth = sh
+    sx = (sw - sh) / 2
+  } else {
+    // Portrait
+    sHeight = sw
+    sy = (sh - sw) / 2
+  }
+
+  ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetSize, targetSize)
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => {
+        if (!b) reject(new Error('Failed to generate avatar blob'))
+        else resolve(b)
+      },
+      OUTPUT_TYPE,
+      0.85
+    )
+  })
+
+  const avatarFile = new File([blob], 'profile.webp', { type: OUTPUT_TYPE })
+  const previewUrl = URL.createObjectURL(blob)
+
+  return { file: avatarFile, previewUrl }
+}
+

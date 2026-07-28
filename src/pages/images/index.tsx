@@ -8,6 +8,7 @@ import {
   FileTextIcon, 
   FolderIcon,
   XIcon,
+  WrenchIcon,
   Maximize2Icon
 } from "lucide-react";
 import { useProducts } from "@/hooks/use-products";
@@ -81,15 +82,15 @@ function SafeImage({ src, alt, className }: SafeImageProps) {
 
 // ─── Main Page Component (Task 5) ──────────────────────────────────────────────
 export default function ImagesPage() {
-  // Fetch active products (excludes retired by default)
-  const { data: activeProducts, loading: activeLoading } = useProducts({ limit: 150 });
+  // Fetch garansi/warranty products (excludes maintenance by default)
+  const { data: garansiProducts, loading: garansiLoading } = useProducts({ status: "warranty", limit: 150 });
   
-  // Fetch retired products
-  const { data: retiredProducts, loading: retiredLoading } = useProducts({ status: "retired", limit: 150 });
+  // Fetch maintenance products
+  const { data: maintenanceProducts, loading: maintenanceLoading } = useProducts({ status: "maintenance", limit: 150 });
 
   const [urls, setUrls] = React.useState<Record<string, string>>({});
   const [loadingUrls, setLoadingUrls] = React.useState(true);
-  const [activeTab, setActiveTab] = React.useState<string>("active");
+  const [activeTab, setActiveTab] = React.useState<string>("garansi");
   
   // Lightbox Modal state
   const [selectedImage, setSelectedImage] = React.useState<{
@@ -104,28 +105,28 @@ export default function ImagesPage() {
   } | null>(null);
 
   // Filter products that actually contain images
-  const activeWithImages = React.useMemo(() => {
-    return activeProducts.filter((p) => p.images && p.images.length > 0);
-  }, [activeProducts]);
+  const garansiWithImages = React.useMemo(() => {
+    return garansiProducts.filter((p) => p.images && p.images.length > 0);
+  }, [garansiProducts]);
 
-  const retiredWithImages = React.useMemo(() => {
-    return retiredProducts.filter((p) => p.images && p.images.length > 0);
-  }, [retiredProducts]);
+  const maintenanceWithImages = React.useMemo(() => {
+    return maintenanceProducts.filter((p) => p.images && p.images.length > 0);
+  }, [maintenanceProducts]);
 
   // Bulk resolve signed URLs
   React.useEffect(() => {
     const allPaths = [
-      ...activeWithImages.flatMap((p) => p.images?.map((img) => img.thumbnail_path ?? img.storage_path) ?? []),
-      ...retiredWithImages.flatMap((p) => p.images?.map((img) => img.thumbnail_path ?? img.storage_path) ?? []),
+      ...garansiWithImages.flatMap((p) => p.images?.map((img) => img.thumbnail_path ?? img.storage_path) ?? []),
+      ...maintenanceWithImages.flatMap((p) => p.images?.map((img) => img.thumbnail_path ?? img.storage_path) ?? []),
       // Add full resolution paths in case we open lightbox
-      ...activeWithImages.flatMap((p) => p.images?.map((img) => img.storage_path) ?? []),
-      ...retiredWithImages.flatMap((p) => p.images?.map((img) => img.storage_path) ?? []),
+      ...garansiWithImages.flatMap((p) => p.images?.map((img) => img.storage_path) ?? []),
+      ...maintenanceWithImages.flatMap((p) => p.images?.map((img) => img.storage_path) ?? []),
     ];
 
     const uniquePaths = Array.from(new Set(allPaths)).filter(Boolean);
 
     if (uniquePaths.length === 0) {
-      if (!activeLoading && !retiredLoading) {
+      if (!garansiLoading && !maintenanceLoading) {
         setLoadingUrls(false);
       }
       return;
@@ -142,18 +143,18 @@ export default function ImagesPage() {
       .finally(() => {
         setLoadingUrls(false);
       });
-  }, [activeWithImages, retiredWithImages, activeLoading, retiredLoading]);
+  }, [garansiWithImages, maintenanceWithImages, garansiLoading, maintenanceLoading]);
 
   // Statistics calculation
-  const totalActiveImages = React.useMemo(() => {
-    return activeWithImages.reduce((sum, p) => sum + (p.images?.length ?? 0), 0);
-  }, [activeWithImages]);
+  const totalGaransiImages = React.useMemo(() => {
+    return garansiWithImages.reduce((sum, p) => sum + (p.images?.length ?? 0), 0);
+  }, [garansiWithImages]);
 
-  const totalRetiredImages = React.useMemo(() => {
-    return retiredWithImages.reduce((sum, p) => sum + (p.images?.length ?? 0), 0);
-  }, [retiredWithImages]);
+  const totalMaintenanceImages = React.useMemo(() => {
+    return maintenanceWithImages.reduce((sum, p) => sum + (p.images?.length ?? 0), 0);
+  }, [maintenanceWithImages]);
 
-  const totalImages = totalActiveImages + totalRetiredImages;
+  const totalImages = totalGaransiImages + totalMaintenanceImages;
 
   const metrics: MetricCardItem[] = [
     {
@@ -167,28 +168,28 @@ export default function ImagesPage() {
       status: "info",
     },
     {
-      label: "Gambar Produk Aktif",
-      value: totalActiveImages.toString(),
+      label: "Gambar Produk Garansi",
+      value: totalGaransiImages.toString(),
       delta: "+0%",
       trend: "up",
-      summary: "Produk operasional",
-      description: "Gambar pada produk berstatus aktif/gudang/klien",
+      summary: "Produk garansi",
+      description: "Gambar pada produk berstatus garansi",
       icon: ImageIcon,
       status: "success",
     },
     {
-      label: "Gambar Produk Pensiun",
-      value: totalRetiredImages.toString(),
+      label: "Gambar Produk Maintenance",
+      value: totalMaintenanceImages.toString(),
       delta: "+0%",
       trend: "up",
-      summary: "Aset kearsipan",
-      description: "Gambar pada produk berstatus pensiun (retired)",
+      summary: "Aset maintenance",
+      description: "Gambar pada produk berstatus maintenance",
       icon: ImageIcon,
-      status: "danger",
+      status: "warning",
     },
   ];
 
-  const isLoading = activeLoading || retiredLoading || loadingUrls;
+  const isLoading = garansiLoading || maintenanceLoading || loadingUrls;
 
   // Format file size helper
   const formatBytes = (bytes: number | null) => {
@@ -212,24 +213,24 @@ export default function ImagesPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between border-b pb-2 mb-6">
             <TabsList className="bg-muted/50 p-1 rounded-lg">
-              <TabsTrigger value="active" className="text-xs sm:text-sm px-4 py-2 flex items-center gap-1.5">
+              <TabsTrigger value="garansi" className="text-xs sm:text-sm px-4 py-2 flex items-center gap-1.5">
                 <LayersIcon className="size-3.5 text-emerald-500" />
-                <span>Produk Aktif</span>
+                <span>Produk Garansi</span>
                 <Badge variant="secondary" className="h-5 text-[10px] px-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none">
-                  {activeWithImages.length}
+                  {garansiWithImages.length}
                 </Badge>
               </TabsTrigger>
-              <TabsTrigger value="retired" className="text-xs sm:text-sm px-4 py-2 flex items-center gap-1.5">
-                <XIcon className="size-3.5 text-destructive" />
-                <span>Produk Pensiun (Retired)</span>
-                <Badge variant="secondary" className="h-5 text-[10px] px-1.5 bg-destructive/10 text-destructive border-none">
-                  {retiredWithImages.length}
+              <TabsTrigger value="maintenance" className="text-xs sm:text-sm px-4 py-2 flex items-center gap-1.5">
+                <WrenchIcon className="size-3.5 text-amber-500" />
+                <span>Produk Maintenance</span>
+                <Badge variant="secondary" className="h-5 text-[10px] px-1.5 bg-amber-500/10 text-amber-600 border-none">
+                  {maintenanceWithImages.length}
                 </Badge>
               </TabsTrigger>
             </TabsList>
 
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              Menampilkan {activeTab === "active" ? activeWithImages.length : retiredWithImages.length} item produk ber-gambar
+              Menampilkan {activeTab === "garansi" ? garansiWithImages.length : maintenanceWithImages.length} item produk ber-gambar
             </span>
           </div>
 
@@ -240,31 +241,31 @@ export default function ImagesPage() {
             </div>
           ) : (
             <>
-              {/* Tab Produk Aktif */}
-              <TabsContent value="active" className="space-y-8 outline-none">
-                {activeWithImages.length === 0 ? (
+              {/* Tab Produk Garansi */}
+              <TabsContent value="garansi" className="space-y-8 outline-none">
+                {garansiWithImages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 border rounded-xl bg-card/40 text-center p-6">
                     <ImageIcon className="size-12 text-muted-foreground/30 mb-3 animate-pulse" />
-                    <h3 className="text-sm font-semibold text-foreground">Tidak Ada Gambar Produk Aktif</h3>
+                    <h3 className="text-sm font-semibold text-foreground">Tidak Ada Gambar Produk Garansi</h3>
                     <p className="text-xs text-muted-foreground max-w-sm mt-1">
-                      Belum ada gambar yang diunggah untuk produk aktif operasional. Silakan unggah gambar melalui halaman Produk.
+                      Belum ada gambar yang diunggah untuk produk garansi. Silakan unggah gambar melalui halaman Produk.
                     </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {activeWithImages.map((product) => (
+                    {garansiWithImages.map((product) => (
                       <Card key={product.product_id} className="border bg-card/35 backdrop-blur-xs shadow-xs hover:shadow-md transition-all">
                         <CardHeader className="pb-3 border-b border-muted/40 bg-muted/20 px-4 py-3 flex flex-row items-center justify-between">
                           <div className="flex flex-col gap-0.5">
                             <span className="font-mono text-[10px] font-bold text-primary tracking-wider uppercase">
-                              {product.nomor_seri}
+                              {product.serial_number}
                             </span>
                             <CardTitle className="text-sm font-semibold leading-none text-foreground mt-0.5">
-                              {product.nama_produk}
+                              {product.product_name}
                             </CardTitle>
                           </div>
                           <Badge variant="outline" className="text-[10px] h-5 capitalize bg-background font-medium">
-                            {product.category || "General"}
+                            {product.model || "—"}
                           </Badge>
                         </CardHeader>
                         <CardContent className="p-4">
@@ -274,20 +275,20 @@ export default function ImagesPage() {
                               const fullUrl = urls[img.storage_path];
                               return (
                                 <div 
-                                  key={img.id} 
+                                  key={img.image_id || img.id} 
                                   className="group relative aspect-square cursor-zoom-in rounded-lg overflow-hidden border border-muted/50 bg-muted/30"
                                   onClick={() => setSelectedImage({
                                     url: fullUrl || thumbUrl,
-                                    productName: product.nama_produk,
-                                    serialNumber: product.nomor_seri,
+                                    productName: product.product_name,
+                                    serialNumber: product.serial_number,
                                     fileName: img.file_name,
                                     fileSize: img.file_size,
-                                    width: img.width,
-                                    height: img.height,
-                                    uploadedAt: img.created_at,
+                                    width: img.width ?? null,
+                                    height: img.height ?? null,
+                                    uploadedAt: img.uploaded_at || img.created_at || new Date().toISOString(),
                                   })}
                                 >
-                                  <SafeImage src={thumbUrl} alt={img.file_name || product.nama_produk} />
+                                  <SafeImage src={thumbUrl} alt={img.file_name || product.product_name} />
                                   
                                   {/* Hover overlay details */}
                                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-2 text-[9px] text-white">
@@ -308,31 +309,31 @@ export default function ImagesPage() {
                 )}
               </TabsContent>
 
-              {/* Tab Produk Pensiun (Retired) */}
-              <TabsContent value="retired" className="space-y-8 outline-none">
-                {retiredWithImages.length === 0 ? (
+              {/* Tab Produk Maintenance */}
+              <TabsContent value="maintenance" className="space-y-8 outline-none">
+                {maintenanceWithImages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 border rounded-xl bg-card/40 text-center p-6">
                     <ImageIcon className="size-12 text-muted-foreground/30 mb-3 animate-pulse" />
-                    <h3 className="text-sm font-semibold text-foreground">Tidak Ada Gambar Produk Pensiun</h3>
+                    <h3 className="text-sm font-semibold text-foreground">Tidak Ada Gambar Produk Maintenance</h3>
                     <p className="text-xs text-muted-foreground max-w-sm mt-1">
-                      Belum ada aset gambar tersimpan untuk produk-produk berstatus pensiun (retired).
+                      Belum ada aset gambar tersimpan untuk produk-produk berstatus maintenance.
                     </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {retiredWithImages.map((product) => (
-                      <Card key={product.product_id} className="border border-destructive/10 bg-destructive/[0.01] backdrop-blur-xs shadow-xs hover:shadow-md transition-all">
-                        <CardHeader className="pb-3 border-b border-destructive/10 bg-destructive/[0.03] px-4 py-3 flex flex-row items-center justify-between">
+                    {maintenanceWithImages.map((product) => (
+                      <Card key={product.product_id} className="border border-amber-500/10 bg-amber-500/[0.01] backdrop-blur-xs shadow-xs hover:shadow-md transition-all">
+                        <CardHeader className="pb-3 border-b border-amber-500/10 bg-amber-500/[0.03] px-4 py-3 flex flex-row items-center justify-between">
                           <div className="flex flex-col gap-0.5">
-                            <span className="font-mono text-[10px] font-bold text-destructive tracking-wider uppercase">
-                              {product.nomor_seri}
+                            <span className="font-mono text-[10px] font-bold text-amber-600 tracking-wider uppercase">
+                              {product.serial_number}
                             </span>
                             <CardTitle className="text-sm font-semibold leading-none text-foreground mt-0.5">
-                              {product.nama_produk}
+                              {product.product_name}
                             </CardTitle>
                           </div>
-                          <Badge variant="destructive" className="text-[10px] h-5 uppercase font-medium bg-destructive/10 text-destructive border-none">
-                            RETIRED
+                          <Badge variant="outline" className="text-[10px] h-5 uppercase font-medium bg-amber-500/10 text-amber-600 border-none">
+                            MAINTENANCE
                           </Badge>
                         </CardHeader>
                         <CardContent className="p-4">
@@ -342,20 +343,20 @@ export default function ImagesPage() {
                               const fullUrl = urls[img.storage_path];
                               return (
                                 <div 
-                                  key={img.id} 
+                                  key={img.image_id || img.id} 
                                   className="group relative aspect-square cursor-zoom-in rounded-lg overflow-hidden border border-muted/50 bg-muted/30"
                                   onClick={() => setSelectedImage({
                                     url: fullUrl || thumbUrl,
-                                    productName: product.nama_produk,
-                                    serialNumber: product.nomor_seri,
+                                    productName: product.product_name,
+                                    serialNumber: product.serial_number,
                                     fileName: img.file_name,
                                     fileSize: img.file_size,
-                                    width: img.width,
-                                    height: img.height,
-                                    uploadedAt: img.created_at,
+                                    width: img.width ?? null,
+                                    height: img.height ?? null,
+                                    uploadedAt: img.uploaded_at || img.created_at || new Date().toISOString(),
                                   })}
                                 >
-                                  <SafeImage src={thumbUrl} alt={img.file_name || product.nama_produk} />
+                                  <SafeImage src={thumbUrl} alt={img.file_name || product.product_name} />
                                   
                                   {/* Hover overlay details */}
                                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-2 text-[9px] text-white">
