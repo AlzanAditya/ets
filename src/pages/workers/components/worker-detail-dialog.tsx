@@ -63,7 +63,7 @@ export function WorkerDetailDialog({
           <div className="flex items-center gap-3">
             <Avatar className="size-16 border-2 border-primary/20 shadow-xs shrink-0">
               {getWorkerProfilePhotoUrl(worker.worker_id || worker.id, worker.profile_photo_path || worker.profile_image_path) ? (
-                <AvatarImage src={getWorkerProfilePhotoUrl(worker.worker_id || worker.id, worker.profile_photo_path || worker.profile_image_path)} alt={worker.full_name} />
+                <AvatarImage src={getWorkerProfilePhotoUrl(worker.worker_id || worker.id, worker.profile_photo_path || worker.profile_image_path) || undefined} alt={worker.full_name} />
               ) : null}
               <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
                 {initials}

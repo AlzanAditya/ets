@@ -509,7 +509,7 @@ export function ProductEditMode({
                     className="group relative aspect-square overflow-hidden rounded-xl border bg-muted"
                   >
                     <img
-                      src={img.previewUrl ?? img.thumbUrl ?? ""}
+                      src={(img.previewUrl || img.thumbUrl) || undefined}
                       alt={`Foto ${index + 1}`}
                       className="h-full w-full object-cover"
                       loading="lazy"

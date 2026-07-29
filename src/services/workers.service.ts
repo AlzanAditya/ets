@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { safeUUID } from "@/lib/utils";
+import { safeUUID, isValidUUID } from "@/lib/utils";
 import { deleteWorkerProfilePhoto, getWorkerProfilePhotoUrl } from "@/lib/image-service";
 import type {
   WorkerRow,
@@ -34,13 +34,13 @@ export interface WorkerAssignmentDetail extends WorkerAssignmentRow {
 
 // Default master data according to PRD
 export const DEFAULT_POSITIONS: WorkerPositionRow[] = [
-  { position_id: "pos-1", name: "Supervisor", description: "Pengawas operasional teknis", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "pos-2", name: "Teknisi", description: "Pelaksana teknis utama", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "pos-3", name: "Helper", description: "Asisten teknis lapangan", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "pos-4", name: "Engineer", description: "Insinyur sistem & kualitas", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "pos-5", name: "QC", description: "Penjamin mutu hasil instalasi", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "pos-6", name: "Driver", description: "Pengemudi & logistik lapangan", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "pos-7", name: "Admin", description: "Administrasi tim teknis", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { position_id: "11111111-1111-4111-8111-111111111101", name: "Supervisor", description: "Pengawas operasional teknis", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { position_id: "11111111-1111-4111-8111-111111111102", name: "Teknisi", description: "Pelaksana teknis utama", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { position_id: "11111111-1111-4111-8111-111111111103", name: "Helper", description: "Asisten teknis lapangan", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { position_id: "11111111-1111-4111-8111-111111111104", name: "Engineer", description: "Insinyur sistem & kualitas", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { position_id: "11111111-1111-4111-8111-111111111105", name: "QC", description: "Penjamin mutu hasil instalasi", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { position_id: "11111111-1111-4111-8111-111111111106", name: "Driver", description: "Pengemudi & logistik lapangan", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
+  { position_id: "11111111-1111-4111-8111-111111111107", name: "Admin", description: "Administrasi tim teknis", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
 ];
 
 export const DEFAULT_ROLES: WorkerRoleRow[] = [
@@ -57,7 +57,8 @@ const LOCAL_STORAGE_ASSIGNMENTS_KEY = "ets_worker_assignments_v1";
 
 const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
   {
-    worker_id: "wkr-101",
+    worker_id: "11111111-2222-4333-8444-555555555501",
+    id: "11111111-2222-4333-8444-555555555501",
     worker_code: "WKR-001",
     full_name: "Budi Santoso",
     nickname: "Budi",
@@ -65,13 +66,14 @@ const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
     profile_photo_path: null,
     phone_number: "0812-3456-7890",
     email: "budi.santoso@zanxa.studio",
-    position_id: "pos-2",
+    position_id: "11111111-1111-4111-8111-111111111102",
     joined_date: "2024-03-15",
     created_at: "2024-03-15T08:00:00Z",
     updated_at: "2024-03-15T08:00:00Z",
   },
   {
-    worker_id: "wkr-102",
+    worker_id: "11111111-2222-4333-8444-555555555502",
+    id: "11111111-2222-4333-8444-555555555502",
     worker_code: "WKR-002",
     full_name: "Rahmat Hidayat",
     nickname: "Rahmat",
@@ -79,13 +81,14 @@ const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
     profile_photo_path: null,
     phone_number: "0813-9876-5432",
     email: "rahmat.hidayat@zanxa.studio",
-    position_id: "pos-1",
+    position_id: "11111111-1111-4111-8111-111111111101",
     joined_date: "2023-01-10",
     created_at: "2023-01-10T08:00:00Z",
     updated_at: "2023-01-10T08:00:00Z",
   },
   {
-    worker_id: "wkr-103",
+    worker_id: "11111111-2222-4333-8444-555555555503",
+    id: "11111111-2222-4333-8444-555555555503",
     worker_code: "WKR-003",
     full_name: "Ahmad Rizky",
     nickname: "Ahmad",
@@ -93,13 +96,14 @@ const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
     profile_photo_path: null,
     phone_number: "0811-2233-4455",
     email: "ahmad.rizky@zanxa.studio",
-    position_id: "pos-4",
+    position_id: "11111111-1111-4111-8111-111111111104",
     joined_date: "2024-06-01",
     created_at: "2024-06-01T08:00:00Z",
     updated_at: "2024-06-01T08:00:00Z",
   },
   {
-    worker_id: "wkr-104",
+    worker_id: "11111111-2222-4333-8444-555555555504",
+    id: "11111111-2222-4333-8444-555555555504",
     worker_code: "WKR-004",
     full_name: "Dedi Prasetyo",
     nickname: "Dedi",
@@ -107,7 +111,7 @@ const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
     profile_photo_path: null,
     phone_number: "0815-6677-8899",
     email: "dedi.prasetyo@zanxa.studio",
-    position_id: "pos-3",
+    position_id: "11111111-1111-4111-8111-111111111103",
     joined_date: "2025-02-12",
     created_at: "2025-02-12T08:00:00Z",
     updated_at: "2025-02-12T08:00:00Z",
@@ -230,6 +234,13 @@ export const workersService = {
       if (!error && data && data.length > 0) {
         return data;
       }
+      if (!error) {
+        // Seed default positions if table exists but is empty
+        try {
+          await (supabase as any).from("worker_positions").upsert(DEFAULT_POSITIONS);
+        } catch {}
+        return DEFAULT_POSITIONS;
+      }
     } catch {}
     return DEFAULT_POSITIONS;
   },
@@ -265,8 +276,12 @@ export const workersService = {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         rawWorkers = data.map(normalizeWorkerRow);
+        // Sync local cache for offline reliability
+        if (data.length > 0) {
+          setStoredWorkers(rawWorkers);
+        }
       } else {
         rawWorkers = getStoredWorkers();
       }
@@ -279,7 +294,7 @@ export const workersService = {
     const assignments = await this.getAllAssignments();
 
     return rawWorkers.map((worker) => {
-      const workerAssigns = assignments.filter((a) => a.worker_id === worker.worker_id);
+      const workerAssigns = assignments.filter((a) => a.worker_id === worker.worker_id || a.worker_id === worker.id);
       
       // Compute operational status: In Installation vs In Maintenance vs Inactive
       let operationalStatus: WorkerOperationalStatus = "Inactive";
@@ -325,48 +340,66 @@ export const workersService = {
    */
   async getWorkerById(workerId: string): Promise<WorkerWithDetails | null> {
     const workers = await this.getWorkers();
-    return workers.find((w) => w.worker_id === workerId) || null;
+    return workers.find((w) => w.worker_id === workerId || w.id === workerId) || null;
   },
 
   /**
    * Create a new worker
    */
   async createWorker(payload: Partial<WorkerInsert>): Promise<WorkerRow> {
-    const newWorkerId = payload.worker_id || payload.id || safeUUID();
+    const rawWorkerId = payload.worker_id || payload.id;
+    const newWorkerId = isValidUUID(rawWorkerId) ? rawWorkerId! : safeUUID();
     const nowIso = new Date().toISOString();
     const photoPath = payload.profile_photo_path || payload.profile_image_path || null;
-    const nameVal = payload.full_name || payload.name || "Pekerja Baru";
+    const fullNameVal = payload.full_name || payload.name || "Pekerja Baru";
     const codeVal = payload.worker_code || `WKR-${Math.floor(100 + Math.random() * 900)}`;
-    const roleVal = payload.role || "Teknisi";
+
+    // Resolve valid position_id UUID
+    let posId = payload.position_id;
+    if (!isValidUUID(posId)) {
+      const foundPos = DEFAULT_POSITIONS.find(
+        (p) => p.position_id === posId || p.name.toLowerCase() === String(posId).toLowerCase()
+      );
+      posId = foundPos ? foundPos.position_id : DEFAULT_POSITIONS[1].position_id;
+    }
+
+    // Ensure position exists in worker_positions table before FK check
+    try {
+      const posObj = DEFAULT_POSITIONS.find((p) => p.position_id === posId) || {
+        position_id: posId,
+        name: "Teknisi",
+        description: "Pelaksana teknis utama",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      };
+      await (supabase as any).from("worker_positions").upsert(posObj);
+    } catch {}
+
+    const dbPayload = {
+      worker_id: newWorkerId,
+      worker_code: codeVal,
+      full_name: fullNameVal,
+      nickname: payload.nickname || null,
+      profile_image_path: photoPath,
+      phone_number: payload.phone_number || null,
+      email: payload.email || null,
+      position_id: posId,
+      joined_date: payload.joined_date || null,
+      created_at: nowIso,
+      updated_at: nowIso,
+    };
 
     const newWorker = normalizeWorkerRow({
       ...payload,
-      worker_id: newWorkerId,
+      ...dbPayload,
       id: newWorkerId,
-      worker_code: codeVal,
-      full_name: nameVal,
-      name: nameVal,
-      role: roleVal,
+      name: fullNameVal,
       profile_photo_path: photoPath,
-      profile_image_path: photoPath,
-      created_at: nowIso,
-      updated_at: nowIso,
+      status: payload.status || "active",
+      notes: payload.notes || null,
     });
 
     try {
-      // Primary DB schema insert: id, worker_code, name, role, status, profile_photo_path, notes
-      const dbPayload = {
-        id: newWorkerId,
-        worker_code: codeVal,
-        name: nameVal,
-        role: roleVal,
-        status: payload.status || "active",
-        profile_photo_path: photoPath,
-        notes: payload.notes || null,
-        created_at: nowIso,
-        updated_at: nowIso,
-      };
-
       const { data, error } = await (supabase as any)
         .from("workers")
         .insert(dbPayload)
@@ -382,12 +415,13 @@ export const workersService = {
         setStoredWorkers([result, ...localWorkers.filter((w) => w.worker_id !== newWorkerId && w.id !== newWorkerId)]);
         return result;
       } else if (error) {
-        console.warn("Supabase insert worker error:", error.message);
+        console.error("Supabase insert worker error:", error);
       }
     } catch (e) {
-      console.warn("Database insert worker exception:", e);
+      console.error("Database insert worker exception:", e);
     }
 
+    // Fallback local storage update
     const localWorkers = getStoredWorkers();
     const updated = [newWorker, ...localWorkers.filter((w) => w.worker_id !== newWorkerId && w.id !== newWorkerId)];
     setStoredWorkers(updated);
@@ -401,35 +435,58 @@ export const workersService = {
   async updateWorker(workerId: string, payload: Partial<WorkerUpdate>): Promise<WorkerRow> {
     const nowIso = new Date().toISOString();
     const photoPath = payload.profile_photo_path !== undefined ? payload.profile_photo_path : payload.profile_image_path;
-    const nameVal = payload.full_name !== undefined ? payload.full_name : payload.name;
+    const fullNameVal = payload.full_name !== undefined ? payload.full_name : payload.name;
+
+    const dbPayload: Record<string, any> = { updated_at: nowIso };
+    if (fullNameVal !== undefined) dbPayload.full_name = fullNameVal;
+    if (payload.worker_code !== undefined) dbPayload.worker_code = payload.worker_code;
+    if (payload.nickname !== undefined) dbPayload.nickname = payload.nickname;
+    if (photoPath !== undefined) dbPayload.profile_image_path = photoPath;
+    if (payload.phone_number !== undefined) dbPayload.phone_number = payload.phone_number;
+    if (payload.email !== undefined) dbPayload.email = payload.email;
+    if (payload.joined_date !== undefined) dbPayload.joined_date = payload.joined_date;
+
+    if (payload.position_id !== undefined) {
+      let posId = payload.position_id;
+      if (posId && !isValidUUID(posId)) {
+        const foundPos = DEFAULT_POSITIONS.find(
+          (p) => p.position_id === posId || p.name.toLowerCase() === String(posId).toLowerCase()
+        );
+        posId = foundPos ? foundPos.position_id : DEFAULT_POSITIONS[1].position_id;
+      }
+      if (posId) {
+        dbPayload.position_id = posId;
+        try {
+          const posObj = DEFAULT_POSITIONS.find((p) => p.position_id === posId) || {
+            position_id: posId,
+            name: "Teknisi",
+            description: "Pelaksana teknis utama",
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:00:00Z",
+          };
+          await (supabase as any).from("worker_positions").upsert(posObj);
+        } catch {}
+      }
+    }
 
     const updateData: Partial<WorkerRow> = {
       ...payload,
       updated_at: nowIso,
     };
-
     if (photoPath !== undefined) {
       updateData.profile_photo_path = photoPath;
       updateData.profile_image_path = photoPath;
     }
-    if (nameVal !== undefined) {
-      updateData.full_name = nameVal;
-      updateData.name = nameVal;
+    if (fullNameVal !== undefined) {
+      updateData.full_name = fullNameVal;
+      updateData.name = fullNameVal;
     }
 
     try {
-      const dbPayload: Record<string, any> = { updated_at: nowIso };
-      if (nameVal !== undefined) dbPayload.name = nameVal;
-      if (payload.worker_code !== undefined) dbPayload.worker_code = payload.worker_code;
-      if (payload.role !== undefined) dbPayload.role = payload.role;
-      if (payload.status !== undefined) dbPayload.status = payload.status;
-      if (photoPath !== undefined) dbPayload.profile_photo_path = photoPath;
-      if (payload.notes !== undefined) dbPayload.notes = payload.notes;
-
       const { data, error } = await (supabase as any)
         .from("workers")
         .update(dbPayload)
-        .eq("id", workerId)
+        .or(`worker_id.eq.${workerId},id.eq.${workerId}`)
         .select()
         .single();
 
@@ -445,10 +502,10 @@ export const workersService = {
         setStoredWorkers(updatedLocals);
         return result;
       } else if (error) {
-        console.warn("Supabase update worker error:", error.message);
+        console.error("Supabase update worker error:", error);
       }
     } catch (e) {
-      console.warn("Database update worker exception:", e);
+      console.error("Database update worker exception:", e);
     }
 
     const localWorkers = getStoredWorkers();

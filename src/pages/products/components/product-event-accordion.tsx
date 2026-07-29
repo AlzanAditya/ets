@@ -29,6 +29,7 @@ import { ImageLightbox, type LightboxImage } from "@/components/image-lightbox";
 import { cn } from "@/lib/utils";
 import {
   productEventsService,
+  deduplicateImages,
   type ProductEventData,
   type ProductStepData,
   type ProductStepImage,
@@ -634,9 +635,9 @@ export function ProductEventAccordion({
                         <div className="p-3 sm:p-4 border-t border-zinc-800/60 space-y-4 bg-zinc-950/60">
                           {/* REQUIREMENT 6: Responsive Image Gallery - 4 columns on mobile! */}
                           <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-2.5">
-                            {step.images.map((img, imgIdx) => (
+                            {deduplicateImages(step.images).map((img, imgIdx) => (
                               <div
-                                key={img.id}
+                                key={img.storage_path || img.id || `img-${imgIdx}`}
                                 draggable={!isEventCompleted}
                                 onDragStart={() => handleDragStart(evt.event_id, step.step_id, imgIdx)}
                                 onDragOver={handleDragOver}
@@ -644,12 +645,24 @@ export function ProductEventAccordion({
                                 onClick={() => openLightbox(step.images, imgIdx, STEP_TYPE_TITLES[step.step_type] || step.title)}
                                 className="group relative aspect-square rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden shadow-xs transition-all hover:border-zinc-700 cursor-pointer"
                               >
-                                <img
-                                  src={img.signedUrl || img.thumbnail_path || img.storage_path}
-                                  alt={`Foto ${imgIdx + 1}`}
-                                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                  loading="lazy"
-                                />
+                                {(() => {
+                                  const imgSrc = img.signedUrl || img.thumbnail_path || img.storage_path;
+                                  if (!imgSrc) {
+                                    return (
+                                      <div className="h-full w-full bg-zinc-900/60 animate-pulse flex items-center justify-center text-zinc-600 text-[10px] font-mono">
+                                        ...
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <img
+                                      src={imgSrc}
+                                      alt={`Foto ${imgIdx + 1}`}
+                                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                      loading="lazy"
+                                    />
+                                  );
+                                })()}
 
                                 {/* Drag handle overlay */}
                                 {!isEventCompleted && (

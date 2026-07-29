@@ -271,14 +271,26 @@ export default function ImagesPage() {
                         <CardContent className="p-4">
                           <div className="grid grid-cols-3 gap-2">
                             {product.images?.map((img) => {
-                              const thumbUrl = urls[img.thumbnail_path ?? img.storage_path];
-                              const fullUrl = urls[img.storage_path];
+                              const rawPath = img.thumbnail_path ?? img.storage_path;
+                              const thumbUrl =
+                                (rawPath ? urls[rawPath] : undefined) ||
+                                (img as any).signedUrl ||
+                                (rawPath?.startsWith("http") || rawPath?.startsWith("data:")
+                                  ? rawPath
+                                  : undefined);
+                              const fullUrl =
+                                (img.storage_path ? urls[img.storage_path] : undefined) ||
+                                (img as any).signedUrl ||
+                                (img.storage_path?.startsWith("http") || img.storage_path?.startsWith("data:")
+                                  ? img.storage_path
+                                  : undefined) ||
+                                thumbUrl;
                               return (
                                 <div 
-                                  key={img.image_id || img.id} 
+                                  key={img.image_id || img.id || img.storage_path} 
                                   className="group relative aspect-square cursor-zoom-in rounded-lg overflow-hidden border border-muted/50 bg-muted/30"
                                   onClick={() => setSelectedImage({
-                                    url: fullUrl || thumbUrl,
+                                    url: fullUrl || thumbUrl || "",
                                     productName: product.product_name,
                                     serialNumber: product.serial_number,
                                     fileName: img.file_name,
@@ -339,14 +351,26 @@ export default function ImagesPage() {
                         <CardContent className="p-4">
                           <div className="grid grid-cols-3 gap-2">
                             {product.images?.map((img) => {
-                              const thumbUrl = urls[img.thumbnail_path ?? img.storage_path];
-                              const fullUrl = urls[img.storage_path];
+                              const rawPath = img.thumbnail_path ?? img.storage_path;
+                              const thumbUrl =
+                                (rawPath ? urls[rawPath] : undefined) ||
+                                (img as any).signedUrl ||
+                                (rawPath?.startsWith("http") || rawPath?.startsWith("data:")
+                                  ? rawPath
+                                  : undefined);
+                              const fullUrl =
+                                (img.storage_path ? urls[img.storage_path] : undefined) ||
+                                (img as any).signedUrl ||
+                                (img.storage_path?.startsWith("http") || img.storage_path?.startsWith("data:")
+                                  ? img.storage_path
+                                  : undefined) ||
+                                thumbUrl;
                               return (
                                 <div 
-                                  key={img.image_id || img.id} 
+                                  key={img.image_id || img.id || img.storage_path} 
                                   className="group relative aspect-square cursor-zoom-in rounded-lg overflow-hidden border border-muted/50 bg-muted/30"
                                   onClick={() => setSelectedImage({
-                                    url: fullUrl || thumbUrl,
+                                    url: fullUrl || thumbUrl || "",
                                     productName: product.product_name,
                                     serialNumber: product.serial_number,
                                     fileName: img.file_name,

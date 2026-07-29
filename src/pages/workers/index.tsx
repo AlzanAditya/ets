@@ -1,5 +1,9 @@
 import React from "react";
-import { getWorkerProfilePhotoUrl } from "@/lib/image-service";
+import { useParams, useNavigate, useLocation } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { getWorkerProfilePhotoUrl, uploadWorkerProfilePhoto, deleteWorkerProfilePhoto } from "@/lib/image-service";
+import { optimizeAvatarImage } from "@/lib/image-optimizer";
+import { queryKeys } from "@/lib/query-keys";
 import {
   UserCheckIcon,
   UsersIcon,
@@ -28,32 +32,243 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useWorkers, useWorkerPositions } from "@/hooks/use-workers";
-import { WorkerFormDialog } from "./components/worker-form-dialog";
-import { WorkerDetailDialog } from "./components/worker-detail-dialog";
+import {
+  useWorkers,
+  useWorkerPositions,
+  useCreateWorkerMutation,
+  useUpdateWorkerMutation,
+} from "@/hooks/use-workers";
+import { WorkerViewMode } from "./components/worker-view-mode";
+import { WorkerEditMode } from "./components/worker-edit-mode";
 import { WorkerDeleteDialog } from "./components/worker-delete-dialog";
 import type { WorkerWithDetails } from "@/services/workers.service";
 import type { MetricCardItem } from "@/types/metrics";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function WorkersPage() {
+  const params = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedPosition, setSelectedPosition] = React.useState<string>("all");
 
   const { data: workers = [], isLoading } = useWorkers(searchTerm, selectedPosition);
   const { data: positions = [] } = useWorkerPositions();
 
-  // Modals state
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [workerToEdit, setWorkerToEdit] = React.useState<WorkerWithDetails | null>(null);
+  const createMutation = useCreateWorkerMutation();
+  const updateMutation = useUpdateWorkerMutation();
 
-  const [isDetailOpen, setIsDetailOpen] = React.useState(false);
-  const [workerForDetail, setWorkerForDetail] = React.useState<WorkerWithDetails | null>(null);
-
+  // Dialogs & edit state
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [workerToDelete, setWorkerToDelete] = React.useState<WorkerWithDetails | null>(null);
 
-  // Compute metrics
+  // Determine current active worker from route param
+  const isAddPage = location.pathname.endsWith("/add");
+  const workerParam = params.id;
+
+  const currentWorker = React.useMemo(() => {
+    if (!workerParam || isAddPage) return null;
+    const decoded = decodeURIComponent(workerParam);
+    return (
+      workers.find(
+        (w) =>
+          w.worker_id === decoded ||
+          w.id === decoded ||
+          w.worker_code === decoded ||
+          w.full_name?.toLowerCase() === decoded.toLowerCase()
+      ) || null
+    );
+  }, [workerParam, isAddPage, workers]);
+
+  const isEditMode = React.useMemo(() => {
+    if (isAddPage) return true;
+    return location.search.includes("edit=true") || location.search.includes("?edit");
+  }, [isAddPage, location.search]);
+
+  // Edit form state
+  const [fullName, setFullName] = React.useState("");
+  const [nickname, setNickname] = React.useState("");
+  const [workerCode, setWorkerCode] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [positionId, setPositionId] = React.useState("");
+  const [joinedDate, setJoinedDate] = React.useState("");
+  const [status, setStatus] = React.useState("active");
+  const [notes, setNotes] = React.useState("");
+
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+  const [pendingFile, setPendingFile] = React.useState<File | null>(null);
+  const [isAvatarRemoved, setIsAvatarRemoved] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Sync form fields when currentWorker or isEditMode changes
+  React.useEffect(() => {
+    if (isAddPage) {
+      setFullName("");
+      setNickname("");
+      setWorkerCode(`WKR-${Math.floor(100 + Math.random() * 900)}`);
+      setPhone("");
+      setEmail("");
+      setPositionId(positions[0]?.position_id || "pos-2");
+      setJoinedDate(new Date().toISOString().split("T")[0]);
+      setStatus("active");
+      setNotes("");
+      setAvatarUrl(null);
+      setPendingFile(null);
+      setIsAvatarRemoved(false);
+    } else if (currentWorker) {
+      setFullName(currentWorker.full_name || currentWorker.name || "");
+      setNickname(currentWorker.nickname || "");
+      setWorkerCode(currentWorker.worker_code || "");
+      setPhone(currentWorker.phone_number || "");
+      setEmail(currentWorker.email || "");
+      setPositionId(currentWorker.position_id || (positions[0]?.position_id ?? "pos-2"));
+      setJoinedDate(currentWorker.joined_date || new Date().toISOString().split("T")[0]);
+      setStatus(currentWorker.status || "active");
+      setNotes(currentWorker.notes || "");
+      setAvatarUrl(
+        getWorkerProfilePhotoUrl(
+          currentWorker.worker_id || currentWorker.id,
+          currentWorker.profile_photo_path || currentWorker.profile_image_path
+        )
+      );
+      setPendingFile(null);
+      setIsAvatarRemoved(false);
+    }
+  }, [currentWorker, isAddPage, positions]);
+
+  // Handle local avatar selection & 300x300 WebP optimization
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("File harus berupa gambar (JPG, PNG, WebP)");
+      return;
+    }
+
+    try {
+      const { file: optimizedFile, previewUrl } = await optimizeAvatarImage(file, 300);
+      setPendingFile(optimizedFile);
+      setAvatarUrl(previewUrl);
+      setIsAvatarRemoved(false);
+      toast.success("Foto profil dikonversi ke 300x300 WebP");
+
+      // If in view mode, directly upload and update database
+      if (!isEditMode && currentWorker) {
+        const targetId = currentWorker.worker_id || currentWorker.id || "";
+        const publicUrl = await uploadWorkerProfilePhoto(targetId, optimizedFile);
+        if (publicUrl) {
+          await updateMutation.mutateAsync({
+            workerId: targetId,
+            data: { profile_image_path: publicUrl },
+          });
+          queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
+          toast.success("Foto profil worker berhasil diperbarui");
+        }
+      }
+    } catch (err: any) {
+      console.error("Gagal memproses gambar:", err);
+      toast.error("Gagal mengompres foto profil worker");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setAvatarUrl(null);
+    setPendingFile(null);
+    setIsAvatarRemoved(true);
+
+    if (!isEditMode && currentWorker) {
+      const targetId = currentWorker.worker_id || currentWorker.id || "";
+      await deleteWorkerProfilePhoto(targetId);
+      await updateMutation.mutateAsync({
+        workerId: targetId,
+        data: { profile_image_path: null },
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
+      toast.info("Foto profil worker berhasil dihapus");
+    } else {
+      toast.info("Foto profil akan dihapus saat disimpan");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim()) {
+      toast.error("Nama lengkap wajib diisi");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      let uploadedPhotoPath: string | null = avatarUrl;
+
+      const payload = {
+        worker_code: workerCode.trim(),
+        full_name: fullName.trim(),
+        nickname: nickname.trim() || null,
+        phone_number: phone.trim() || null,
+        email: email.trim() || null,
+        position_id: positionId || positions[0]?.position_id || "pos-2",
+        joined_date: joinedDate || null,
+        status: status,
+        notes: notes.trim() || null,
+      };
+
+      if (currentWorker && !isAddPage) {
+        const targetId = currentWorker.worker_id || currentWorker.id || "";
+        if (pendingFile) {
+          const publicUrl = await uploadWorkerProfilePhoto(targetId, pendingFile);
+          if (publicUrl) {
+            uploadedPhotoPath = publicUrl;
+          }
+        } else if (isAvatarRemoved) {
+          await deleteWorkerProfilePhoto(targetId);
+          uploadedPhotoPath = null;
+        }
+
+        await updateMutation.mutateAsync({
+          workerId: targetId,
+          data: {
+            ...payload,
+            profile_image_path: uploadedPhotoPath,
+          },
+        });
+        toast.success("Data worker berhasil diperbarui");
+        navigate(`/workers/${encodeURIComponent(targetId)}`, { replace: true });
+      } else {
+        const newWorker = await createMutation.mutateAsync(payload);
+        const newId = newWorker.worker_id || newWorker.id || "";
+
+        if (pendingFile && newId) {
+          const publicUrl = await uploadWorkerProfilePhoto(newId, pendingFile);
+          if (publicUrl) {
+            await updateMutation.mutateAsync({
+              workerId: newId,
+              data: { profile_image_path: publicUrl },
+            });
+          }
+        }
+
+        toast.success("Worker baru berhasil ditambahkan");
+        navigate(`/workers/${encodeURIComponent(newId)}`, { replace: true });
+      }
+    } catch (err: any) {
+      console.error("Error saving worker:", err);
+      toast.error(err.message || "Gagal menyimpan data worker");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Compute metrics for list view
   const totalWorkers = workers.length;
   const activeOnSite = workers.filter((w) => w.operational_status !== "Inactive").length;
   const totalAssignments = workers.reduce((acc, w) => acc + w.total_assignments, 0);
@@ -88,26 +303,86 @@ export default function WorkersPage() {
     },
   ];
 
-  const handleAddWorker = () => {
-    setWorkerToEdit(null);
-    setIsFormOpen(true);
-  };
+  // 1. EDIT MODE
+  if (isEditMode) {
+    return (
+      <PageContent
+        description="Edit profil pekerja, kualifikasi teknis, dan informasi kontak."
+        eyebrow="Personnel"
+        title={currentWorker ? `Edit Worker: ${currentWorker.full_name}` : "Tambah Worker Baru"}
+      >
+        <WorkerEditMode
+          editTarget={currentWorker}
+          fullName={fullName}
+          setFullName={setFullName}
+          nickname={nickname}
+          setNickname={setNickname}
+          workerCode={workerCode}
+          setWorkerCode={setWorkerCode}
+          phone={phone}
+          setPhone={setPhone}
+          email={email}
+          setEmail={setEmail}
+          positionId={positionId}
+          setPositionId={setPositionId}
+          joinedDate={joinedDate}
+          setJoinedDate={setJoinedDate}
+          status={status}
+          setStatus={setStatus}
+          notes={notes}
+          setNotes={setNotes}
+          avatarUrl={avatarUrl}
+          fileInputRef={fileInputRef}
+          handleFileChange={handleFileChange}
+          handleRemoveAvatar={handleRemoveAvatar}
+          onSubmit={handleSubmit}
+          onCancel={() => {
+            if (currentWorker) {
+              const targetId = currentWorker.worker_id || currentWorker.id || "";
+              navigate(`/workers/${encodeURIComponent(targetId)}`);
+            } else {
+              navigate("/workers");
+            }
+          }}
+          isSubmitting={isSubmitting}
+        />
+      </PageContent>
+    );
+  }
 
-  const handleEditWorker = (worker: WorkerWithDetails) => {
-    setWorkerToEdit(worker);
-    setIsFormOpen(true);
-  };
+  // 2. VIEW MODE
+  if (currentWorker) {
+    return (
+      <PageContent
+        description="Detail profil teknisi, status operasional, dan riwayat penugasan proyek."
+        eyebrow="Personnel"
+        title={currentWorker.full_name}
+      >
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
 
-  const handleOpenDetail = (worker: WorkerWithDetails) => {
-    setWorkerForDetail(worker);
-    setIsDetailOpen(true);
-  };
+        <WorkerViewMode
+          worker={currentWorker}
+          avatarUrl={avatarUrl}
+          fileInputRef={fileInputRef}
+          onAvatarChange={handleFileChange}
+          onAvatarRemove={handleRemoveAvatar}
+          onEdit={() => {
+            const targetId = currentWorker.worker_id || currentWorker.id || "";
+            navigate(`/workers/${encodeURIComponent(targetId)}?edit=true`);
+          }}
+          onBack={() => navigate("/workers")}
+        />
+      </PageContent>
+    );
+  }
 
-  const handleDeleteWorker = (worker: WorkerWithDetails) => {
-    setWorkerToDelete(worker);
-    setIsDeleteOpen(true);
-  };
-
+  // 3. LIST MODE
   return (
     <PageContent
       description="Manajemen data teknisi, tim lapangan, dan penugasan personel operasional."
@@ -122,7 +397,7 @@ export default function WorkersPage() {
             <div>
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <UserCheckIcon className="size-5 text-emerald-500" />
-                Daftar Pekerja & Teknisi Lapangan
+                Daftar Pekerja &amp; Teknisi Lapangan
               </CardTitle>
               <CardDescription className="text-xs">
                 Kelola profil personel, status operasional, dan riwayat penugasan step proyek.
@@ -163,7 +438,11 @@ export default function WorkersPage() {
               </div>
 
               {/* Add Button */}
-              <Button size="sm" onClick={handleAddWorker} className="h-9 gap-1.5 text-xs font-semibold">
+              <Button
+                size="sm"
+                onClick={() => navigate("/workers/add")}
+                className="h-9 gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
                 <PlusIcon className="size-4" />
                 Tambah Worker
               </Button>
@@ -200,6 +479,7 @@ export default function WorkersPage() {
                       </tr>
                     ) : (
                       workers.map((worker) => {
+                        const targetId = worker.worker_id || worker.id || "";
                         const initials = worker.full_name
                           ? worker.full_name
                               .split(" ")
@@ -210,12 +490,16 @@ export default function WorkersPage() {
                           : "WK";
 
                         return (
-                          <tr key={worker.worker_id} className="hover:bg-muted/30 transition-colors">
+                          <tr
+                            key={targetId}
+                            onClick={() => navigate(`/workers/${encodeURIComponent(targetId)}`)}
+                            className="hover:bg-muted/30 transition-colors cursor-pointer"
+                          >
                             <td className="px-4 py-3 font-medium text-foreground">
                               <div className="flex items-center gap-3">
                                 <Avatar className="size-9 border border-border/60">
-                                  {getWorkerProfilePhotoUrl(worker.worker_id || worker.id, worker.profile_photo_path || worker.profile_image_path) ? (
-                                    <AvatarImage src={getWorkerProfilePhotoUrl(worker.worker_id || worker.id, worker.profile_photo_path || worker.profile_image_path)} alt={worker.full_name} />
+                                  {getWorkerProfilePhotoUrl(targetId, worker.profile_photo_path || worker.profile_image_path) ? (
+                                    <AvatarImage src={getWorkerProfilePhotoUrl(targetId, worker.profile_photo_path || worker.profile_image_path) || undefined} alt={worker.full_name} />
                                   ) : null}
                                   <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
                                     {initials}
@@ -279,12 +563,15 @@ export default function WorkersPage() {
                               </span>
                             </td>
 
-                            <td className="px-4 py-3 text-right">
+                            <td
+                              className="px-4 py-3 text-right"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <div className="flex items-center justify-end gap-1">
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleOpenDetail(worker)}
+                                  onClick={() => navigate(`/workers/${encodeURIComponent(targetId)}`)}
                                   className="size-8 text-muted-foreground hover:text-foreground"
                                   title="Lihat Detail & History"
                                 >
@@ -293,7 +580,7 @@ export default function WorkersPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleEditWorker(worker)}
+                                  onClick={() => navigate(`/workers/${encodeURIComponent(targetId)}?edit=true`)}
                                   className="size-8 text-muted-foreground hover:text-foreground"
                                   title="Edit Worker"
                                 >
@@ -302,7 +589,10 @@ export default function WorkersPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleDeleteWorker(worker)}
+                                  onClick={() => {
+                                    setWorkerToDelete(worker);
+                                    setIsDeleteOpen(true);
+                                  }}
                                   className="size-8 text-muted-foreground hover:text-destructive"
                                   title="Hapus Worker"
                                 >
@@ -321,20 +611,6 @@ export default function WorkersPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Form Dialog */}
-      <WorkerFormDialog
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        workerToEdit={workerToEdit}
-      />
-
-      {/* Detail Dialog */}
-      <WorkerDetailDialog
-        open={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
-        worker={workerForDetail}
-      />
 
       {/* Delete Dialog */}
       <WorkerDeleteDialog

@@ -157,13 +157,22 @@ export function WorkerFormDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) return;
+    if (!fullName.trim()) {
+      toast.error("Nama lengkap wajib diisi");
+      return;
+    }
+    if (!workerCode.trim()) {
+      toast.error("Kode worker wajib diisi");
+      return;
+    }
+
+    const activePositionId = positionId || positions[0]?.position_id || "11111111-1111-4111-8111-111111111102";
 
     try {
       setIsUploading(true);
 
       if (isEdit && workerToEdit) {
-        const workerId = workerToEdit.worker_id;
+        const workerId = workerToEdit.worker_id || workerToEdit.id || safeUUID();
         let finalPhotoPath = workerToEdit.profile_photo_path || workerToEdit.profile_image_path || null;
 
         if (pendingFile) {
@@ -184,7 +193,7 @@ export function WorkerFormDialog({
             worker_code: workerCode.trim(),
             phone_number: phone.trim() || null,
             email: email.trim() || null,
-            position_id: positionId || null,
+            position_id: activePositionId,
             joined_date: joinedDate || null,
             status: status || "active",
             notes: notes.trim() || null,
@@ -209,7 +218,7 @@ export function WorkerFormDialog({
           worker_code: workerCode.trim(),
           phone_number: phone.trim() || null,
           email: email.trim() || null,
-          position_id: positionId || null,
+          position_id: activePositionId,
           joined_date: joinedDate || null,
           status: status || "active",
           notes: notes.trim() || null,

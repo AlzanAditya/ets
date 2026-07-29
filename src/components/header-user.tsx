@@ -50,7 +50,7 @@ export function HeaderUser({
     <DropdownMenu>
       <DropdownMenuTrigger className="focus:outline-none flex items-center gap-2 hover:opacity-85 transition-opacity">
         <Avatar className="h-8 w-8 rounded-full border border-border grayscale hover:grayscale-0 transition-all">
-          <AvatarImage src={user.avatar} alt={displayName} />
+          <AvatarImage src={user.avatar || undefined} alt={displayName} />
           <AvatarFallback className="rounded-full bg-primary/10 text-primary font-medium text-xs">
             {fallback}
           </AvatarFallback>
@@ -60,7 +60,7 @@ export function HeaderUser({
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-2.5 px-3 py-2 text-left text-sm">
             <Avatar className="h-8 w-8 rounded-full">
-              <AvatarImage src={user.avatar} alt={displayName} />
+              <AvatarImage src={user.avatar || undefined} alt={displayName} />
               <AvatarFallback className="rounded-full bg-primary/10 text-primary">
                 {fallback}
               </AvatarFallback>

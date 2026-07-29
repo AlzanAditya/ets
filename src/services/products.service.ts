@@ -21,7 +21,7 @@ export interface GetProductsParams {
 
 export interface ProductWithRelations extends ProductRow {
   branch?: { branch_name: string; branch_code: string } | null;
-  client?: { client_name: string; client_code: string } | null;
+  client?: { client_id?: string; client_name: string; client_code: string } | null;
   images?: ProductImageRow[];
 }
 
@@ -37,24 +37,73 @@ async function attachProductImages(products: ProductWithRelations[]): Promise<Pr
   if (productIds.length === 0) return products;
 
   try {
-    const { data: images } = await supabase
+    const imgMap: Record<string, ProductImageRow[]> = {};
+
+    // 1. Fetch direct product_images
+    const { data: directImages } = await supabase
       .from("product_images")
       .select("*")
       .in("product_id", productIds)
       .order("sort_order", { ascending: true });
 
-    if (images && images.length > 0) {
-      const imgMap: Record<string, ProductImageRow[]> = {};
-      images.forEach((img: any) => {
-        if (!imgMap[img.product_id]) imgMap[img.product_id] = [];
-        imgMap[img.product_id].push(img);
+    if (directImages && directImages.length > 0) {
+      directImages.forEach((img: any) => {
+        if (img.product_id) {
+          if (!imgMap[img.product_id]) imgMap[img.product_id] = [];
+          imgMap[img.product_id].push(img);
+        }
+      });
+    }
+
+    // 2. Fetch event step images for these products
+    const { data: events } = await supabase
+      .from("product_events")
+      .select("product_id, product_event_steps(step_id)")
+      .in("product_id", productIds);
+
+    if (events && events.length > 0) {
+      const stepToProductMap: Record<string, string> = {};
+      const stepIds: string[] = [];
+
+      events.forEach((evt: any) => {
+        const pid = evt.product_id;
+        const steps = evt.product_event_steps || (evt as any).steps || [];
+        steps.forEach((st: any) => {
+          if (st.step_id) {
+            stepToProductMap[st.step_id] = pid;
+            stepIds.push(st.step_id);
+          }
+        });
       });
 
-      return products.map((p) => ({
-        ...p,
-        images: imgMap[p.product_id] ?? p.images ?? [],
-      }));
+      if (stepIds.length > 0) {
+        const { data: stepImages } = await supabase
+          .from("product_images")
+          .select("*")
+          .in("step_id", stepIds)
+          .order("sort_order", { ascending: true });
+
+        if (stepImages && stepImages.length > 0) {
+          stepImages.forEach((img: any) => {
+            const pid = stepToProductMap[img.step_id];
+            if (pid) {
+              if (!imgMap[pid]) imgMap[pid] = [];
+              const exists = imgMap[pid].some(
+                (e) => (e.image_id && e.image_id === img.image_id) || (e.storage_path && e.storage_path === img.storage_path)
+              );
+              if (!exists) {
+                imgMap[pid].push(img);
+              }
+            }
+          });
+        }
+      }
     }
+
+    return products.map((p) => ({
+      ...p,
+      images: imgMap[p.product_id] ?? p.images ?? [],
+    }));
   } catch (err) {
     console.warn("Could not fetch product_images separately:", err);
   }
@@ -87,7 +136,7 @@ export const productsService = {
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_name, client_code)
+        client:clients(client_id, client_name, client_code)
       `,
       )
       .order("created_at", { ascending: false })
@@ -161,7 +210,7 @@ export const productsService = {
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_name, client_code)
+        client:clients(client_id, client_name, client_code)
       `,
       )
       .eq("product_id", product_id)
@@ -201,7 +250,7 @@ export const productsService = {
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_name, client_code)
+        client:clients(client_id, client_name, client_code)
       `,
       )
       .eq("serial_number", serial_number)
@@ -335,7 +384,7 @@ export const productsService = {
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_name, client_code)
+        client:clients(client_id, client_name, client_code)
       `,
       )
       .order("created_at", { ascending: false })

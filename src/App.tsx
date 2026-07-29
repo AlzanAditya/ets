@@ -173,6 +173,11 @@ export default function App() {
                   <Route path="tax"             element={<TaxPage />} />
                   <Route path="ai-agent"        element={<AIAgentPage />} />
                   <Route path="workers"         element={<WorkersPage />} />
+                  <Route path="workers/add"     element={<WorkersPage />} />
+                  <Route path="workers/:id"     element={<WorkersPage />} />
+                  <Route path="worker"          element={<Navigate to="/workers" replace />} />
+                  <Route path="worker/add"      element={<Navigate to="/workers/add" replace />} />
+                  <Route path="worker/:id"      element={<WorkersPage />} />
                   <Route path="branches"        element={<Navigate to="/workers" replace />} />
                   <Route path="images"          element={<ImagesPage />} />
                   <Route path="qr-statistics"   element={<QrStatisticsPage />} />

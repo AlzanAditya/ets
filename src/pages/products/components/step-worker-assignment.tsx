@@ -144,9 +144,10 @@ export function StepWorkerAssignment({
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Avatar className="size-7 border border-border/50">
-                    {getWorkerProfilePhotoUrl(assign.worker?.worker_id || assign.worker?.id || "", assign.worker?.profile_photo_path || assign.worker?.profile_image_path) ? (
-                      <AvatarImage src={getWorkerProfilePhotoUrl(assign.worker?.worker_id || assign.worker?.id || "", assign.worker?.profile_photo_path || assign.worker?.profile_image_path)} alt={workerName} />
-                    ) : null}
+                    {(() => {
+                      const photoUrl = getWorkerProfilePhotoUrl(assign.worker?.worker_id || assign.worker?.id || "", assign.worker?.profile_photo_path || assign.worker?.profile_image_path);
+                      return photoUrl ? <AvatarImage src={photoUrl} alt={workerName} /> : null;
+                    })()}
                     <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
                       {initials}
                     </AvatarFallback>

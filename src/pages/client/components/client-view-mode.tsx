@@ -2,21 +2,21 @@ import * as React from "react";
 import {
   MapPinIcon,
   PencilIcon,
-  UploadIcon,
-  Trash2Icon,
   PackageIcon,
   WrenchIcon,
   MailIcon,
   PhoneIcon,
-  ExternalLinkIcon,
+  ArrowLeftIcon,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { DataTable, type DataTableRow } from "@/components/data-table";
+import {
+  EntityProfileBanner,
+  type EntityBadge,
+  type EntityDetailItem,
+  type HeaderAction,
+} from "@/components/entity-profile-banner";
 import type { ClientRow, ProductRow } from "@/types/database";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -64,6 +64,7 @@ export function ClientViewMode({
   onAvatarChange,
   onAvatarRemove,
   onEdit,
+  onBack,
   onRowClickProduct,
 }: ClientViewModeProps) {
   const handleAvatarChange = onAvatarChange || handleFileChange;
@@ -81,194 +82,137 @@ export function ClientViewMode({
   }, [productTab, maintenanceProducts, clientProducts]);
 
   const locationText = React.useMemo(() => {
-    return [client.address, client.city, client.province].filter(Boolean).join(", ") || (client.city ? `${client.city}${client.province ? `, ${client.province}` : ""}` : "");
+    return (
+      [client.address, client.city, client.province].filter(Boolean).join(", ") ||
+      (client.city ? `${client.city}${client.province ? `, ${client.province}` : ""}` : "")
+    );
   }, [client.address, client.city, client.province]);
+
+  // Construct Badges using EntityProfileBanner format
+  const badges: EntityBadge[] = [
+    {
+      id: "total-products",
+      icon: PackageIcon,
+      value: clientProducts.length,
+      color: "emerald",
+    },
+    {
+      id: "maintenance-products",
+      icon: WrenchIcon,
+      value: maintenanceProducts.length,
+      color: "amber",
+    },
+  ];
+
+  // Construct Details using EntityProfileBanner format
+  const details: EntityDetailItem[] = [];
+  if (client.email) {
+    details.push({
+      id: "email",
+      icon: MailIcon,
+      value: client.email,
+      href: `mailto:${client.email}`,
+    });
+  }
+  if (client.phone_number) {
+    details.push({
+      id: "phone",
+      icon: PhoneIcon,
+      value: client.phone_number,
+      href: `tel:${client.phone_number}`,
+    });
+  }
+  if (locationText) {
+    details.push({
+      id: "location",
+      icon: MapPinIcon,
+      value: locationText,
+    });
+  }
+
+  // Header actions using EntityProfileBanner format
+  const headerActions: HeaderAction[] = [
+    {
+      id: "edit",
+      label: "Edit",
+      icon: PencilIcon,
+      onClick: onEdit,
+      hideTextOnMobile: false,
+      className: "bg-emerald-600 hover:bg-emerald-700 text-white font-semibold",
+    },
+  ];
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      window.history.back();
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 lg:px-6 w-full space-y-6 pb-12">
-      {/* ── Client Profile Banner Card with Avatar, Badge Metrics & Contacts ── */}
-      <div className="bg-card border rounded-2xl p-5 md:p-6 shadow-2xs space-y-4">
-        {/* Main Info Row */}
-        <div className="flex flex-row items-start gap-4 md:gap-6">
-          {/* Avatar Column */}
-          <div className="flex flex-col items-center gap-3 shrink-0">
-            <div className="relative size-20 md:size-24 rounded-full shrink-0 border-2 border-border/80 bg-muted/40 flex items-center justify-center shadow-sm">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={client.client_name}
-                  className="size-[74px] md:size-[88px] rounded-full object-cover"
-                />
-              ) : (
-                <div className="size-[74px] md:size-[88px] rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl md:text-2xl font-bold tracking-wider select-none">
-                  {getClientInitials(client.client_name)}
-                </div>
-              )}
+      {/* ── Top Header Navigation Bar Outside Banner ── */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          className="gap-1.5 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+        >
+          <ArrowLeftIcon className="size-4" />
+          <span>Kembali ke Daftar Klien</span>
+        </Button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="absolute bottom-0 right-0 p-1.5 md:p-2 rounded-full bg-emerald-600 text-white shadow-md hover:scale-105 transition-transform cursor-pointer border-2 border-background"
-                    title="Ubah foto profil"
-                  >
-                    <PencilIcon className="size-3 md:size-3.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48 rounded-xl">
-                  <DropdownMenuItem
-                    onClick={() => fileInputRef.current?.click()}
-                    className="cursor-pointer gap-2"
-                  >
-                    <UploadIcon className="size-4" />
-                    <span>{avatarUrl ? "Ganti Foto Profil" : "Unggah Foto Profil"}</span>
-                  </DropdownMenuItem>
-                  {avatarUrl && (
-                    <DropdownMenuItem
-                      onClick={handleAvatarRemove}
-                      className="cursor-pointer gap-2 text-destructive focus:text-destructive"
-                    >
-                      <Trash2Icon className="size-4" />
-                      <span>Hapus Foto Profil</span>
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="hidden"
-              />
-            </div>
-
-            {/* DESKTOP ONLY: 2 Badges placed strictly UNDER Avatar */}
-            <div className="hidden md:flex items-center gap-2">
-              {/* Green Total Products Badge */}
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/80 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-                <PackageIcon className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                <span>{clientProducts.length}</span>
-              </div>
-              {/* Amber Maintenance Badge */}
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/80 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-sm">
-                <WrenchIcon className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <span>{maintenanceProducts.length}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Details Column (Name, Kode Klien, Contact Info) */}
-          <div className="flex-1 min-w-0 space-y-2.5 pt-1">
-            {/* Customer Name + Edit Icon */}
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg md:text-2xl font-bold text-foreground truncate">
-                {client.client_name}
-              </h2>
-              <button
-                type="button"
-                onClick={onEdit}
-                className="p-1 md:px-2.5 md:py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs shrink-0 flex items-center gap-1.5 text-xs font-semibold"
-                title="Edit Klien"
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {headerActions.map((action) => {
+            const ActionIcon = action.icon;
+            return (
+              <Button
+                key={action.id}
+                variant={action.variant || "default"}
+                size="sm"
+                onClick={action.onClick}
+                disabled={action.disabled}
+                className={cn("gap-1.5 text-xs rounded-xl", action.className)}
               >
-                <PencilIcon className="size-3.5" />
-                <span className="hidden md:inline">Edit</span>
-              </button>
-            </div>
-
-            {/* Kode Klien Badge + MOBILE ONLY Badges */}
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border/80 bg-muted/30 font-mono">
-                <span className="text-muted-foreground">Kode</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{client.client_code || "—"}</span>
-              </div>
-
-              {/* MOBILE ONLY: Badges next to Kode Klien */}
-              <div className="flex md:hidden items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/80 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                  <PackageIcon className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                  <span>{clientProducts.length}</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-500/80 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs">
-                  <WrenchIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <span>{maintenanceProducts.length}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* DESKTOP ONLY: Contact Details beneath Kode Klien (Flex Wrap) */}
-            <div className="hidden md:flex flex-wrap items-center gap-x-6 gap-y-2.5 pt-2 text-sm text-foreground font-medium">
-              {client.email && (
-                <a
-                  href={`mailto:${client.email}`}
-                  className="flex items-center gap-2 hover:text-emerald-500 transition-colors"
-                >
-                  <MailIcon className="size-4 text-emerald-500 shrink-0" />
-                  <span className="opacity-80">{client.email}</span>
-                </a>
-              )}
-              {client.phone_number && (
-                <a
-                  href={`tel:${client.phone_number}`}
-                  className="flex items-center gap-2 hover:text-emerald-500 transition-colors"
-                >
-                  <PhoneIcon className="size-4 text-emerald-500 shrink-0" />
-                  <span className="opacity-80">{client.phone_number}</span>
-                </a>
-              )}
-              {locationText && (
-                <div className="flex items-center gap-2 w-full pt-0.5">
-                  <MapPinIcon className="size-4 text-emerald-500 shrink-0" />
-                  <span className="opacity-80">{locationText}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* MOBILE ONLY: Contact Details List (Dynamic layout wrapping 1, 2, or 3 per row depending on width) */}
-        <div className="md:hidden flex flex-wrap gap-2 pt-2.5 border-t border-border/40 text-sm">
-          {client.email && (
-            <a
-              href={`mailto:${client.email}`}
-              className="flex-1 min-w-[160px] flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-border/40 bg-muted/20 hover:bg-muted/40 transition-colors"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <MailIcon className="size-4 text-emerald-500 shrink-0" />
-                <span className="text-foreground text-xs sm:text-sm truncate font-medium opacity-80">{client.email}</span>
-              </div>
-              <ExternalLinkIcon className="size-3.5 text-emerald-500 shrink-0" />
-            </a>
-          )}
-
-          {client.phone_number && (
-            <a
-              href={`tel:${client.phone_number}`}
-              className="flex-1 min-w-[160px] flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-border/40 bg-muted/20 hover:bg-muted/40 transition-colors"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <PhoneIcon className="size-4 text-emerald-500 shrink-0" />
-                <span className="text-foreground text-xs sm:text-sm truncate font-medium opacity-80">{client.phone_number}</span>
-              </div>
-              <ExternalLinkIcon className="size-3.5 text-emerald-500 shrink-0" />
-            </a>
-          )}
-
-          {locationText && (
-            <div className="flex-1 min-w-[160px] flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-border/40 bg-muted/20">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <MapPinIcon className="size-4 text-emerald-500 shrink-0" />
-                <span className="text-foreground text-xs sm:text-sm truncate font-medium opacity-80">{locationText}</span>
-              </div>
-              <ExternalLinkIcon className="size-3.5 text-emerald-500 shrink-0" />
-            </div>
-          )}
+                {ActionIcon && <ActionIcon className="size-3.5" />}
+                <span>{action.label}</span>
+              </Button>
+            );
+          })}
         </div>
       </div>
 
+      {/* ── Global Entity Profile Banner ── */}
+      <EntityProfileBanner
+        profile={{
+          type: "image",
+          avatarUrl,
+          fallbackInitials: getClientInitials(client.client_name),
+          overlay: {
+            type: "pencil",
+            title: "Ubah foto profil",
+            fileInputRef,
+            onFileChange: handleAvatarChange,
+            onRemoveClick: handleAvatarRemove,
+          },
+        }}
+        title={client.client_name}
+        meta={
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 rounded-md border border-border/80 bg-muted/30 font-mono text-[10px] sm:text-xs">
+            <span className="text-muted-foreground font-medium">Kode:</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+              {client.client_code || "—"}
+            </span>
+          </div>
+        }
+        badges={badges}
+        details={details}
+      />
+
       {/* ── Table Daftar Produk Milik Klien ── */}
-      <div className="space-y-4 pt-4 border-t">
+      <div className="space-y-4 pt-4 border-t border-border/60">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
@@ -286,7 +230,9 @@ export function ClientViewMode({
           columns={clientProductColumns}
           data={displayedProducts}
           addButtonLabel=""
-          onRowClick={(row) => onRowClickProduct(row.product_name || row.serial_number || row.product_id)}
+          onRowClick={(row) =>
+            onRowClickProduct(row.product_name || row.serial_number || row.product_id)
+          }
           activeTab={productTab}
           onTabChange={setProductTab}
           tabs={[
@@ -298,4 +244,3 @@ export function ClientViewMode({
     </div>
   );
 }
-

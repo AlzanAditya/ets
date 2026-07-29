@@ -158,9 +158,14 @@ export async function uploadClientAvatar(clientId: string, rawFile: File): Promi
  * Get client avatar URL for a given clientId from 'client-assets' bucket.
  */
 export function getClientAvatarUrl(clientId: string): string {
+  if (!clientId) return ''
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(`client_avatar_${clientId}`)
+    if (saved) return saved
+  }
   const path = `${clientId}/profile.webp`
   const { data } = supabase.storage.from(CLIENT_BUCKET).getPublicUrl(path)
-  return data?.publicUrl ?? ''
+  return data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : ''
 }
 
 /**
@@ -299,6 +304,7 @@ export async function uploadProductStepImagePair(
 /**
  * Resolve multiple storage paths to signed URLs in a single batch request.
  * Results are cached in memory for the signed URL TTL duration.
+ * Automatically attempts alternate bucket fallback if path not found in primary bucket.
  *
  * @param paths  - Array of storage paths to resolve.
  * @param bucket - Bucket name.
@@ -308,13 +314,23 @@ export async function getSignedUrls(
   paths: string[],
   bucket = IMAGE_BUCKET,
 ): Promise<Record<string, string>> {
-  if (paths.length === 0) return {}
+  if (!paths || paths.length === 0) return {}
 
   const result: Record<string, string> = {}
   const uncached: string[] = []
 
-  // Serve from cache where possible
+  // 1. Direct URLs or cached
   for (const path of paths) {
+    if (!path) continue
+    if (
+      path.startsWith('http://') ||
+      path.startsWith('https://') ||
+      path.startsWith('data:') ||
+      path.startsWith('blob:')
+    ) {
+      result[path] = path
+      continue
+    }
     const cached = getCachedUrl(path)
     if (cached) {
       result[path] = cached
@@ -325,17 +341,38 @@ export async function getSignedUrls(
 
   if (uncached.length === 0) return result
 
-  // Batch resolve uncached paths
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .createSignedUrls(uncached, SIGNED_URL_TTL_SECONDS)
+  // 2. Batch resolve uncached paths with fallback across primary and alternate buckets
+  const bucketsToTry = [
+    bucket,
+    bucket === IMAGE_BUCKET ? PRODUCT_ASSETS_BUCKET : IMAGE_BUCKET,
+  ]
+  let remainingUncached = [...uncached]
 
-  if (error) throw new Error(`Signed URL batch request failed: ${error.message}`)
+  for (const currentBucket of bucketsToTry) {
+    if (remainingUncached.length === 0) break
 
-  for (const item of data ?? []) {
-    if (item.signedUrl && item.path) {
-      setCachedUrl(item.path, item.signedUrl)
-      result[item.path] = item.signedUrl
+    try {
+      const { data, error } = await supabase.storage
+        .from(currentBucket)
+        .createSignedUrls(remainingUncached, SIGNED_URL_TTL_SECONDS)
+
+      if (!error && data && data.length > 0) {
+        const stillMissing: string[] = []
+        data.forEach((item, idx) => {
+          const origPath = remainingUncached[idx]
+          if (item && item.signedUrl) {
+            setCachedUrl(origPath, item.signedUrl)
+            if (item.path) setCachedUrl(item.path, item.signedUrl)
+            result[origPath] = item.signedUrl
+            if (item.path) result[item.path] = item.signedUrl
+          } else {
+            if (origPath) stillMissing.push(origPath)
+          }
+        })
+        remainingUncached = stillMissing
+      }
+    } catch (err) {
+      console.warn(`Signed URL batch request for bucket ${currentBucket} warning:`, err)
     }
   }
 
@@ -346,19 +383,20 @@ export async function getSignedUrls(
  * Resolve a single storage path to a signed URL (cache-aware).
  */
 export async function getSignedUrl(path: string, bucket = IMAGE_BUCKET): Promise<string> {
+  if (!path) return ''
+  if (
+    path.startsWith('http://') ||
+    path.startsWith('https://') ||
+    path.startsWith('data:') ||
+    path.startsWith('blob:')
+  ) {
+    return path
+  }
   const cached = getCachedUrl(path)
   if (cached) return cached
 
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
-
-  if (error || !data?.signedUrl) {
-    throw new Error(`Signed URL failed for ${path}: ${error?.message ?? 'unknown error'}`)
-  }
-
-  setCachedUrl(path, data.signedUrl)
-  return data.signedUrl
+  const res = await getSignedUrls([path], bucket)
+  return res[path] || path
 }
 
 // ─── File Operations ──────────────────────────────────────────────────────────

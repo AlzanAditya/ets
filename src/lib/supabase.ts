@@ -1,18 +1,29 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+function formatSupabaseUrl(rawUrl: string | undefined): string {
+  if (!rawUrl) return ''
+  let url = rawUrl.trim()
+  if (!url) return ''
+  if (!/^https?:\/\//i.test(url)) {
+    url = `https://${url}`
+  }
+  return url
+}
+
+const rawUrl = (import.meta.env.VITE_SUPABASE_URL as string) || ''
+const supabaseAnonKey = ((import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '').trim()
+const supabaseUrl = formatSupabaseUrl(rawUrl)
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    'Missing Supabase environment variables. ' +
-    'Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in .env.local'
+  console.warn(
+    'Missing or invalid Supabase environment variables. ' +
+    'Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set correctly.'
   )
 }
 
-/**
- * Singleton Supabase client.
- * Import this everywhere — do NOT call createClient() in other files.
- */
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+const validUrl = supabaseUrl || 'https://placeholder.supabase.co'
+const validKey = supabaseAnonKey || 'placeholder-key'
+
+export const supabase = createClient<Database>(validUrl, validKey)
+

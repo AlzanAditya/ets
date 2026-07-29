@@ -623,7 +623,7 @@ export default function ProductsPage() {
     }
 
     if (editTarget) {
-      navigate(`/products/${encodeURIComponent(editTarget.product_name || editTarget.serial_number)}`, { replace: true });
+      navigate(`/products/${encodeURIComponent(editTarget.serial_number || editTarget.product_name)}`, { replace: true });
     } else {
       navigate("/products");
     }
@@ -771,7 +771,7 @@ export default function ProductsPage() {
 
         toast.success("Produk berhasil diperbarui");
         refetch();
-        navigate(`/products/${encodeURIComponent(fields.product_name.trim() || fields.serial_number.trim() || editTarget.product_name)}`, { replace: true });
+        navigate(`/products/${encodeURIComponent(fields.serial_number.trim() || fields.product_name.trim() || editTarget.serial_number)}`, { replace: true });
         return;
       } else {
         // ── Add mode: create product then move images ─────────────────────────────
@@ -930,7 +930,7 @@ export default function ProductsPage() {
         <PageContent>
           <ProductViewMode
             product={editTarget}
-            onEdit={() => navigate(`/products/${encodeURIComponent(editTarget.product_name || editTarget.serial_number)}?edit`)}
+            onEdit={() => navigate(`/products/${encodeURIComponent(editTarget.serial_number || editTarget.product_name)}?edit`)}
             onBack={() => navigate("/products")}
             signedImages={drawerImages.map((img) => ({
               storagePath: img.storagePath,
@@ -987,10 +987,10 @@ export default function ProductsPage() {
           onAddClick={() => navigate("/products/add")}
           onRowClick={(row) => {
             if (activeTab === "draft") {
-              const target = row.product_name || row.serial_number || row.id;
+              const target = row.serial_number || row.product_name || row.id;
               navigate(`/products/${encodeURIComponent(target)}`);
             } else {
-              const target = row.product_name || row.serial_number || row.product_id;
+              const target = row.serial_number || row.product_name || row.product_id;
               navigate(`/products/${encodeURIComponent(target)}`);
             }
           }}
