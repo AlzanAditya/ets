@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, useNavigate, useLocation } from "react-router";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { getWorkerProfilePhotoUrl, uploadWorkerProfilePhoto, deleteWorkerProfilePhoto } from "@/lib/image-service";
 import { optimizeAvatarImage } from "@/lib/image-optimizer";

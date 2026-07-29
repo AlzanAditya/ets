@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   EntityProfileBanner,
-  EntityExpandableSection,
   CompactDetailRow,
   type EntityBadge,
   type HeaderAction,
