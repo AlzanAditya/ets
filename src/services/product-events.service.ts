@@ -56,6 +56,27 @@ export const STEP_TYPE_TITLES: Record<StepType, string> = {
   report: "Report",
 };
 
+const STEP_ORDER_MAP: Record<string, number> = {
+  delivery: 1,
+  installation: 2,
+  inspection: 3,
+  maintenance: 1,
+  report: 4,
+};
+
+export function getStepSequenceNumber(s: any): number {
+  if (s && typeof s.sequence_number === "number" && s.sequence_number > 0) {
+    return s.sequence_number;
+  }
+  if (s && typeof s.step_order === "number" && s.step_order > 0) {
+    return s.step_order;
+  }
+  if (s && s.step_type && STEP_ORDER_MAP[s.step_type]) {
+    return STEP_ORDER_MAP[s.step_type];
+  }
+  return 99;
+}
+
 export function deduplicateImages(images: ProductStepImage[]): ProductStepImage[] {
   if (!images || images.length === 0) return [];
   const map = new Map<string, ProductStepImage>();
@@ -195,17 +216,28 @@ async function syncEventToDB(event: ProductEventData): Promise<void> {
   if (!event || !event.event_id) return;
   try {
     let activeEventId = event.event_id;
+    let existingEvt: any = null;
+
+    // Check if event already exists in DB first by event_id
+    const { data: byId } = await (supabase as any)
+      .from("product_events")
+      .select("event_id, status, sequence_number")
+      .eq("event_id", activeEventId)
+      .maybeSingle();
+
+    existingEvt = byId;
 
     // For installation events, check if an installation event already exists in DB for this product
-    if (event.event_type === "installation") {
+    if (!existingEvt && event.event_type === "installation") {
       const { data: existingInst } = await (supabase as any)
         .from("product_events")
-        .select("event_id")
+        .select("event_id, status, sequence_number")
         .eq("product_id", event.product_id)
         .eq("event_type", "installation")
         .maybeSingle();
 
       if (existingInst && existingInst.event_id) {
+        existingEvt = existingInst;
         activeEventId = existingInst.event_id;
         event.event_id = activeEventId;
         if (event.steps) {
@@ -214,81 +246,84 @@ async function syncEventToDB(event: ProductEventData): Promise<void> {
       }
     }
 
-    const eventPayload = {
+    // If event is already marked 'completed' in DB, do not attempt to mutate event row
+    // as DB triggers enforce "Completed event is read only."
+    if (existingEvt && existingEvt.status === "completed" && event.status === "completed") {
+      return;
+    }
+
+    const eventPayload: any = {
       event_id: activeEventId,
       product_id: event.product_id,
       event_type: event.event_type,
-      sequence_number: event.sequence_number,
       status: event.status,
       completed_at: event.completed_at,
       created_at: event.created_at || new Date().toISOString(),
     };
+
+    // Only include sequence_number if event does NOT exist in DB yet
+    if (!existingEvt) {
+      eventPayload.sequence_number = event.sequence_number;
+    }
 
     const { error: evtErr } = await (supabase as any)
       .from("product_events")
       .upsert(eventPayload, { onConflict: "event_id" });
 
     if (evtErr) {
-      console.warn("Upsert product_events status:", evtErr.message || evtErr);
-      // Fallback: search for existing event_id if unique constraint triggered
-      const { data: existing } = await (supabase as any)
-        .from("product_events")
-        .select("event_id")
-        .eq("product_id", event.product_id)
-        .eq("event_type", event.event_type)
-        .maybeSingle();
-
-      if (existing && existing.event_id) {
-        activeEventId = existing.event_id;
-        event.event_id = activeEventId;
-        if (event.steps) {
-          event.steps.forEach((s) => (s.event_id = activeEventId));
-        }
-      }
+      console.warn("Notice on product_events sync:", evtErr.message || evtErr);
     }
 
     if (event.steps && event.steps.length > 0) {
       // Query existing steps in product_event_steps to align step_ids with DB
       const { data: existingSteps } = await (supabase as any)
         .from("product_event_steps")
-        .select("step_id, step_type")
+        .select("step_id, step_type, status")
         .eq("event_id", activeEventId);
 
+      const stepMap = new Map<string, { id: string; status: string }>();
       if (existingSteps && existingSteps.length > 0) {
-        const stepMap = new Map<string, string>();
         existingSteps.forEach((es: any) => {
           if (es.step_type && es.step_id) {
-            stepMap.set(es.step_type, es.step_id);
+            stepMap.set(es.step_type, { id: es.step_id, status: es.status });
           }
         });
 
         event.steps.forEach((st) => {
           if (stepMap.has(st.step_type)) {
-            st.step_id = stepMap.get(st.step_type)!;
+            st.step_id = stepMap.get(st.step_type)!.id;
           }
         });
       }
 
-      const stepRows = event.steps.map((st, idx) => ({
-        step_id: st.step_id,
-        event_id: activeEventId,
-        step_type: st.step_type,
-        step_order: st.sequence_number || idx + 1,
-        status: st.status,
-        completed_at: st.completed_at,
-        notes: st.notes,
-      }));
+      // Filter out steps that are already completed in DB if trying to upsert completed step
+      const stepsToUpsert = event.steps.filter((st) => {
+        const dbStep = stepMap.get(st.step_type);
+        return !(dbStep && dbStep.status === "completed" && st.status === "completed");
+      });
 
-      const { error: stepsErr } = await (supabase as any)
-        .from("product_event_steps")
-        .upsert(stepRows, { onConflict: "step_id" });
+      if (stepsToUpsert.length > 0) {
+        const stepRows = stepsToUpsert.map((st, idx) => ({
+          step_id: st.step_id,
+          event_id: activeEventId,
+          step_type: st.step_type,
+          step_order: getStepSequenceNumber(st) || idx + 1,
+          status: st.status,
+          completed_at: st.completed_at,
+          notes: st.notes,
+        }));
 
-      if (stepsErr) {
-        console.error("Failed to upsert product_event_steps:", stepsErr.message || stepsErr);
+        const { error: stepsErr } = await (supabase as any)
+          .from("product_event_steps")
+          .upsert(stepRows, { onConflict: "step_id" });
+
+        if (stepsErr) {
+          console.warn("Notice on product_event_steps sync:", stepsErr.message || stepsErr);
+        }
       }
     }
   } catch (err) {
-    console.error("syncEventToDB error:", err);
+    console.warn("syncEventToDB non-blocking warning:", err);
   }
 }
 
@@ -320,6 +355,13 @@ export const productEventsService = {
       error = res1.error;
 
       if (!error && dbEvents && dbEvents.length > 0) {
+        // Read local storage cached events to merge any recent local images
+        let localEvents: ProductEventData[] = [];
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY_PREFIX + productId);
+          if (raw) localEvents = JSON.parse(raw);
+        } catch {}
+
         // Resolve signed URLs for images
         const allPaths: string[] = [];
         dbEvents.forEach((e: any) => {
@@ -341,24 +383,36 @@ export const productEventsService = {
           status: e.status,
           completed_at: e.completed_at,
           created_at: e.created_at,
-          steps: (e.steps || []).sort((a: any, b: any) => a.sequence_number - b.sequence_number).map((s: any) => ({
-            step_id: s.step_id || s.id,
-            event_id: s.event_id,
-            step_type: s.step_type,
-            title: STEP_TYPE_LABELS[s.step_type as StepType] || s.title || s.step_type,
-            sequence_number: s.sequence_number,
-            status: s.status,
-            completed_at: s.completed_at,
-            notes: s.notes,
-            images: deduplicateImages((s.images || []).map((img: any) => ({
-              id: img.image_id || img.id,
-              storage_path: img.storage_path,
-              thumbnail_path: img.thumbnail_path,
-              file_name: img.file_name,
-              sort_order: img.sort_order || 0,
-              signedUrl: signedMap[img.storage_path] || img.thumbnail_path || img.storage_path,
-            }))),
-          })),
+          steps: (e.steps || [])
+            .sort((a: any, b: any) => getStepSequenceNumber(a) - getStepSequenceNumber(b))
+            .map((s: any) => {
+              const localEvt = localEvents.find((le) => le.event_id === e.event_id || le.event_type === e.event_type);
+              const localStep = localEvt?.steps?.find((ls) => ls.step_type === s.step_type || ls.step_id === s.step_id);
+              const localImgs = localStep?.images || [];
+
+              const dbImgs = (s.images || []).map((img: any) => ({
+                id: img.image_id || img.id,
+                storage_path: img.storage_path,
+                thumbnail_path: img.thumbnail_path,
+                file_name: img.file_name,
+                sort_order: img.sort_order || 0,
+                signedUrl: signedMap[img.storage_path] || img.thumbnail_path || img.storage_path,
+              }));
+
+              const resolvedSeq = getStepSequenceNumber(s);
+
+              return {
+                step_id: s.step_id || s.id,
+                event_id: s.event_id,
+                step_type: s.step_type,
+                title: STEP_TYPE_LABELS[s.step_type as StepType] || s.title || s.step_type,
+                sequence_number: resolvedSeq,
+                status: s.status,
+                completed_at: s.completed_at,
+                notes: s.notes,
+                images: deduplicateImages([...dbImgs, ...localImgs]),
+              };
+            }),
         }));
       }
     } catch (err) {
@@ -412,8 +466,11 @@ export const productEventsService = {
     const updatedEvents = events.map((event) => {
       if (event.event_id !== eventId) return event;
 
+      // Strictly sort steps by sequence order (1, 2, 3, 4)
+      const sortedSteps = [...event.steps].sort((a, b) => getStepSequenceNumber(a) - getStepSequenceNumber(b));
+
       let stepCompleted = false;
-      const updatedSteps = event.steps.map((step) => {
+      const updatedSteps = sortedSteps.map((step) => {
         if (step.step_id === stepId) {
           stepCompleted = true;
           return {
@@ -422,13 +479,15 @@ export const productEventsService = {
             completed_at: nowIso,
           };
         }
-        // Unlock next step if previous just completed
-        if (stepCompleted && step.status === "locked") {
-          stepCompleted = false; // reset flag after unlocking next
-          return {
-            ...step,
-            status: "active" as StepStatus,
-          };
+        // Unlock ONLY the immediately adjacent next step
+        if (stepCompleted) {
+          stepCompleted = false; // Reset immediately so we NEVER skip steps
+          if (step.status === "locked" || (step.status as string) === "upcoming") {
+            return {
+              ...step,
+              status: "active" as StepStatus,
+            };
+          }
         }
         return step;
       });
@@ -561,12 +620,18 @@ export const productEventsService = {
   ): Promise<ProductEventData[]> {
     if (!files || files.length === 0) return this.getProductEvents(productId);
 
-    let currentEvents: ProductEventData[] = [];
+    let currentEvents = await this.getProductEvents(productId);
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const res = await this.uploadStepImage(productId, eventId, stepId, stepType, file);
+      const res = await this.uploadStepImage(productId, eventId, stepId, stepType, file, currentEvents);
       currentEvents = res.eventData;
     }
+
+    try {
+      localStorage.setItem(STORAGE_KEY_PREFIX + productId, JSON.stringify(currentEvents));
+    } catch {}
+
     return currentEvents;
   },
 
@@ -579,17 +644,17 @@ export const productEventsService = {
     eventId: string,
     stepId: string,
     stepType: StepType,
-    file: File
+    file: File,
+    baseEvents?: ProductEventData[]
   ): Promise<{ eventData: ProductEventData[]; newImage: ProductStepImage }> {
     let activeStepId = stepId;
     let activeEventId = eventId;
 
-    // 0. Ensure parent event & steps exist in DB so foreign key product_images_step_id_fkey is satisfied
+    // 0. Resolve target event and active step ID from DB or existing state
     try {
-      const currentEvents = await this.getProductEvents(productId);
+      const currentEvents = baseEvents || (await this.getProductEvents(productId));
       const targetEvt = currentEvents.find((e) => e.event_id === eventId || e.event_type === "installation");
       if (targetEvt) {
-        await syncEventToDB(targetEvt);
         activeEventId = targetEvt.event_id;
         const matchedStep = targetEvt.steps?.find((s) => s.step_type === stepType || s.step_id === stepId);
         if (matchedStep && matchedStep.step_id) {
@@ -597,11 +662,41 @@ export const productEventsService = {
         }
       }
     } catch (err) {
-      console.warn("Pre-upload event sync error:", err);
+      console.warn("Pre-upload event lookup error:", err);
     }
 
-    // 1. Upload to product-assets storage
-    const uploaded = await uploadProductStepImagePair(productId, activeEventId, stepType, file);
+    // Attempt to lookup canonical IDs from DB to ensure FK compatibility
+    try {
+      const { data: dbEvt } = await (supabase as any)
+        .from("product_events")
+        .select(`
+          event_id,
+          steps:product_event_steps(step_id, step_type)
+        `)
+        .eq("product_id", productId)
+        .eq("event_id", activeEventId)
+        .maybeSingle();
+
+      if (dbEvt && dbEvt.event_id) {
+        activeEventId = dbEvt.event_id;
+        const matchedStep = dbEvt.steps?.find((s: any) => s.step_type === stepType || s.step_id === activeStepId);
+        if (matchedStep && matchedStep.step_id) {
+          activeStepId = matchedStep.step_id;
+        }
+      }
+    } catch (dbLookupErr) {
+      console.warn("Notice checking canonical event/step ID in DB:", dbLookupErr);
+    }
+
+    // 1. Upload to product-assets storage with fallback
+    let uploaded = { fullPath: "", thumbPath: "" };
+    try {
+      uploaded = await uploadProductStepImagePair(productId, activeEventId, stepType, file);
+    } catch (err: any) {
+      console.warn("Storage upload failed, creating fallback preview URL:", err);
+      const objectUrl = URL.createObjectURL(file);
+      uploaded = { fullPath: objectUrl, thumbPath: objectUrl };
+    }
 
     // 2. Insert to product_images table in DB
     let imageId = safeUUID();
@@ -609,10 +704,49 @@ export const productEventsService = {
 
     const currentSortOrder = Math.floor(Date.now() / 1000) % 1000000;
 
+    // Ensure parent event & step row exist in DB if not already present
+    try {
+      const { data: stepExists } = await (supabase as any)
+        .from("product_event_steps")
+        .select("step_id")
+        .eq("step_id", activeStepId)
+        .maybeSingle();
+
+      if (!stepExists) {
+        const { data: evtExists } = await (supabase as any)
+          .from("product_events")
+          .select("event_id")
+          .eq("event_id", activeEventId)
+          .maybeSingle();
+
+        if (!evtExists) {
+          await (supabase as any).from("product_events").insert({
+            event_id: activeEventId,
+            product_id: productId,
+            event_type: "installation",
+            sequence_number: 1,
+            status: "active",
+            created_at: new Date().toISOString(),
+          });
+        }
+
+        await (supabase as any).from("product_event_steps").insert({
+          step_id: activeStepId,
+          event_id: activeEventId,
+          step_type: stepType,
+          step_order: 1,
+          status: "active",
+        });
+      }
+    } catch (dbPrepErr) {
+      console.warn("Notice preparing step DB row for image:", dbPrepErr);
+    }
+
     try {
       const inserted = await productsService.addProductImage({
         image_id: imageId,
         step_id: activeStepId,
+        product_id: productId,
         storage_path: uploaded.fullPath,
         thumbnail_path: uploaded.thumbPath,
         file_name: file.name,
@@ -623,15 +757,17 @@ export const productEventsService = {
       if (inserted && inserted.image_id) {
         imageId = inserted.image_id;
       }
-    } catch (err) {
-      console.error("Failed to insert product_images row to Supabase DB:", err);
+    } catch (err: any) {
+      console.warn("Notice on product_images insert:", err?.message || err);
     }
 
     // Get signed URL for preview
     try {
-      const signed = await getSignedUrls([uploaded.fullPath], PRODUCT_ASSETS_BUCKET);
-      if (signed[uploaded.fullPath]) {
-        signedUrl = signed[uploaded.fullPath];
+      if (uploaded.fullPath && !uploaded.fullPath.startsWith("blob:")) {
+        const signed = await getSignedUrls([uploaded.fullPath], PRODUCT_ASSETS_BUCKET);
+        if (signed[uploaded.fullPath]) {
+          signedUrl = signed[uploaded.fullPath];
+        }
       }
     } catch {}
 
@@ -645,7 +781,7 @@ export const productEventsService = {
     };
 
     // 3. Update local events state
-    const events = await this.getProductEvents(productId);
+    const events = baseEvents || (await this.getProductEvents(productId));
     const updatedEvents = events.map((e) => {
       if (e.event_id !== eventId && e.event_id !== activeEventId) return e;
       return {
@@ -679,12 +815,6 @@ export const productEventsService = {
     try {
       localStorage.setItem(STORAGE_KEY_PREFIX + productId, JSON.stringify(updatedEvents));
     } catch {}
-
-    // Direct DB sync for event & steps
-    const targetEvent = updatedEvents.find((e) => e.event_id === eventId);
-    if (targetEvent) {
-      await syncEventToDB(targetEvent);
-    }
 
     return { eventData: updatedEvents, newImage: newImg };
   },

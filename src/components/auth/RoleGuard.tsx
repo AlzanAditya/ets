@@ -5,6 +5,7 @@ import { DashboardSkeleton } from "@/components/dashboard-skeleton"
 
 interface RoleGuardProps {
   allow: UserRole[]
+  redirectTo?: string
   children: React.ReactNode
 }
 
@@ -12,10 +13,13 @@ interface RoleGuardProps {
  * RoleGuard Component
  * Purpose: Protect routes based on user role.
  * - While AuthContext is loading, renders a loading state.
- * - If user's role is NOT in the `allow` list, redirects to /dashboard.
+ * - If user's role is NOT in the `allow` list:
+ *   - If worker tries to access unauthorized page -> redirect to /worker/beranda
+ *   - If admin/super_admin tries to access unauthorized page -> redirect to /dashboard
+ *   - Or use explicit `redirectTo` if provided.
  * - If user's role is in the `allow` list, renders `children`.
  */
-export function RoleGuard({ allow, children }: RoleGuardProps) {
+export function RoleGuard({ allow, redirectTo, children }: RoleGuardProps) {
   const { role, loading } = useAuth()
 
   if (loading) {
@@ -27,7 +31,16 @@ export function RoleGuard({ allow, children }: RoleGuardProps) {
   }
 
   if (!allow.includes(role)) {
-    return <Navigate to="/dashboard" replace />
+    if (redirectTo) {
+      return <Navigate to={redirectTo} replace />
+    }
+    if (role === "worker") {
+      return <Navigate to="/worker/beranda" replace />
+    }
+    if (role === "admin" || role === "super_admin") {
+      return <Navigate to="/dashboard" replace />
+    }
+    return <Navigate to="/login" replace />
   }
 
   return <>{children}</>

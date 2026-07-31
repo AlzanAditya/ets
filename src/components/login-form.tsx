@@ -17,10 +17,12 @@ import {
   EyeOffIcon,
   LockKeyholeIcon,
   ArrowLeftIcon,
+  ShieldCheckIcon,
+  HardHatIcon,
 } from "lucide-react";
 
 /**
- * Purpose: email/password login form wired to Supabase Auth.
+ * Purpose: email/password login form wired to Supabase Auth with Role switch.
  * Responsibilities: validate input, call signInWithPassword, redirect on success,
  *                   show inline error on failure.
  * Usage notes: standalone — place inside the login page layout.
@@ -31,11 +33,24 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
 
+  const [roleMode, setRoleMode] = React.useState<"admin" | "worker">("admin");
   const [email, setEmail] = React.useState("admin@ets.co.id");
   const [password, setPassword] = React.useState("Admin123!");
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  const handleRoleChange = (newRole: "admin" | "worker") => {
+    setRoleMode(newRole);
+    setError(null);
+    if (newRole === "admin") {
+      setEmail("admin@ets.co.id");
+      setPassword("Admin123!");
+    } else {
+      setEmail("budi@ets.co.id");
+      setPassword("12345678");
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,7 +74,7 @@ export function LoginForm({
     }
 
     // Auth state change will propagate through AuthContext automatically
-    navigate("/dashboard", { replace: true });
+    navigate(roleMode === "worker" ? "/worker/beranda" : "/dashboard", { replace: true });
   }
 
   return (
@@ -70,7 +85,7 @@ export function LoginForm({
           <form className="p-6 md:p-8" onSubmit={handleSubmit}>
             <FieldGroup>
               {/* Header */}
-              <div className="flex flex-col items-center gap-3 text-center mb-2">
+              <div className="flex flex-col items-center gap-3 text-center mb-1">
                 <div className="flex size-11 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/20">
                   <LockKeyholeIcon className="size-5 text-primary" />
                 </div>
@@ -81,6 +96,42 @@ export function LoginForm({
                   <p className="text-sm text-muted-foreground mt-0.5">
                     Masuk ke Dashboard ETS Tracking
                   </p>
+                </div>
+              </div>
+
+              {/* Role Switch: 2 options in 1 switch control */}
+              <div className="flex flex-col gap-1.5 my-1">
+                <FieldLabel className="text-xs text-muted-foreground font-semibold">
+                  Pilih Akses Login
+                </FieldLabel>
+                <div className="grid grid-cols-2 p-1 bg-muted/80 rounded-xl border border-border/60 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleRoleChange("admin")}
+                    className={cn(
+                      "flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-200 cursor-pointer select-none",
+                      roleMode === "admin"
+                        ? "bg-primary text-primary-foreground shadow-sm font-bold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <ShieldCheckIcon className="size-4" />
+                    <span>Admin</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRoleChange("worker")}
+                    className={cn(
+                      "flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-200 cursor-pointer select-none",
+                      roleMode === "worker"
+                        ? "bg-emerald-600 text-white shadow-sm font-bold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <HardHatIcon className="size-4" />
+                    <span>Worker</span>
+                  </button>
                 </div>
               </div>
 
@@ -140,7 +191,6 @@ export function LoginForm({
                 </div>
               </Field>
 
-
               {/* Submit */}
               <div className="flex flex-row gap-2 mt-4">
                 <Button
@@ -154,10 +204,15 @@ export function LoginForm({
 
                 <Button
                   type="submit"
-                  className="h-10 flex-1"
+                  className={cn(
+                    "h-10 flex-1 font-bold text-white transition-colors",
+                    roleMode === "worker"
+                      ? "bg-emerald-600 hover:bg-emerald-500"
+                      : "bg-primary hover:bg-primary/90"
+                  )}
                   disabled={loading || !email || !password}
                 >
-                  {loading ? "Sedang masuk..." : "Masuk"}
+                  {loading ? "Sedang masuk..." : `Masuk (${roleMode === "worker" ? "Worker" : "Admin"})`}
                 </Button>
               </div>
             </FieldGroup>

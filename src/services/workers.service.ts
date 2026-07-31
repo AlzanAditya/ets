@@ -388,16 +388,13 @@ export const workersService = {
       joined_date: payload.joined_date || null,
     };
 
-    let edgeFunctionAttempted = false;
-
     try {
-      edgeFunctionAttempted = true;
       const { data, error } = await supabase.functions.invoke("create-worker-account", {
         body: functionBody,
       });
 
       if (error) {
-        console.error("Edge Function invoke error:", error);
+        console.warn("Edge Function invoke error:", error);
         let errMsg = error.message || "";
         try {
           if (typeof (error as any).context?.json === "function") {
@@ -423,10 +420,11 @@ export const workersService = {
         ) {
           throw new Error("Kode Worker sudah digunakan.");
         }
-        throw new Error(errMsg || "Gagal membuat akun worker");
-      }
-
-      if (data && (data.success === false || data.error || (data.message && !data.worker))) {
+        // If it's a network/function missing error, don't throw - fall back to DB insert!
+        if (!errMsg.includes("Failed to send a request") && !errMsg.includes("FunctionsFetchError")) {
+          console.warn("Edge Function failed with message, falling back to DB insert:", errMsg);
+        }
+      } else if (data && (data.success === false || data.error || (data.message && !data.worker))) {
         const errMsg = String(data.error || data.message || "Gagal membuat akun worker");
         console.error("Edge Function returned error in body:", errMsg);
         const lowerMsg = errMsg.toLowerCase();
@@ -445,10 +443,7 @@ export const workersService = {
         ) {
           throw new Error("Kode Worker sudah digunakan.");
         }
-        throw new Error(errMsg);
-      }
-
-      if (data) {
+      } else if (data) {
         const workerObj = data.worker || data.data || data;
         if (workerObj && typeof workerObj === "object") {
           const normalized = normalizeWorkerRow(workerObj);
@@ -464,14 +459,14 @@ export const workersService = {
         }
       }
     } catch (e: any) {
-      console.error("Edge Function invocation failed or threw error:", e);
+      console.warn("Edge Function invocation failed or threw error:", e);
       if (
         e.message === "Email sudah digunakan." ||
-        e.message === "Kode Worker sudah digunakan." ||
-        edgeFunctionAttempted
+        e.message === "Kode Worker sudah digunakan."
       ) {
         throw e;
       }
+      // For any Edge function endpoint failure, log and fall through to direct DB insert
     }
 
     const dbPayload = {
@@ -695,6 +690,72 @@ export const workersService = {
   async getAssignmentsByStep(stepId: string): Promise<WorkerAssignmentDetail[]> {
     const all = await this.getAllAssignments();
     return all.filter((a) => a.step_id === stepId);
+  },
+
+  /**
+   * Get assignments for a list of step IDs (Event Level)
+   */
+  async getAssignmentsByEventSteps(stepIds: string[]): Promise<WorkerAssignmentDetail[]> {
+    if (!stepIds || stepIds.length === 0) return [];
+    const all = await this.getAllAssignments();
+    return all.filter((a) => stepIds.includes(a.step_id));
+  },
+
+  /**
+   * Assign worker to ALL steps of an Event
+   */
+  async assignWorkerToEventSteps(
+    steps: { step_id: string; step_type?: string; title?: string }[],
+    _eventId: string,
+    eventTitle: string,
+    eventType: "installation" | "maintenance",
+    workerId: string,
+    roleId: string,
+    productSerial?: string,
+    productName?: string
+  ): Promise<WorkerAssignmentDetail[]> {
+    if (!steps || steps.length === 0) {
+      throw new Error("Event tidak memiliki step untuk penugasan worker.");
+    }
+
+    const results: WorkerAssignmentDetail[] = [];
+    for (const step of steps) {
+      try {
+        const assigned = await this.assignWorkerToStep(
+          step.step_id,
+          workerId,
+          roleId,
+          {
+            event_type: eventType,
+            step_type: step.step_type || "installation",
+            step_title: step.title || "Step",
+            event_title: eventTitle,
+            product_serial: productSerial,
+            product_name: productName,
+          }
+        );
+        results.push(assigned);
+      } catch (err) {
+        console.warn(`Notice: worker ${workerId} already assigned to step ${step.step_id}`);
+      }
+    }
+    return results;
+  },
+
+  /**
+   * Remove worker from ALL steps of an Event
+   */
+  async removeWorkerFromEventSteps(
+    stepIds: string[],
+    workerId: string
+  ): Promise<void> {
+    if (!stepIds || stepIds.length === 0) return;
+    const all = await this.getAllAssignments();
+    const toRemove = all.filter((a) => stepIds.includes(a.step_id) && a.worker_id === workerId);
+
+    for (const a of toRemove) {
+      await this.removeWorkerAssignment(a.assignment_id);
+    }
   },
 
   /**

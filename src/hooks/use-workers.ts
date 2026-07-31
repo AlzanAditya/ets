@@ -69,6 +69,15 @@ export function useStepAssignments(stepId: string | null) {
   });
 }
 
+export function useEventAssignments(stepIds: string[]) {
+  const key = stepIds.slice().sort().join(",");
+  return useQuery({
+    queryKey: [...queryKeys.workers.all, "event-assignments", key],
+    queryFn: () => (stepIds.length > 0 ? workersService.getAssignmentsByEventSteps(stepIds) : []),
+    enabled: stepIds.length > 0,
+  });
+}
+
 export function useCreateWorkerMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -150,6 +159,68 @@ export function useRemoveAssignmentMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
       toast.success("Penugasan pekerja berhasil dihapus");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Gagal menghapus penugasan");
+    },
+  });
+}
+
+export function useAssignWorkerToEventMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      steps,
+      eventId,
+      eventTitle,
+      eventType,
+      workerId,
+      roleId,
+      productSerial,
+      productName,
+    }: {
+      steps: { step_id: string; step_type?: string; title?: string }[];
+      eventId: string;
+      eventTitle: string;
+      eventType: "installation" | "maintenance";
+      workerId: string;
+      roleId: string;
+      productSerial?: string;
+      productName?: string;
+    }) =>
+      workersService.assignWorkerToEventSteps(
+        steps,
+        eventId,
+        eventTitle,
+        eventType,
+        workerId,
+        roleId,
+        productSerial,
+        productName
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
+      toast.success("Pekerja berhasil ditugaskan pada Event ini");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Gagal menugaskan pekerja");
+    },
+  });
+}
+
+export function useRemoveWorkerFromEventMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      stepIds,
+      workerId,
+    }: {
+      stepIds: string[];
+      workerId: string;
+    }) => workersService.removeWorkerFromEventSteps(stepIds, workerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
+      toast.success("Penugasan pekerja berhasil dihapus dari Event");
     },
     onError: (err: any) => {
       toast.error(err.message || "Gagal menghapus penugasan");

@@ -35,7 +35,7 @@ import {
   type ProductStepImage,
   STEP_TYPE_TITLES,
 } from "@/services/product-events.service";
-import { StepWorkerAssignment } from "./step-worker-assignment";
+import { EventWorkerAssignment } from "./event-worker-assignment";
 
 interface ProductEventAccordionProps {
   productId: string;
@@ -531,6 +531,15 @@ export function ProductEventAccordion({
             {/* Level 1 Content: Sub Events / Steps List */}
             {isEventExpanded && (
               <div className="p-3 sm:p-4 space-y-3 bg-zinc-950/40">
+                {/* Main Event Worker Assignment */}
+                <EventWorkerAssignment
+                  eventId={evt.event_id}
+                  eventTitle={evt.title}
+                  eventType={evt.event_type}
+                  steps={evt.steps}
+                  isReadOnly={isEventCompleted}
+                />
+
                 {evt.steps.map((step, stepIdx) => {
                   const isStepExpanded = !!expandedSteps[step.step_id];
                   const isStepLocked = step.status === "locked";
@@ -714,16 +723,6 @@ export function ProductEventAccordion({
                               </label>
                             )}
                           </div>
-
-                          {/* Worker Assignment Section */}
-                          <StepWorkerAssignment
-                            stepId={step.step_id}
-                            eventType={evt.event_type}
-                            stepType={step.step_type}
-                            stepTitle={STEP_TYPE_TITLES[step.step_type] || step.title}
-                            eventTitle={evt.title}
-                            isReadOnly={isEventCompleted}
-                          />
 
                           {/* REQUIREMENT 4: Complete Sub Event Button (Disabled if 0 images) */}
                           {!isEventCompleted && isStepActive && (

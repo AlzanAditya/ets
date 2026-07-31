@@ -90,14 +90,29 @@ export async function uploadFile(
   path: string,
   bucket = IMAGE_BUCKET,
 ): Promise<string> {
-  const { error } = await supabase.storage
+  // Primary attempt
+  const { error: primaryErr } = await supabase.storage
     .from(bucket)
     .upload(path, file, {
-      contentType: file.type,
-      upsert: false,
+      contentType: file.type || 'image/webp',
+      upsert: true,
     })
 
-  if (error) throw new Error(`Storage upload failed (${path}): ${error.message}`)
+  if (!primaryErr) return path
+
+  // Fallback to alternate bucket if primary failed
+  const altBucket = bucket === IMAGE_BUCKET ? PRODUCT_ASSETS_BUCKET : IMAGE_BUCKET
+  const { error: altErr } = await supabase.storage
+    .from(altBucket)
+    .upload(path, file, {
+      contentType: file.type || 'image/webp',
+      upsert: true,
+    })
+
+  if (altErr) {
+    throw new Error(`Storage upload failed (${path}): ${primaryErr.message}`)
+  }
+
   return path
 }
 

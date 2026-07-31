@@ -1,31 +1,37 @@
-import { Briefcase } from "lucide-react"
+import { TaskCard } from "@/components/worker/cards/TaskCard"
+import { useWorkerData } from "@/hooks/use-worker-data"
+import { EmptyState } from "@/components/empty-state"
+import { ClipboardList } from "lucide-react"
 
-/**
- * Worker Pekerjaan Page (Mobile First)
- * List of assigned field tasks for workers.
- */
 export default function WorkerPekerjaan() {
-  return (
-    <div className="flex min-h-screen flex-col bg-background p-4 md:p-6 pb-20">
-      <header className="mb-6 flex items-center justify-between border-b pb-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Daftar Pekerjaan</h1>
-          <p className="text-xs text-muted-foreground">Tugas dan servis teknis terlampir</p>
-        </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Briefcase className="h-5 w-5" />
-        </div>
-      </header>
+  const { allTasks, loading } = useWorkerData()
 
-      <main className="flex-1">
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
-          <Briefcase className="h-10 w-10 text-muted-foreground mb-3" />
-          <h2 className="font-semibold text-sm">Belum Ada Pekerjaan Aktif</h2>
-          <p className="mt-1 text-xs text-muted-foreground max-w-xs">
-            Daftar pekerjaan teknis dan pemeliharaan akan muncul di sini ketika ditugaskan oleh Admin.
-          </p>
-        </div>
-      </main>
+  if (loading) {
+    return (
+      <div className="space-y-4 animate-pulse pt-2">
+        <div className="h-40 rounded-2xl bg-slate-900/60 border border-slate-800" />
+        <div className="h-40 rounded-2xl bg-slate-900/60 border border-slate-800" />
+      </div>
+    )
+  }
+
+  if (!allTasks || allTasks.length === 0) {
+    return (
+      <EmptyState
+        icon={ClipboardList}
+        title="Tidak ada pekerjaan hari ini"
+        description="Daftar penugasan instalasi dan maintenance lapangan akan muncul di halaman ini."
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-4 animate-fade-in pt-1">
+      <div className="space-y-4">
+        {allTasks.map((job) => (
+          <TaskCard key={job.id} job={job} />
+        ))}
+      </div>
     </div>
   )
 }

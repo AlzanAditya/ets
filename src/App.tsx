@@ -39,11 +39,19 @@ import QrStatisticsPage from "@/pages/admin/qr-statistics"
 import PublicProductDetail from "@/pages/public/ProductDetail"
 import { useRealtimeSync } from "@/hooks/use-realtime-sync"
 
+import { WorkerLayout } from "@/components/worker/layout/WorkerLayout"
+import WorkerBeranda from "@/pages/worker/Beranda"
+import WorkerJadwal from "@/pages/worker/Jadwal"
+import WorkerPekerjaan from "@/pages/worker/Pekerjaan"
+import WorkerHistori from "@/pages/worker/Histori"
+import WorkerProfil from "@/pages/worker/Profil"
+
 import { RoleGuard } from "@/components/auth/RoleGuard"
+import { GuestGuard } from "@/components/auth/GuestGuard"
 import { useAuth, type UserRole } from "@/contexts/auth-context"
 
 const ADMIN_ROLES: UserRole[] = ["admin", "super_admin"]
-const ALL_ROLES: UserRole[] = ["admin", "super_admin", "worker"]
+const WORKER_ROLES: UserRole[] = ["worker"]
 
 // ─── Inner layout content ──────────────────────────────
 
@@ -200,48 +208,77 @@ export default function App() {
           <TableDensityProvider>
             <BreadcrumbProvider>
               <Routes>
-                {/* Public routes */}
-                <Route path="/login" element={<LoginPage />} />
+                {/* Public & Auth routes */}
+                <Route
+                  path="/login"
+                  element={
+                    <GuestGuard>
+                      <LoginPage />
+                    </GuestGuard>
+                  }
+                />
                 <Route path="/p/:serial_number" element={<PublicProductDetail />} />
 
-                {/* Protected routes */}
+                {/* Worker App standalone layout routes (Only for role: worker) */}
+                <Route
+                  path="/worker"
+                  element={
+                    <ProtectedRoute>
+                      <RoleGuard allow={WORKER_ROLES} redirectTo="/dashboard">
+                        <WorkerLayout />
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Navigate to="/worker/beranda" replace />} />
+                  <Route path="beranda" element={<WorkerBeranda />} />
+                  <Route path="jadwal" element={<WorkerJadwal />} />
+                  <Route path="tugas" element={<WorkerPekerjaan />} />
+                  <Route path="pekerjaan" element={<WorkerPekerjaan />} />
+                  <Route path="riwayat" element={<WorkerHistori />} />
+                  <Route path="histori" element={<WorkerHistori />} />
+                  <Route path="profil" element={<WorkerProfil />} />
+                </Route>
+
+                {/* Admin protected routes (Only for roles: admin, super_admin) */}
                 <Route
                   element={
                     <ProtectedRoute>
-                      <AppLayout />
+                      <RoleGuard allow={ADMIN_ROLES} redirectTo="/worker/beranda">
+                        <AppLayout />
+                      </RoleGuard>
                     </ProtectedRoute>
                   }
                 >
                   <Route index element={<Navigate to="/dashboard" replace />} />
-                  <Route path="dashboard"       element={<RoleGuard allow={ALL_ROLES}><DashboardPage /></RoleGuard>} />
-                  <Route path="products"        element={<RoleGuard allow={ALL_ROLES}><ProductsPage /></RoleGuard>} />
-                  <Route path="products/add"    element={<RoleGuard allow={ALL_ROLES}><ProductsPage /></RoleGuard>} />
-                  <Route path="products/:id"    element={<RoleGuard allow={ALL_ROLES}><ProductsPage /></RoleGuard>} />
+                  <Route path="dashboard"       element={<DashboardPage />} />
+                  <Route path="products"        element={<ProductsPage />} />
+                  <Route path="products/add"    element={<ProductsPage />} />
+                  <Route path="products/:id"    element={<ProductsPage />} />
                   <Route path="product"         element={<Navigate to="/products" replace />} />
                   <Route path="product/add"     element={<Navigate to="/products/add" replace />} />
-                  <Route path="product/:id"     element={<RoleGuard allow={ALL_ROLES}><ProductsPage /></RoleGuard>} />
-                  <Route path="clients"         element={<RoleGuard allow={ALL_ROLES}><ClientPage /></RoleGuard>} />
-                  <Route path="clients/add"     element={<RoleGuard allow={ALL_ROLES}><ClientPage /></RoleGuard>} />
-                  <Route path="clients/:id"     element={<RoleGuard allow={ALL_ROLES}><ClientPage /></RoleGuard>} />
+                  <Route path="product/:id"     element={<ProductsPage />} />
+                  <Route path="clients"         element={<ClientPage />} />
+                  <Route path="clients/add"     element={<ClientPage />} />
+                  <Route path="clients/:id"     element={<ClientPage />} />
                   <Route path="client"          element={<Navigate to="/clients" replace />} />
                   <Route path="client/add"      element={<Navigate to="/clients/add" replace />} />
-                  <Route path="client/:id"      element={<RoleGuard allow={ALL_ROLES}><ClientPage /></RoleGuard>} />
-                  <Route path="tax"             element={<RoleGuard allow={ALL_ROLES}><TaxPage /></RoleGuard>} />
-                  <Route path="ai-agent"        element={<RoleGuard allow={ALL_ROLES}><AIAgentPage /></RoleGuard>} />
-                  <Route path="workers"         element={<RoleGuard allow={ADMIN_ROLES}><WorkersPage /></RoleGuard>} />
-                  <Route path="workers/add"     element={<RoleGuard allow={ADMIN_ROLES}><WorkersPage /></RoleGuard>} />
-                  <Route path="workers/:id"     element={<RoleGuard allow={ADMIN_ROLES}><WorkersPage /></RoleGuard>} />
-                  <Route path="worker"          element={<Navigate to="/workers" replace />} />
-                  <Route path="worker/add"      element={<Navigate to="/workers/add" replace />} />
-                  <Route path="worker/:id"      element={<RoleGuard allow={ADMIN_ROLES}><WorkersPage /></RoleGuard>} />
+                  <Route path="client/:id"      element={<ClientPage />} />
+                  <Route path="tax"             element={<TaxPage />} />
+                  <Route path="ai-agent"        element={<AIAgentPage />} />
+                  <Route path="workers"         element={<WorkersPage />} />
+                  <Route path="workers/add"     element={<WorkersPage />} />
+                  <Route path="workers/:id"     element={<WorkersPage />} />
                   <Route path="branches"        element={<Navigate to="/workers" replace />} />
-                  <Route path="images"          element={<RoleGuard allow={ALL_ROLES}><ImagesPage /></RoleGuard>} />
-                  <Route path="qr-statistics"   element={<RoleGuard allow={ALL_ROLES}><QrStatisticsPage /></RoleGuard>} />
-                  <Route path="transaction"     element={<RoleGuard allow={ALL_ROLES}><TransactionPage /></RoleGuard>} />
-                  <Route path="transaction/add" element={<RoleGuard allow={ALL_ROLES}><TransactionPage /></RoleGuard>} />
-                  <Route path="invoice"         element={<RoleGuard allow={ALL_ROLES}><InvoicePage /></RoleGuard>} />
-                  <Route path="reports"         element={<RoleGuard allow={ALL_ROLES}><ReportsPage /></RoleGuard>} />
-                  <Route path="settings"        element={<RoleGuard allow={ADMIN_ROLES}><SettingsPage /></RoleGuard>} />
+                  <Route path="images"          element={<ImagesPage />} />
+                  <Route path="qr-statistics"   element={<QrStatisticsPage />} />
+                  <Route path="transaction"     element={<TransactionPage />} />
+                  <Route path="transaction/add" element={<TransactionPage />} />
+                  <Route path="invoice"         element={<InvoicePage />} />
+                  <Route path="reports"         element={<ReportsPage />} />
+                  <Route path="settings"        element={<SettingsPage />} />
+                  <Route path="admin"           element={<Navigate to="/dashboard" replace />} />
+                  <Route path="admin/*"         element={<Navigate to="/dashboard" replace />} />
                   <Route path="*"               element={<Navigate to="/dashboard" replace />} />
                 </Route>
               </Routes>
