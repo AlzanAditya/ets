@@ -94,6 +94,7 @@ export default function WorkersPage() {
   const [workerCode, setWorkerCode] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [positionId, setPositionId] = React.useState("");
   const [joinedDate, setJoinedDate] = React.useState("");
   const [status, setStatus] = React.useState("active");
@@ -106,15 +107,28 @@ export default function WorkersPage() {
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
+  // Helper to generate unique worker code
+  const generateUniqueWorkerCode = React.useCallback((existingWorkers: WorkerWithDetails[]) => {
+    let attempts = 0;
+    let code = "";
+    do {
+      const num = Math.floor(1000 + Math.random() * 9000);
+      code = `WRK-${num}`;
+      attempts++;
+    } while (existingWorkers.some((w) => w.worker_code === code) && attempts < 100);
+    return code;
+  }, []);
+
   // Sync form fields when currentWorker or isEditMode changes
   React.useEffect(() => {
     if (isAddPage) {
       setFullName("");
       setNickname("");
-      setWorkerCode(`WKR-${Math.floor(100 + Math.random() * 900)}`);
+      setPassword("");
+      setWorkerCode(generateUniqueWorkerCode(workers));
       setPhone("");
       setEmail("");
-      setPositionId(positions[0]?.position_id || "pos-2");
+      setPositionId(positions[0]?.position_id || "11111111-1111-4111-8111-111111111102");
       setJoinedDate(new Date().toISOString().split("T")[0]);
       setStatus("active");
       setNotes("");
@@ -124,10 +138,11 @@ export default function WorkersPage() {
     } else if (currentWorker) {
       setFullName(currentWorker.full_name || currentWorker.name || "");
       setNickname(currentWorker.nickname || "");
+      setPassword("");
       setWorkerCode(currentWorker.worker_code || "");
       setPhone(currentWorker.phone_number || "");
       setEmail(currentWorker.email || "");
-      setPositionId(currentWorker.position_id || (positions[0]?.position_id ?? "pos-2"));
+      setPositionId(currentWorker.position_id || (positions[0]?.position_id ?? "11111111-1111-4111-8111-111111111102"));
       setJoinedDate(currentWorker.joined_date || new Date().toISOString().split("T")[0]);
       setStatus(currentWorker.status || "active");
       setNotes(currentWorker.notes || "");
@@ -140,7 +155,7 @@ export default function WorkersPage() {
       setPendingFile(null);
       setIsAvatarRemoved(false);
     }
-  }, [currentWorker, isAddPage, positions]);
+  }, [currentWorker, isAddPage, positions, workers, generateUniqueWorkerCode]);
 
   // Handle local avatar selection & 300x300 WebP optimization
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,6 +221,35 @@ export default function WorkersPage() {
       return;
     }
 
+    if (isAddPage || !currentWorker) {
+      if (!email.trim()) {
+        toast.error("Alamat email wajib diisi");
+        return;
+      }
+      if (!password || password.length < 6) {
+        toast.error("Password awal wajib diisi (minimal 6 karakter)");
+        return;
+      }
+
+      // Check duplicate email in existing workers list
+      const emailExists = workers.some(
+        (w) => w.email && w.email.trim().toLowerCase() === email.trim().toLowerCase()
+      );
+      if (emailExists) {
+        toast.error("Email sudah digunakan.");
+        return;
+      }
+
+      // Check duplicate worker_code in existing workers list
+      const codeExists = workers.some(
+        (w) => w.worker_code && w.worker_code.trim().toLowerCase() === workerCode.trim().toLowerCase()
+      );
+      if (codeExists) {
+        toast.error("Kode Worker sudah digunakan.");
+        return;
+      }
+    }
+
     try {
       setIsSubmitting(true);
       let uploadedPhotoPath: string | null = avatarUrl;
@@ -216,7 +260,8 @@ export default function WorkersPage() {
         nickname: nickname.trim() || null,
         phone_number: phone.trim() || null,
         email: email.trim() || null,
-        position_id: positionId || positions[0]?.position_id || "pos-2",
+        password: password,
+        position_id: positionId || positions[0]?.position_id || "11111111-1111-4111-8111-111111111102",
         joined_date: joinedDate || null,
         status: status,
         notes: notes.trim() || null,
@@ -257,12 +302,12 @@ export default function WorkersPage() {
           }
         }
 
-        toast.success("Worker baru berhasil ditambahkan");
-        navigate(`/workers/${encodeURIComponent(newId)}`, { replace: true });
+        queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
+        navigate("/workers", { replace: true });
       }
     } catch (err: any) {
-      console.error("Error saving worker:", err);
-      toast.error(err.message || "Gagal menyimpan data worker");
+      console.error("Gagal menyimpan data worker:", err);
+      // Toast notification is already handled by mutation onError callback
     } finally {
       setIsSubmitting(false);
     }
@@ -323,6 +368,8 @@ export default function WorkersPage() {
           setPhone={setPhone}
           email={email}
           setEmail={setEmail}
+          password={password}
+          setPassword={setPassword}
           positionId={positionId}
           setPositionId={setPositionId}
           joinedDate={joinedDate}

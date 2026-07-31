@@ -40,17 +40,18 @@ export function NavUser({
   user?: UserProfile
 }) {
   const { isMobile } = useSidebar()
-  const { admin, user: authUser, signOut } = useAuth()
+  const { profile, role, user: authUser, signOut } = useAuth()
   const navigate = useNavigate()
 
-  // Prefer live admin profile or Supabase auth user metadata/email when available
+  // Prefer live profile or Supabase auth user metadata/email when available
   const displayName =
-    admin?.full_name ||
+    profile?.full_name ||
+    profile?.name ||
     authUser?.user_metadata?.full_name ||
     authUser?.user_metadata?.name ||
     (authUser?.email ? authUser.email.split("@")[0] : null) ||
     user.name
-  const displayEmail = admin?.email || authUser?.email || user.email
+  const displayEmail = profile?.email || authUser?.email || user.email
   const fallback = displayName ? displayName.slice(0, 2).toUpperCase() : "US"
 
   async function handleSignOut() {
@@ -102,19 +103,27 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              {admin?.role && (
+              {role && role !== "guest" && (
                 <DropdownMenuItem disabled className="gap-2 opacity-60">
                   <ShieldIcon className="size-4" />
-                  {admin.role === "super_admin" ? "Super Admin" : admin.role === "admin" ? "Admin" : "Warehouse"}
+                  {role === "super_admin"
+                    ? "Super Admin"
+                    : role === "admin"
+                    ? "Admin"
+                    : role === "worker"
+                    ? "Worker"
+                    : role}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                className="gap-2"
-                onClick={() => navigate("/settings")}
-              >
-                <SettingsIcon className="size-4" />
-                Settings
-              </DropdownMenuItem>
+              {role !== "worker" && (
+                <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => navigate("/settings")}
+                >
+                  <SettingsIcon className="size-4" />
+                  Settings
+                </DropdownMenuItem>
+              )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem

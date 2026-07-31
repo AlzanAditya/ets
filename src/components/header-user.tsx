@@ -28,17 +28,18 @@ export function HeaderUser({
 }: {
   user?: UserProfile;
 }) {
-  const { admin, user: authUser, signOut } = useAuth();
+  const { profile, role, user: authUser, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Prefer live admin profile or Supabase auth user metadata/email when available
+  // Prefer live profile (admin or worker) or Supabase auth user metadata/email when available
   const displayName =
-    admin?.full_name ||
+    profile?.full_name ||
+    profile?.name ||
     authUser?.user_metadata?.full_name ||
     authUser?.user_metadata?.name ||
     (authUser?.email ? authUser.email.split("@")[0] : null) ||
     user.name;
-  const displayEmail = admin?.email || authUser?.email || user.email;
+  const displayEmail = profile?.email || authUser?.email || user.email;
   const fallback = displayName ? displayName.slice(0, 2).toUpperCase() : "US";
 
   async function handleSignOut() {
@@ -75,25 +76,29 @@ export function HeaderUser({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          {admin?.role && (
+          {role && role !== "guest" && (
             <DropdownMenuItem disabled className="gap-2 opacity-65 text-xs">
               <ShieldIcon className="size-3.5" />
               <span>
-                {admin.role === "super_admin"
+                {role === "super_admin"
                   ? "Super Admin"
-                  : admin.role === "admin"
+                  : role === "admin"
                   ? "Admin"
-                  : "Warehouse"}
+                  : role === "worker"
+                  ? "Worker"
+                  : role}
               </span>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem
-            className="gap-2 text-xs"
-            onClick={() => navigate("/settings")}
-          >
-            <SettingsIcon className="size-3.5" />
-            <span>Settings</span>
-          </DropdownMenuItem>
+          {role !== "worker" && (
+            <DropdownMenuItem
+              className="gap-2 text-xs"
+              onClick={() => navigate("/settings")}
+            >
+              <SettingsIcon className="size-3.5" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem

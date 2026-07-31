@@ -40,6 +40,8 @@ interface WorkerEditModeProps {
   setPhone: (val: string) => void;
   email: string;
   setEmail: (val: string) => void;
+  password?: string;
+  setPassword?: (val: string) => void;
   positionId: string;
   setPositionId: (val: string) => void;
   joinedDate: string;
@@ -69,6 +71,8 @@ export function WorkerEditMode({
   setPhone,
   email,
   setEmail,
+  password = "",
+  setPassword,
   positionId,
   setPositionId,
   joinedDate,
@@ -273,7 +277,7 @@ export function WorkerEditMode({
 
           <div className="space-y-1.5">
             <Label htmlFor="edit-email" className="text-xs font-semibold">
-              Alamat Email
+              Alamat Email {!editTarget && <span className="text-destructive">*</span>}
             </Label>
             <Input
               id="edit-email"
@@ -282,8 +286,27 @@ export function WorkerEditMode({
               onChange={(e) => setEmail(e.target.value)}
               placeholder="worker@zanxa.studio"
               className="h-9 text-xs"
+              required={!editTarget}
             />
           </div>
+
+          {!editTarget && (
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-password" className="text-xs font-semibold">
+                Password Awal <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="edit-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword?.(e.target.value)}
+                placeholder="Minimal 6 karakter"
+                className="h-9 text-xs"
+                required
+                minLength={6}
+              />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="edit-joined" className="text-xs font-semibold">

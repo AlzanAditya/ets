@@ -23,30 +23,41 @@ import { NavModeProvider, useNavMode } from "@/contexts/nav-mode-context"
 import { useTransactionStats } from "@/hooks/use-transactions"
 import { BreadcrumbProvider } from "@/contexts/breadcrumb-context"
 import { cn } from "@/lib/utils"
-import LoginPage from "@/pages/auth/login"
-import ClientPage from "@/pages/client"
-import DashboardPage from "@/pages/dashboard"
-import InvoicePage from "@/pages/invoice"
-import ProductsPage from "@/pages/products"
-import ReportsPage from "@/pages/reports"
-import SettingsPage from "@/pages/settings"
-import TransactionPage from "@/pages/transaction"
-import TaxPage from "@/pages/tax"
-import AIAgentPage from "@/pages/ai-agent"
-import WorkersPage from "@/pages/workers"
-import ImagesPage from "@/pages/images"
-import QrStatisticsPage from "@/pages/qr-statistics"
+import LoginPage from "@/pages/auth/Login"
+import ClientPage from "@/pages/admin/client"
+import DashboardPage from "@/pages/admin/dashboard"
+import InvoicePage from "@/pages/admin/invoice"
+import ProductsPage from "@/pages/admin/products"
+import ReportsPage from "@/pages/admin/reports"
+import SettingsPage from "@/pages/admin/settings"
+import TransactionPage from "@/pages/admin/transaction"
+import TaxPage from "@/pages/admin/tax"
+import AIAgentPage from "@/pages/admin/ai-agent"
+import WorkersPage from "@/pages/admin/workers"
+import ImagesPage from "@/pages/admin/images"
+import QrStatisticsPage from "@/pages/admin/qr-statistics"
+import PublicProductDetail from "@/pages/public/ProductDetail"
 import { useRealtimeSync } from "@/hooks/use-realtime-sync"
+
+import { RoleGuard } from "@/components/auth/RoleGuard"
+import { useAuth, type UserRole } from "@/contexts/auth-context"
+
+const ADMIN_ROLES: UserRole[] = ["admin", "super_admin"]
+const ALL_ROLES: UserRole[] = ["admin", "super_admin", "worker"]
 
 // ─── Inner layout content ──────────────────────────────
 
 function AppLayoutContent({
   activeUrl,
   mainItems,
+  secondaryItems,
+  userNav,
   handleNavigate,
 }: {
   activeUrl: string
   mainItems: typeof appNavigation.mainItems
+  secondaryItems: typeof appNavigation.secondaryItems
+  userNav: { name: string; email: string; fallback: string }
   handleNavigate: (url: string) => void
 }) {
   const { sidebarEnabled, navbarEnabled } = useNavMode()
@@ -68,8 +79,8 @@ function AppLayoutContent({
           onNavigate={handleNavigate}
           planSections={appNavigation.planSections}
           quickActions={appNavigation.quickActions}
-          secondaryItems={appNavigation.secondaryItems}
-          user={appNavigation.user}
+          secondaryItems={secondaryItems}
+          user={userNav}
           variant="inset"
         />
       )}
@@ -99,6 +110,7 @@ function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const activeUrl = location.pathname === "/" ? "/dashboard" : location.pathname
+  const { role, profile, user } = useAuth()
 
   const handleNavigate = React.useCallback(
     (url: string) => {
@@ -111,8 +123,20 @@ function AppLayout() {
   const { stats } = useTransactionStats()
   const pendingCount = stats?.pending_count ?? 0
 
-  const mainItems = React.useMemo(() => {
-    return appNavigation.mainItems.map((item) => {
+  const filteredMainItems = React.useMemo(() => {
+    let items = appNavigation.mainItems
+    if (role === "worker") {
+      items = items.filter(
+        (item) =>
+          item.title !== "Workers" &&
+          item.url !== "/workers" &&
+          item.title !== "Settings" &&
+          item.url !== "/settings" &&
+          item.title !== "User Management" &&
+          item.url !== "/users"
+      )
+    }
+    return items.map((item) => {
       if (item.title === "Transaction" && pendingCount > 0) {
         return {
           ...item,
@@ -122,13 +146,44 @@ function AppLayout() {
       }
       return item
     })
-  }, [pendingCount])
+  }, [pendingCount, role])
+
+  const filteredSecondaryItems = React.useMemo(() => {
+    let items = appNavigation.secondaryItems
+    if (role === "worker") {
+      items = items.filter(
+        (item) =>
+          item.title !== "Settings" &&
+          item.url !== "/settings" &&
+          item.title !== "Workers" &&
+          item.url !== "/workers" &&
+          item.title !== "User Management" &&
+          item.url !== "/users"
+      )
+    }
+    return items
+  }, [role])
+
+  const userNav = React.useMemo(() => {
+    const name =
+      profile?.full_name ||
+      profile?.name ||
+      user?.user_metadata?.full_name ||
+      user?.user_metadata?.name ||
+      (user?.email ? user.email.split("@")[0] : null) ||
+      "User"
+    const email = profile?.email || user?.email || ""
+    const fallback = name ? name.slice(0, 2).toUpperCase() : "US"
+    return { name, email, fallback }
+  }, [profile, user])
 
   return (
     <NavModeProvider>
       <AppLayoutContent
         activeUrl={activeUrl}
-        mainItems={mainItems}
+        mainItems={filteredMainItems}
+        secondaryItems={filteredSecondaryItems}
+        userNav={userNav}
         handleNavigate={handleNavigate}
       />
     </NavModeProvider>
@@ -147,6 +202,7 @@ export default function App() {
               <Routes>
                 {/* Public routes */}
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/p/:serial_number" element={<PublicProductDetail />} />
 
                 {/* Protected routes */}
                 <Route
@@ -157,35 +213,35 @@ export default function App() {
                   }
                 >
                   <Route index element={<Navigate to="/dashboard" replace />} />
-                  <Route path="dashboard"       element={<DashboardPage />} />
-                  <Route path="products"        element={<ProductsPage />} />
-                  <Route path="products/add"    element={<ProductsPage />} />
-                  <Route path="products/:id"    element={<ProductsPage />} />
+                  <Route path="dashboard"       element={<RoleGuard allow={ALL_ROLES}><DashboardPage /></RoleGuard>} />
+                  <Route path="products"        element={<RoleGuard allow={ALL_ROLES}><ProductsPage /></RoleGuard>} />
+                  <Route path="products/add"    element={<RoleGuard allow={ALL_ROLES}><ProductsPage /></RoleGuard>} />
+                  <Route path="products/:id"    element={<RoleGuard allow={ALL_ROLES}><ProductsPage /></RoleGuard>} />
                   <Route path="product"         element={<Navigate to="/products" replace />} />
                   <Route path="product/add"     element={<Navigate to="/products/add" replace />} />
-                  <Route path="product/:id"     element={<ProductsPage />} />
-                  <Route path="clients"         element={<ClientPage />} />
-                  <Route path="clients/add"     element={<ClientPage />} />
-                  <Route path="clients/:id"     element={<ClientPage />} />
+                  <Route path="product/:id"     element={<RoleGuard allow={ALL_ROLES}><ProductsPage /></RoleGuard>} />
+                  <Route path="clients"         element={<RoleGuard allow={ALL_ROLES}><ClientPage /></RoleGuard>} />
+                  <Route path="clients/add"     element={<RoleGuard allow={ALL_ROLES}><ClientPage /></RoleGuard>} />
+                  <Route path="clients/:id"     element={<RoleGuard allow={ALL_ROLES}><ClientPage /></RoleGuard>} />
                   <Route path="client"          element={<Navigate to="/clients" replace />} />
                   <Route path="client/add"      element={<Navigate to="/clients/add" replace />} />
-                  <Route path="client/:id"      element={<ClientPage />} />
-                  <Route path="tax"             element={<TaxPage />} />
-                  <Route path="ai-agent"        element={<AIAgentPage />} />
-                  <Route path="workers"         element={<WorkersPage />} />
-                  <Route path="workers/add"     element={<WorkersPage />} />
-                  <Route path="workers/:id"     element={<WorkersPage />} />
+                  <Route path="client/:id"      element={<RoleGuard allow={ALL_ROLES}><ClientPage /></RoleGuard>} />
+                  <Route path="tax"             element={<RoleGuard allow={ALL_ROLES}><TaxPage /></RoleGuard>} />
+                  <Route path="ai-agent"        element={<RoleGuard allow={ALL_ROLES}><AIAgentPage /></RoleGuard>} />
+                  <Route path="workers"         element={<RoleGuard allow={ADMIN_ROLES}><WorkersPage /></RoleGuard>} />
+                  <Route path="workers/add"     element={<RoleGuard allow={ADMIN_ROLES}><WorkersPage /></RoleGuard>} />
+                  <Route path="workers/:id"     element={<RoleGuard allow={ADMIN_ROLES}><WorkersPage /></RoleGuard>} />
                   <Route path="worker"          element={<Navigate to="/workers" replace />} />
                   <Route path="worker/add"      element={<Navigate to="/workers/add" replace />} />
-                  <Route path="worker/:id"      element={<WorkersPage />} />
+                  <Route path="worker/:id"      element={<RoleGuard allow={ADMIN_ROLES}><WorkersPage /></RoleGuard>} />
                   <Route path="branches"        element={<Navigate to="/workers" replace />} />
-                  <Route path="images"          element={<ImagesPage />} />
-                  <Route path="qr-statistics"   element={<QrStatisticsPage />} />
-                  <Route path="transaction"     element={<TransactionPage />} />
-                  <Route path="transaction/add" element={<TransactionPage />} />
-                  <Route path="invoice"         element={<InvoicePage />} />
-                  <Route path="reports"         element={<ReportsPage />} />
-                  <Route path="settings"        element={<SettingsPage />} />
+                  <Route path="images"          element={<RoleGuard allow={ALL_ROLES}><ImagesPage /></RoleGuard>} />
+                  <Route path="qr-statistics"   element={<RoleGuard allow={ALL_ROLES}><QrStatisticsPage /></RoleGuard>} />
+                  <Route path="transaction"     element={<RoleGuard allow={ALL_ROLES}><TransactionPage /></RoleGuard>} />
+                  <Route path="transaction/add" element={<RoleGuard allow={ALL_ROLES}><TransactionPage /></RoleGuard>} />
+                  <Route path="invoice"         element={<RoleGuard allow={ALL_ROLES}><InvoicePage /></RoleGuard>} />
+                  <Route path="reports"         element={<RoleGuard allow={ALL_ROLES}><ReportsPage /></RoleGuard>} />
+                  <Route path="settings"        element={<RoleGuard allow={ADMIN_ROLES}><SettingsPage /></RoleGuard>} />
                   <Route path="*"               element={<Navigate to="/dashboard" replace />} />
                 </Route>
               </Routes>

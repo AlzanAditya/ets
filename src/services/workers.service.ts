@@ -346,13 +346,13 @@ export const workersService = {
   /**
    * Create a new worker
    */
-  async createWorker(payload: Partial<WorkerInsert>): Promise<WorkerRow> {
+  async createWorker(payload: Partial<WorkerInsert> & { password?: string }): Promise<WorkerRow> {
     const rawWorkerId = payload.worker_id || payload.id;
     const newWorkerId = isValidUUID(rawWorkerId) ? rawWorkerId! : safeUUID();
     const nowIso = new Date().toISOString();
     const photoPath = payload.profile_photo_path || payload.profile_image_path || null;
     const fullNameVal = payload.full_name || payload.name || "Pekerja Baru";
-    const codeVal = payload.worker_code || `WKR-${Math.floor(100 + Math.random() * 900)}`;
+    const codeVal = payload.worker_code || `WKR-${Math.floor(1000 + Math.random() * 9000)}`;
 
     // Resolve valid position_id UUID
     let posId = payload.position_id;
@@ -363,7 +363,7 @@ export const workersService = {
       posId = foundPos ? foundPos.position_id : DEFAULT_POSITIONS[1].position_id;
     }
 
-    // Ensure position exists in worker_positions table before FK check
+    // Ensure position exists in worker_positions table before FK check / function invoke
     try {
       const posObj = DEFAULT_POSITIONS.find((p) => p.position_id === posId) || {
         position_id: posId,
@@ -373,7 +373,106 @@ export const workersService = {
         updated_at: "2026-01-01T00:00:00Z",
       };
       await (supabase as any).from("worker_positions").upsert(posObj);
-    } catch {}
+    } catch (e) {
+      console.warn("Worker position pre-upsert failed:", e);
+    }
+
+    const functionBody = {
+      worker_code: codeVal,
+      full_name: fullNameVal,
+      nickname: payload.nickname || null,
+      email: payload.email || null,
+      password: (payload as any).password || null,
+      phone_number: payload.phone_number || null,
+      position_id: posId,
+      joined_date: payload.joined_date || null,
+    };
+
+    let edgeFunctionAttempted = false;
+
+    try {
+      edgeFunctionAttempted = true;
+      const { data, error } = await supabase.functions.invoke("create-worker-account", {
+        body: functionBody,
+      });
+
+      if (error) {
+        console.error("Edge Function invoke error:", error);
+        let errMsg = error.message || "";
+        try {
+          if (typeof (error as any).context?.json === "function") {
+            const errJson = await (error as any).context.json();
+            if (errJson?.message) errMsg = errJson.message;
+            else if (errJson?.error) errMsg = errJson.error;
+          }
+        } catch {}
+
+        const lowerMsg = errMsg.toLowerCase();
+        if (
+          lowerMsg.includes("email") ||
+          lowerMsg.includes("already registered") ||
+          lowerMsg.includes("already been registered")
+        ) {
+          throw new Error("Email sudah digunakan.");
+        }
+        if (
+          lowerMsg.includes("worker_code") ||
+          lowerMsg.includes("kode worker") ||
+          lowerMsg.includes("workers_worker_code_key") ||
+          (lowerMsg.includes("code") && lowerMsg.includes("unique"))
+        ) {
+          throw new Error("Kode Worker sudah digunakan.");
+        }
+        throw new Error(errMsg || "Gagal membuat akun worker");
+      }
+
+      if (data && (data.success === false || data.error || (data.message && !data.worker))) {
+        const errMsg = String(data.error || data.message || "Gagal membuat akun worker");
+        console.error("Edge Function returned error in body:", errMsg);
+        const lowerMsg = errMsg.toLowerCase();
+        if (
+          lowerMsg.includes("email") ||
+          lowerMsg.includes("already registered") ||
+          lowerMsg.includes("already been registered")
+        ) {
+          throw new Error("Email sudah digunakan.");
+        }
+        if (
+          lowerMsg.includes("worker_code") ||
+          lowerMsg.includes("kode worker") ||
+          lowerMsg.includes("workers_worker_code_key") ||
+          (lowerMsg.includes("code") && lowerMsg.includes("unique"))
+        ) {
+          throw new Error("Kode Worker sudah digunakan.");
+        }
+        throw new Error(errMsg);
+      }
+
+      if (data) {
+        const workerObj = data.worker || data.data || data;
+        if (workerObj && typeof workerObj === "object") {
+          const normalized = normalizeWorkerRow(workerObj);
+          const resolved = await resolveWorkerPhotoUrls([normalized]);
+          const result = resolved[0] || normalized;
+
+          const localWorkers = getStoredWorkers();
+          setStoredWorkers([
+            result,
+            ...localWorkers.filter((w) => w.worker_id !== result.worker_id && w.worker_code !== result.worker_code),
+          ]);
+          return result;
+        }
+      }
+    } catch (e: any) {
+      console.error("Edge Function invocation failed or threw error:", e);
+      if (
+        e.message === "Email sudah digunakan." ||
+        e.message === "Kode Worker sudah digunakan." ||
+        edgeFunctionAttempted
+      ) {
+        throw e;
+      }
+    }
 
     const dbPayload = {
       worker_id: newWorkerId,
@@ -416,8 +515,19 @@ export const workersService = {
         return result;
       } else if (error) {
         console.error("Supabase insert worker error:", error);
+        if (error.code === "23505" || error.message?.includes("unique")) {
+          if (error.message?.includes("email") || error.details?.includes("email")) {
+            throw new Error("Email sudah digunakan.");
+          }
+          if (error.message?.includes("worker_code") || error.details?.includes("worker_code")) {
+            throw new Error("Kode Worker sudah digunakan.");
+          }
+        }
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e.message === "Email sudah digunakan." || e.message === "Kode Worker sudah digunakan.") {
+        throw e;
+      }
       console.error("Database insert worker exception:", e);
     }
 
@@ -483,12 +593,13 @@ export const workersService = {
     }
 
     try {
-      const { data, error } = await (supabase as any)
-        .from("workers")
-        .update(dbPayload)
-        .or(`worker_id.eq.${workerId},id.eq.${workerId}`)
-        .select()
-        .single();
+      let query = (supabase as any).from("workers").update(dbPayload);
+      if (isValidUUID(workerId)) {
+        query = query.eq("worker_id", workerId);
+      } else {
+        query = query.or(`worker_id.eq.${workerId},worker_code.eq.${workerId}`);
+      }
+      const { data, error } = await query.select().single();
 
       if (!error && data) {
         const normalized = normalizeWorkerRow(data);
@@ -538,10 +649,13 @@ export const workersService = {
     await deleteWorkerProfilePhoto(workerId);
 
     try {
-      await (supabase as any)
-        .from("workers")
-        .delete()
-        .or(`worker_id.eq.${workerId},id.eq.${workerId}`);
+      let delQuery = (supabase as any).from("workers").delete();
+      if (isValidUUID(workerId)) {
+        delQuery = delQuery.eq("worker_id", workerId);
+      } else {
+        delQuery = delQuery.or(`worker_id.eq.${workerId},worker_code.eq.${workerId}`);
+      }
+      await delQuery;
     } catch {}
 
     const localWorkers = getStoredWorkers();

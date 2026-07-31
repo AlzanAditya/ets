@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNavMode } from "@/contexts/nav-mode-context"
+import { useAuth } from "@/contexts/auth-context"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -124,9 +125,21 @@ function NavItem({ title, icon: Icon, active, onClick }: NavItemProps) {
  */
 export function MobileNavbar() {
   const { navbarEnabled, topRowVisible, toggleTopRow } = useNavMode()
+  const { role } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const isInputFocused = useIsInputFocused()
+
+  const bottomNavItems = React.useMemo(() => {
+    if (role === "worker") {
+      return BOTTOM_NAV_ITEMS.filter((item) => {
+        const title = item.title as string
+        const url = item.url as string
+        return title !== "Workers" && url !== "/workers" && title !== "Settings" && url !== "/settings"
+      })
+    }
+    return BOTTOM_NAV_ITEMS
+  }, [role])
 
   if (!navbarEnabled) {
     return null
@@ -229,7 +242,7 @@ export function MobileNavbar() {
           )}
           style={{ height: ROW_H }}
         >
-          {BOTTOM_NAV_ITEMS.map((item) => (
+          {bottomNavItems.map((item) => (
             <NavItem
               key={item.url}
               title={item.title}

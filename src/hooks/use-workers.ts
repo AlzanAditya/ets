@@ -79,7 +79,12 @@ export function useCreateWorkerMutation() {
       toast.success(`Pekerja ${name} berhasil ditambahkan`);
     },
     onError: (err: any) => {
-      toast.error(`Gagal menambahkan pekerja: ${err.message || "Terjadi kesalahan"}`);
+      const msg = err?.message || "Gagal menambahkan pekerja";
+      if (msg === "Email sudah digunakan." || msg === "Kode Worker sudah digunakan.") {
+        toast.error(msg);
+      } else {
+        toast.error(`Gagal menambahkan pekerja: ${msg}`);
+      }
     },
   });
 }
