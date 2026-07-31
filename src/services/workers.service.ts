@@ -1,6 +1,10 @@
 import { supabase } from "@/lib/supabase";
 import { safeUUID, isValidUUID } from "@/lib/utils";
-import { deleteWorkerProfilePhoto, getWorkerProfilePhotoUrl } from "@/lib/image-service";
+import {
+  uploadWorkerProfilePhoto,
+  getWorkerProfilePhotoUrl,
+  deleteWorkerProfilePhoto,
+} from "@/lib/image-service";
 import type {
   WorkerRow,
   WorkerPositionRow,
@@ -8,18 +12,7 @@ import type {
   WorkerAssignmentRow,
   WorkerInsert,
   WorkerUpdate,
-  WorkerOperationalStatus,
 } from "@/types/database";
-
-export interface WorkerWithDetails extends WorkerRow {
-  position?: WorkerPositionRow | null;
-  operational_status: WorkerOperationalStatus;
-  total_assignments: number;
-  total_steps: number;
-  total_events: number;
-  last_activity: string | null;
-  signed_avatar_url?: string | null;
-}
 
 export interface WorkerAssignmentDetail extends WorkerAssignmentRow {
   worker?: WorkerRow | null;
@@ -32,184 +25,81 @@ export interface WorkerAssignmentDetail extends WorkerAssignmentRow {
   product_name?: string;
 }
 
-// Default master data according to PRD
+export type WorkerOperationalStatus = "In Installation" | "In Maintenance" | "Inactive";
+
+export interface WorkerWithDetails extends WorkerRow {
+  position?: WorkerPositionRow | null;
+  operational_status?: WorkerOperationalStatus;
+  active_task_count?: number;
+  completed_task_count?: number;
+  total_assignments?: number;
+  total_steps?: number;
+  total_events?: number;
+  signed_avatar_url?: string;
+  assignments?: WorkerAssignmentDetail[];
+}
+
 export const DEFAULT_POSITIONS: WorkerPositionRow[] = [
-  { position_id: "11111111-1111-4111-8111-111111111101", name: "Supervisor", description: "Pengawas operasional teknis", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "11111111-1111-4111-8111-111111111102", name: "Teknisi", description: "Pelaksana teknis utama", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "11111111-1111-4111-8111-111111111103", name: "Helper", description: "Asisten teknis lapangan", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "11111111-1111-4111-8111-111111111104", name: "Engineer", description: "Insinyur sistem & kualitas", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "11111111-1111-4111-8111-111111111105", name: "QC", description: "Penjamin mutu hasil instalasi", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "11111111-1111-4111-8111-111111111106", name: "Driver", description: "Pengemudi & logistik lapangan", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { position_id: "11111111-1111-4111-8111-111111111107", name: "Admin", description: "Administrasi tim teknis", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-];
-
-export const DEFAULT_ROLES: WorkerRoleRow[] = [
-  { role_id: "role-1", name: "PIC", description: "Penanggung jawab utama step", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { role_id: "role-2", name: "Supervisor", description: "Supervisi pelaksanaan", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { role_id: "role-3", name: "Teknisi", description: "Pengerjaan teknis", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { role_id: "role-4", name: "Helper", description: "Pembantu lapangan", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { role_id: "role-5", name: "Observer", description: "Pengamat / Inspektur", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  { role_id: "role-6", name: "Dokumentasi", description: "Pengambil foto & laporan", created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-];
-
-const LOCAL_STORAGE_WORKERS_KEY = "ets_workers_v1";
-const LOCAL_STORAGE_ASSIGNMENTS_KEY = "ets_worker_assignments_v1";
-
-const SAMPLE_INITIAL_WORKERS: WorkerRow[] = [
   {
-    worker_id: "11111111-2222-4333-8444-555555555501",
-    id: "11111111-2222-4333-8444-555555555501",
-    worker_code: "WKR-001",
-    full_name: "Budi Santoso",
-    nickname: "Budi",
-    profile_image_path: null,
-    profile_photo_path: null,
-    phone_number: "0812-3456-7890",
-    email: "budi.santoso@zanxa.studio",
-    position_id: "11111111-1111-4111-8111-111111111102",
-    joined_date: "2024-03-15",
-    created_at: "2024-03-15T08:00:00Z",
-    updated_at: "2024-03-15T08:00:00Z",
+    position_id: "e1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+    name: "Supervisor Teknik",
+    description: "Pengawas dan penanggung jawab teknis di lapangan",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    worker_id: "11111111-2222-4333-8444-555555555502",
-    id: "11111111-2222-4333-8444-555555555502",
-    worker_code: "WKR-002",
-    full_name: "Rahmat Hidayat",
-    nickname: "Rahmat",
-    profile_image_path: null,
-    profile_photo_path: null,
-    phone_number: "0813-9876-5432",
-    email: "rahmat.hidayat@zanxa.studio",
-    position_id: "11111111-1111-4111-8111-111111111101",
-    joined_date: "2023-01-10",
-    created_at: "2023-01-10T08:00:00Z",
-    updated_at: "2023-01-10T08:00:00Z",
+    position_id: "f2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+    name: "Teknisi Utama",
+    description: "Pelaksana teknis utama untuk instalasi & perawatan",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    worker_id: "11111111-2222-4333-8444-555555555503",
-    id: "11111111-2222-4333-8444-555555555503",
-    worker_code: "WKR-003",
-    full_name: "Ahmad Rizky",
-    nickname: "Ahmad",
-    profile_image_path: null,
-    profile_photo_path: null,
-    phone_number: "0811-2233-4455",
-    email: "ahmad.rizky@zanxa.studio",
-    position_id: "11111111-1111-4111-8111-111111111104",
-    joined_date: "2024-06-01",
-    created_at: "2024-06-01T08:00:00Z",
-    updated_at: "2024-06-01T08:00:00Z",
+    position_id: "a3b4c5d6-e7f8-9a0b-1c2d-3e4f5a6b7c8d",
+    name: "Dokumentator Field",
+    description: "Petugas dokumentasi dan pelaporan foto lapangan",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    worker_id: "11111111-2222-4333-8444-555555555504",
-    id: "11111111-2222-4333-8444-555555555504",
-    worker_code: "WKR-004",
-    full_name: "Dedi Prasetyo",
-    nickname: "Dedi",
-    profile_image_path: null,
-    profile_photo_path: null,
-    phone_number: "0815-6677-8899",
-    email: "dedi.prasetyo@zanxa.studio",
-    position_id: "11111111-1111-4111-8111-111111111103",
-    joined_date: "2025-02-12",
-    created_at: "2025-02-12T08:00:00Z",
-    updated_at: "2025-02-12T08:00:00Z",
+    position_id: "b4c5d6e7-f8a9-0b1c-2d3e-4f5a6b7c8d9e",
+    name: "Staff Logistik",
+    description: "Penanggung jawab pengiriman dan verifikasi barang",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
   },
 ];
 
-export function normalizeWorkerRow(raw: any): WorkerRow {
-  if (!raw) {
-    const defaultId = safeUUID();
-    return {
-      worker_id: defaultId,
-      id: defaultId,
-      worker_code: `WKR-${Math.floor(100 + Math.random() * 900)}`,
-      full_name: "Pekerja Baru",
-      name: "Pekerja Baru",
-      nickname: null,
-      profile_image_path: null,
-      profile_photo_path: null,
-      role: null,
-      status: "active",
-      notes: null,
-      phone_number: null,
-      email: null,
-      position_id: "pos-2",
-      joined_date: new Date().toISOString().split("T")[0],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  }
-
-  const idVal = raw.worker_id || raw.id || safeUUID();
-  const nameVal = raw.full_name || raw.name || "Pekerja";
-  const rawPhoto = raw.profile_photo_path || raw.profile_image_path || null;
-  const photoVal = rawPhoto ? getWorkerProfilePhotoUrl(idVal, rawPhoto) : null;
+function normalizeWorkerRow(raw: any): WorkerRow {
+  const workerId = raw.worker_id || raw.id || safeUUID();
+  const workerCode = raw.worker_code || raw.code || `WKR-${Math.floor(1000 + Math.random() * 9000)}`;
+  const fullName = raw.full_name || raw.name || "Pekerja Baru";
+  const photoPath = raw.profile_image_path || raw.profile_photo_path || null;
 
   return {
     ...raw,
-    worker_id: idVal,
-    id: idVal,
-    full_name: nameVal,
-    name: nameVal,
-    profile_photo_path: photoVal,
-    profile_image_path: photoVal,
+    worker_id: workerId,
+    id: workerId,
+    worker_code: workerCode,
+    full_name: fullName,
+    name: fullName,
+    nickname: raw.nickname || null,
+    profile_image_path: photoPath,
+    profile_photo_path: photoPath,
+    phone_number: raw.phone_number || null,
+    email: raw.email || null,
+    position_id: raw.position_id || DEFAULT_POSITIONS[1].position_id,
     status: raw.status || "active",
     joined_date: raw.joined_date || (raw.created_at ? String(raw.created_at).split("T")[0] : new Date().toISOString().split("T")[0]),
   };
-}
-
-function getStoredWorkers(): WorkerRow[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_WORKERS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed.map(normalizeWorkerRow);
-      }
-    }
-  } catch (e) {
-    console.error("Failed to parse stored workers:", e);
-  }
-  try {
-    localStorage.setItem(LOCAL_STORAGE_WORKERS_KEY, JSON.stringify(SAMPLE_INITIAL_WORKERS));
-  } catch {}
-  return SAMPLE_INITIAL_WORKERS.map(normalizeWorkerRow);
-}
-
-function setStoredWorkers(workers: WorkerRow[]) {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_WORKERS_KEY, JSON.stringify(workers));
-  } catch (e) {
-    console.error("Failed to store workers:", e);
-  }
-}
-
-function getStoredAssignments(): WorkerAssignmentDetail[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_ASSIGNMENTS_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {
-    console.error("Failed to parse stored worker assignments:", e);
-  }
-  return [];
-}
-
-function setStoredAssignments(assignments: WorkerAssignmentDetail[]) {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_ASSIGNMENTS_KEY, JSON.stringify(assignments));
-  } catch (e) {
-    console.error("Failed to store worker assignments:", e);
-  }
 }
 
 export async function resolveWorkerPhotoUrls(workers: WorkerRow[]): Promise<WorkerRow[]> {
   if (!workers || workers.length === 0) return [];
 
   return workers.map((w) => {
-    const rawPath = w.profile_photo_path || w.profile_image_path;
-    const resolvedUrl = getWorkerProfilePhotoUrl(w.worker_id || w.id, rawPath);
+    const rawPath = w.profile_photo_path || w.profile_image_path || "";
+    const resolvedUrl = getWorkerProfilePhotoUrl(w.worker_id || (w as any).id || "", rawPath);
     if (resolvedUrl) {
       return {
         ...w,
@@ -223,6 +113,13 @@ export async function resolveWorkerPhotoUrls(workers: WorkerRow[]): Promise<Work
 
 export const workersService = {
   /**
+   * Upload worker profile photo
+   */
+  async uploadWorkerPhoto(workerId: string, file: File): Promise<string> {
+    return uploadWorkerProfilePhoto(workerId, file);
+  },
+
+  /**
    * Get all positions master list
    */
   async getPositions(): Promise<WorkerPositionRow[]> {
@@ -235,126 +132,121 @@ export const workersService = {
         return data;
       }
       if (!error) {
-        // Seed default positions if table exists but is empty
         try {
           await (supabase as any).from("worker_positions").upsert(DEFAULT_POSITIONS);
         } catch {}
         return DEFAULT_POSITIONS;
       }
-    } catch {}
+    } catch (e) {
+      console.error("Error fetching worker_positions:", e);
+    }
     return DEFAULT_POSITIONS;
   },
 
   /**
-   * Get all roles master list
+   * Get all roles master list directly from database (Single source of truth)
    */
   async getRoles(): Promise<WorkerRoleRow[]> {
-    try {
-      const { data, error } = await (supabase as any)
-        .from("worker_roles")
-        .select("*")
-        .order("name");
-      if (!error && data && data.length > 0) {
-        return data;
-      }
-    } catch {}
-    return DEFAULT_ROLES;
+    console.group("SUPABASE SELECT worker_roles");
+    console.log("Table: worker_roles");
+
+    const { data, error } = await (supabase as any)
+      .from("worker_roles")
+      .select("*")
+      .order("name");
+
+    console.log("Response:", data);
+    console.log("Error:", error);
+    console.groupEnd();
+
+    if (error) {
+      console.error("Error fetching worker_roles from Supabase:", error);
+      throw error;
+    }
+
+    return data || [];
   },
 
   /**
-   * Get all workers with computed operational status and details
+   * Get all workers with computed operational status
    */
   async getWorkers(): Promise<WorkerWithDetails[]> {
     const positions = await this.getPositions();
     const positionsMap = new Map(positions.map((p) => [p.position_id, p]));
 
-    let rawWorkers: WorkerRow[] = [];
+    console.group("SUPABASE SELECT workers");
+    console.log("Table: workers");
 
-    try {
-      const { data, error } = await (supabase as any)
-        .from("workers")
-        .select("*")
-        .order("created_at", { ascending: false });
+    const { data, error } = await (supabase as any)
+      .from("workers")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        rawWorkers = data.map(normalizeWorkerRow);
-        // Sync local cache for offline reliability
-        if (data.length > 0) {
-          setStoredWorkers(rawWorkers);
-        }
-      } else {
-        rawWorkers = getStoredWorkers();
-      }
-    } catch {
-      rawWorkers = getStoredWorkers();
+    console.log("Response:", data);
+    console.log("Error:", error);
+    console.groupEnd();
+
+    if (error) {
+      throw new Error(`Gagal mengambil data worker dari database: ${error.message}`);
     }
 
+    let rawWorkers: WorkerRow[] = (data || []).map(normalizeWorkerRow);
     rawWorkers = await resolveWorkerPhotoUrls(rawWorkers);
 
     const assignments = await this.getAllAssignments();
 
     return rawWorkers.map((worker) => {
-      const workerAssigns = assignments.filter((a) => a.worker_id === worker.worker_id || a.worker_id === worker.id);
-      
-      // Compute operational status: In Installation vs In Maintenance vs Inactive
+      const workerAssigns = assignments.filter((a) => a.worker_id === worker.worker_id || a.worker_id === (worker as any).id);
+
       let operationalStatus: WorkerOperationalStatus = "Inactive";
       const activeAssigns = workerAssigns.filter((a) => !a.completed_at);
       if (activeAssigns.length > 0) {
         const hasInstallation = activeAssigns.some((a) => a.event_type === "installation");
-        const hasMaintenance = activeAssigns.some((a) => a.event_type === "maintenance");
-        if (hasInstallation) {
-          operationalStatus = "In Installation";
-        } else if (hasMaintenance) {
-          operationalStatus = "In Maintenance";
-        } else {
-          operationalStatus = "In Installation";
-        }
+        operationalStatus = hasInstallation ? "In Installation" : "In Maintenance";
       }
 
-      // Unique steps and events count
-      const stepIds = new Set(workerAssigns.map((a) => a.step_id));
-      const eventTitles = new Set(workerAssigns.map((a) => a.event_title || a.event_type));
+      const activeTaskCount = activeAssigns.length;
+      const completedTaskCount = workerAssigns.filter((a) => a.completed_at).length;
+      const totalAssignments = workerAssigns.length;
+      const uniqueSteps = new Set(workerAssigns.map((a) => a.step_id)).size;
 
-      // Last activity timestamp
-      const timestamps = workerAssigns
-        .map((a) => a.assigned_at)
-        .filter(Boolean)
-        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-      
-      const lastActivity = timestamps.length > 0 ? timestamps[0] : worker.created_at;
+      const posId = worker.position_id;
+      const pos = posId ? (positionsMap.get(posId) || null) : null;
+      const avatarUrl = worker.profile_photo_path || worker.profile_image_path || "";
 
       return {
         ...worker,
-        position: positionsMap.get(worker.position_id || "") || null,
+        position: pos,
         operational_status: operationalStatus,
-        total_assignments: workerAssigns.length,
-        total_steps: stepIds.size,
-        total_events: eventTitles.size,
-        last_activity: lastActivity,
+        active_task_count: activeTaskCount,
+        completed_task_count: completedTaskCount,
+        total_assignments: totalAssignments,
+        total_steps: uniqueSteps,
+        total_events: uniqueSteps,
+        signed_avatar_url: avatarUrl,
+        assignments: workerAssigns,
       };
     });
   },
 
   /**
-   * Get single worker by ID
+   * Fetch worker details by ID
    */
   async getWorkerById(workerId: string): Promise<WorkerWithDetails | null> {
     const workers = await this.getWorkers();
-    return workers.find((w) => w.worker_id === workerId || w.id === workerId) || null;
+    return workers.find((w) => w.worker_id === workerId || (w as any).id === workerId) || null;
   },
 
   /**
-   * Create a new worker
+   * Create new worker with strict database error throwing
    */
-  async createWorker(payload: Partial<WorkerInsert> & { password?: string }): Promise<WorkerRow> {
-    const rawWorkerId = payload.worker_id || payload.id;
-    const newWorkerId = isValidUUID(rawWorkerId) ? rawWorkerId! : safeUUID();
+  async createWorker(payload: Partial<WorkerInsert>): Promise<WorkerRow> {
+    const newWorkerId = safeUUID();
     const nowIso = new Date().toISOString();
     const photoPath = payload.profile_photo_path || payload.profile_image_path || null;
     const fullNameVal = payload.full_name || payload.name || "Pekerja Baru";
     const codeVal = payload.worker_code || `WKR-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // Resolve valid position_id UUID
     let posId = payload.position_id;
     if (!isValidUUID(posId)) {
       const foundPos = DEFAULT_POSITIONS.find(
@@ -363,111 +255,7 @@ export const workersService = {
       posId = foundPos ? foundPos.position_id : DEFAULT_POSITIONS[1].position_id;
     }
 
-    // Ensure position exists in worker_positions table before FK check / function invoke
-    try {
-      const posObj = DEFAULT_POSITIONS.find((p) => p.position_id === posId) || {
-        position_id: posId,
-        name: "Teknisi",
-        description: "Pelaksana teknis utama",
-        created_at: "2026-01-01T00:00:00Z",
-        updated_at: "2026-01-01T00:00:00Z",
-      };
-      await (supabase as any).from("worker_positions").upsert(posObj);
-    } catch (e) {
-      console.warn("Worker position pre-upsert failed:", e);
-    }
-
-    const functionBody = {
-      worker_code: codeVal,
-      full_name: fullNameVal,
-      nickname: payload.nickname || null,
-      email: payload.email || null,
-      password: (payload as any).password || null,
-      phone_number: payload.phone_number || null,
-      position_id: posId,
-      joined_date: payload.joined_date || null,
-    };
-
-    try {
-      const { data, error } = await supabase.functions.invoke("create-worker-account", {
-        body: functionBody,
-      });
-
-      if (error) {
-        console.warn("Edge Function invoke error:", error);
-        let errMsg = error.message || "";
-        try {
-          if (typeof (error as any).context?.json === "function") {
-            const errJson = await (error as any).context.json();
-            if (errJson?.message) errMsg = errJson.message;
-            else if (errJson?.error) errMsg = errJson.error;
-          }
-        } catch {}
-
-        const lowerMsg = errMsg.toLowerCase();
-        if (
-          lowerMsg.includes("email") ||
-          lowerMsg.includes("already registered") ||
-          lowerMsg.includes("already been registered")
-        ) {
-          throw new Error("Email sudah digunakan.");
-        }
-        if (
-          lowerMsg.includes("worker_code") ||
-          lowerMsg.includes("kode worker") ||
-          lowerMsg.includes("workers_worker_code_key") ||
-          (lowerMsg.includes("code") && lowerMsg.includes("unique"))
-        ) {
-          throw new Error("Kode Worker sudah digunakan.");
-        }
-        // If it's a network/function missing error, don't throw - fall back to DB insert!
-        if (!errMsg.includes("Failed to send a request") && !errMsg.includes("FunctionsFetchError")) {
-          console.warn("Edge Function failed with message, falling back to DB insert:", errMsg);
-        }
-      } else if (data && (data.success === false || data.error || (data.message && !data.worker))) {
-        const errMsg = String(data.error || data.message || "Gagal membuat akun worker");
-        console.error("Edge Function returned error in body:", errMsg);
-        const lowerMsg = errMsg.toLowerCase();
-        if (
-          lowerMsg.includes("email") ||
-          lowerMsg.includes("already registered") ||
-          lowerMsg.includes("already been registered")
-        ) {
-          throw new Error("Email sudah digunakan.");
-        }
-        if (
-          lowerMsg.includes("worker_code") ||
-          lowerMsg.includes("kode worker") ||
-          lowerMsg.includes("workers_worker_code_key") ||
-          (lowerMsg.includes("code") && lowerMsg.includes("unique"))
-        ) {
-          throw new Error("Kode Worker sudah digunakan.");
-        }
-      } else if (data) {
-        const workerObj = data.worker || data.data || data;
-        if (workerObj && typeof workerObj === "object") {
-          const normalized = normalizeWorkerRow(workerObj);
-          const resolved = await resolveWorkerPhotoUrls([normalized]);
-          const result = resolved[0] || normalized;
-
-          const localWorkers = getStoredWorkers();
-          setStoredWorkers([
-            result,
-            ...localWorkers.filter((w) => w.worker_id !== result.worker_id && w.worker_code !== result.worker_code),
-          ]);
-          return result;
-        }
-      }
-    } catch (e: any) {
-      console.warn("Edge Function invocation failed or threw error:", e);
-      if (
-        e.message === "Email sudah digunakan." ||
-        e.message === "Kode Worker sudah digunakan."
-      ) {
-        throw e;
-      }
-      // For any Edge function endpoint failure, log and fall through to direct DB insert
-    }
+    await this.getPositions();
 
     const dbPayload = {
       worker_id: newWorkerId,
@@ -483,59 +271,39 @@ export const workersService = {
       updated_at: nowIso,
     };
 
-    const newWorker = normalizeWorkerRow({
-      ...payload,
-      ...dbPayload,
-      id: newWorkerId,
-      name: fullNameVal,
-      profile_photo_path: photoPath,
-      status: payload.status || "active",
-      notes: payload.notes || null,
-    });
+    console.group("SUPABASE INSERT workers");
+    console.log("Table: workers");
+    console.log("Payload:", dbPayload);
 
-    try {
-      const { data, error } = await (supabase as any)
-        .from("workers")
-        .insert(dbPayload)
-        .select()
-        .single();
+    const { data, error } = await (supabase as any)
+      .from("workers")
+      .insert(dbPayload)
+      .select(`*, position:worker_positions(*)`)
+      .single();
 
-      if (!error && data) {
-        const normalized = normalizeWorkerRow(data);
-        const resolved = await resolveWorkerPhotoUrls([normalized]);
-        const result = resolved[0] || normalized;
+    console.log("Response:", data);
+    console.log("Error:", error);
+    console.groupEnd();
 
-        const localWorkers = getStoredWorkers();
-        setStoredWorkers([result, ...localWorkers.filter((w) => w.worker_id !== newWorkerId && w.id !== newWorkerId)]);
-        return result;
-      } else if (error) {
-        console.error("Supabase insert worker error:", error);
-        if (error.code === "23505" || error.message?.includes("unique")) {
-          if (error.message?.includes("email") || error.details?.includes("email")) {
-            throw new Error("Email sudah digunakan.");
-          }
-          if (error.message?.includes("worker_code") || error.details?.includes("worker_code")) {
-            throw new Error("Kode Worker sudah digunakan.");
-          }
+    if (error) {
+      if (error.code === "23505" || error.message?.includes("unique")) {
+        if (error.message?.includes("email") || error.details?.includes("email")) {
+          throw new Error("Email sudah digunakan.");
+        }
+        if (error.message?.includes("worker_code") || error.details?.includes("worker_code")) {
+          throw new Error("Kode Worker sudah digunakan.");
         }
       }
-    } catch (e: any) {
-      if (e.message === "Email sudah digunakan." || e.message === "Kode Worker sudah digunakan.") {
-        throw e;
-      }
-      console.error("Database insert worker exception:", e);
+      throw new Error(`Gagal menyimpan worker ke database: ${error.message || error.details}`);
     }
 
-    // Fallback local storage update
-    const localWorkers = getStoredWorkers();
-    const updated = [newWorker, ...localWorkers.filter((w) => w.worker_id !== newWorkerId && w.id !== newWorkerId)];
-    setStoredWorkers(updated);
-
-    return newWorker;
+    const normalized = normalizeWorkerRow(data);
+    const resolved = await resolveWorkerPhotoUrls([normalized]);
+    return resolved[0] || normalized;
   },
 
   /**
-   * Update worker
+   * Update worker with strict database error handling
    */
   async updateWorker(workerId: string, payload: Partial<WorkerUpdate>): Promise<WorkerRow> {
     const nowIso = new Date().toISOString();
@@ -551,159 +319,112 @@ export const workersService = {
     if (payload.email !== undefined) dbPayload.email = payload.email;
     if (payload.joined_date !== undefined) dbPayload.joined_date = payload.joined_date;
 
-    if (payload.position_id !== undefined) {
-      let posId = payload.position_id;
-      if (posId && !isValidUUID(posId)) {
-        const foundPos = DEFAULT_POSITIONS.find(
-          (p) => p.position_id === posId || p.name.toLowerCase() === String(posId).toLowerCase()
-        );
-        posId = foundPos ? foundPos.position_id : DEFAULT_POSITIONS[1].position_id;
-      }
-      if (posId) {
-        dbPayload.position_id = posId;
-        try {
-          const posObj = DEFAULT_POSITIONS.find((p) => p.position_id === posId) || {
-            position_id: posId,
-            name: "Teknisi",
-            description: "Pelaksana teknis utama",
-            created_at: "2026-01-01T00:00:00Z",
-            updated_at: "2026-01-01T00:00:00Z",
-          };
-          await (supabase as any).from("worker_positions").upsert(posObj);
-        } catch {}
-      }
+    if (payload.position_id !== undefined && isValidUUID(payload.position_id)) {
+      dbPayload.position_id = payload.position_id;
     }
 
-    const updateData: Partial<WorkerRow> = {
-      ...payload,
-      updated_at: nowIso,
-    };
-    if (photoPath !== undefined) {
-      updateData.profile_photo_path = photoPath;
-      updateData.profile_image_path = photoPath;
-    }
-    if (fullNameVal !== undefined) {
-      updateData.full_name = fullNameVal;
-      updateData.name = fullNameVal;
-    }
+    console.group("SUPABASE UPDATE workers");
+    console.log("Table: workers");
+    console.log("Worker ID:", workerId);
+    console.log("Payload:", dbPayload);
 
-    try {
-      let query = (supabase as any).from("workers").update(dbPayload);
-      if (isValidUUID(workerId)) {
-        query = query.eq("worker_id", workerId);
-      } else {
-        query = query.or(`worker_id.eq.${workerId},worker_code.eq.${workerId}`);
-      }
-      const { data, error } = await query.select().single();
-
-      if (!error && data) {
-        const normalized = normalizeWorkerRow(data);
-        const resolved = await resolveWorkerPhotoUrls([normalized]);
-        const result = resolved[0] || normalized;
-
-        const localWorkers = getStoredWorkers();
-        const updatedLocals = localWorkers.map((w) =>
-          w.worker_id === workerId || w.id === workerId ? result : w
-        );
-        setStoredWorkers(updatedLocals);
-        return result;
-      } else if (error) {
-        console.error("Supabase update worker error:", error);
-      }
-    } catch (e) {
-      console.error("Database update worker exception:", e);
-    }
-
-    const localWorkers = getStoredWorkers();
-    let found = false;
-    const updated = localWorkers.map((w) => {
-      if (w.worker_id === workerId || w.id === workerId) {
-        found = true;
-        return normalizeWorkerRow({ ...w, ...updateData });
-      }
-      return w;
-    });
-
-    let resultWorker: WorkerRow;
-    if (found) {
-      setStoredWorkers(updated);
-      resultWorker = updated.find((w) => w.worker_id === workerId || w.id === workerId)!;
+    let query = (supabase as any).from("workers").update(dbPayload);
+    if (isValidUUID(workerId)) {
+      query = query.eq("worker_id", workerId);
     } else {
-      resultWorker = normalizeWorkerRow({ worker_id: workerId, id: workerId, ...updateData });
-      setStoredWorkers([resultWorker, ...localWorkers]);
+      query = query.or(`worker_id.eq.${workerId},worker_code.eq.${workerId}`);
     }
 
-    return resultWorker;
+    const { data, error } = await query.select(`*, position:worker_positions(*)`).single();
+
+    console.log("Response:", data);
+    console.log("Error:", error);
+    console.groupEnd();
+
+    if (error) {
+      if (error.code === "23505" || error.message?.includes("unique")) {
+        if (error.message?.includes("email") || error.details?.includes("email")) {
+          throw new Error("Email sudah digunakan.");
+        }
+        if (error.message?.includes("worker_code") || error.details?.includes("worker_code")) {
+          throw new Error("Kode Worker sudah digunakan.");
+        }
+      }
+      throw new Error(`Gagal memperbarui worker di database: ${error.message || error.details}`);
+    }
+
+    const normalized = normalizeWorkerRow(data);
+    const resolved = await resolveWorkerPhotoUrls([normalized]);
+    return resolved[0] || normalized;
   },
 
   /**
-   * Delete worker (also removes profile photo from storage so it doesn't become an orphan file)
+   * Delete worker with strict database error handling
    */
   async deleteWorker(workerId: string): Promise<void> {
-    // Delete profile photo from storage bucket 'worker-profiles'
     await deleteWorkerProfilePhoto(workerId);
 
-    try {
-      let delQuery = (supabase as any).from("workers").delete();
-      if (isValidUUID(workerId)) {
-        delQuery = delQuery.eq("worker_id", workerId);
-      } else {
-        delQuery = delQuery.or(`worker_id.eq.${workerId},worker_code.eq.${workerId}`);
-      }
-      await delQuery;
-    } catch {}
+    console.group("SUPABASE DELETE workers");
+    console.log("Table: workers");
+    console.log("Worker ID:", workerId);
 
-    const localWorkers = getStoredWorkers();
-    const filtered = localWorkers.filter((w) => w.worker_id !== workerId && w.id !== workerId);
-    setStoredWorkers(filtered);
+    let delQuery = (supabase as any).from("workers").delete();
+    if (isValidUUID(workerId)) {
+      delQuery = delQuery.eq("worker_id", workerId);
+    } else {
+      delQuery = delQuery.or(`worker_id.eq.${workerId},worker_code.eq.${workerId}`);
+    }
 
-    // Also remove worker assignments
-    const assignments = getStoredAssignments();
-    setStoredAssignments(assignments.filter((a) => a.worker_id !== workerId));
+    const { data, error } = await delQuery.select();
+
+    console.log("Response:", data);
+    console.log("Error:", error);
+    console.groupEnd();
+
+    if (error) {
+      throw new Error(`Gagal menghapus worker dari database: ${error.message}`);
+    }
   },
 
   /**
-   * Get all assignments across all steps
+   * Get all worker assignments directly from database
    */
   async getAllAssignments(): Promise<WorkerAssignmentDetail[]> {
-    try {
-      const { data, error } = await (supabase as any)
-        .from("worker_assignments")
-        .select(`
-          *,
-          worker:workers(*),
-          role:worker_roles(*)
-        `)
-        .order("assigned_at", { ascending: false });
+    console.group("SUPABASE SELECT worker_assignments");
+    console.log("Table: worker_assignments");
 
-      if (!error && data && data.length > 0) {
-        return data;
-      }
-    } catch {}
+    const { data, error } = await (supabase as any)
+      .from("worker_assignments")
+      .select(`
+        *,
+        worker:workers(*),
+        role:worker_roles(*)
+      `)
+      .order("assigned_at", { ascending: false });
 
-    return getStoredAssignments();
+    console.log("Response:", data);
+    console.log("Error:", error);
+    console.groupEnd();
+
+    if (error) {
+      console.error("Error fetching worker assignments from Supabase:", error);
+      throw error;
+    }
+
+    return data || [];
   },
 
-  /**
-   * Get assignments for a specific step ID
-   */
   async getAssignmentsByStep(stepId: string): Promise<WorkerAssignmentDetail[]> {
     const all = await this.getAllAssignments();
     return all.filter((a) => a.step_id === stepId);
   },
 
-  /**
-   * Get assignments for a list of step IDs (Event Level)
-   */
   async getAssignmentsByEventSteps(stepIds: string[]): Promise<WorkerAssignmentDetail[]> {
     if (!stepIds || stepIds.length === 0) return [];
     const all = await this.getAllAssignments();
     return all.filter((a) => stepIds.includes(a.step_id));
   },
 
-  /**
-   * Assign worker to ALL steps of an Event
-   */
   async assignWorkerToEventSteps(
     steps: { step_id: string; step_type?: string; title?: string }[],
     _eventId: string,
@@ -719,6 +440,8 @@ export const workersService = {
     }
 
     const results: WorkerAssignmentDetail[] = [];
+    const errorMsgs: string[] = [];
+
     for (const step of steps) {
       try {
         const assigned = await this.assignWorkerToStep(
@@ -735,16 +458,23 @@ export const workersService = {
           }
         );
         results.push(assigned);
-      } catch (err) {
-        console.warn(`Notice: worker ${workerId} already assigned to step ${step.step_id}`);
+      } catch (err: any) {
+        if (err.message && err.message.includes("sudah ditugaskan")) {
+          console.warn(`Worker ${workerId} already assigned to step ${step.step_id}`);
+        } else {
+          console.error(`Error assigning worker to step ${step.step_id}:`, err);
+          errorMsgs.push(err.message || "Gagal assign step");
+        }
       }
     }
+
+    if (results.length === 0 && errorMsgs.length > 0) {
+      throw new Error(errorMsgs[0] || "Gagal melakukan penugasan worker ke event.");
+    }
+
     return results;
   },
 
-  /**
-   * Remove worker from ALL steps of an Event
-   */
   async removeWorkerFromEventSteps(
     stepIds: string[],
     workerId: string
@@ -758,16 +488,13 @@ export const workersService = {
     }
   },
 
-  /**
-   * Get worker assignment history for detail timeline view
-   */
   async getWorkerHistory(workerId: string): Promise<WorkerAssignmentDetail[]> {
     const all = await this.getAllAssignments();
     return all.filter((a) => a.worker_id === workerId);
   },
 
   /**
-   * Assign worker to step with role
+   * Assign worker to step with role (Guarantees Supabase insert)
    */
   async assignWorkerToStep(
     stepId: string,
@@ -782,27 +509,84 @@ export const workersService = {
       product_name?: string;
     }
   ): Promise<WorkerAssignmentDetail> {
-    const existing = await this.getAssignmentsByStep(stepId);
-    const isAlreadyAssigned = existing.some((a) => a.worker_id === workerId);
-    if (isAlreadyAssigned) {
-      throw new Error("Worker sudah ditugaskan pada step ini.");
+    if (!roleId || typeof roleId !== "string" || !isValidUUID(roleId)) {
+      throw new Error("Role ID tidak valid. Silakan pilih role yang valid.");
     }
 
     const roles = await this.getRoles();
-    const roleObj = roles.find((r) => r.role_id === roleId) || DEFAULT_ROLES[0];
-    const workers = getStoredWorkers();
-    const workerObj = workers.find((w) => w.worker_id === workerId) || null;
+    if (!roles || roles.length === 0) {
+      throw new Error("Worker roles belum tersedia. Silakan hubungi administrator untuk mengisi master data worker roles.");
+    }
 
-    const newAssignment: WorkerAssignmentDetail = {
-      assignment_id: safeUUID(),
+    const selectedRole = roles.find((r) => r.role_id === roleId);
+    if (!selectedRole) {
+      throw new Error("Role yang dipilih tidak ditemukan di master data database.");
+    }
+
+    console.log("Worker Roles dari DB", roles);
+    console.log("Selected Role", selectedRole);
+    console.log("Selected Role UUID", selectedRole.role_id);
+
+    await this.getPositions();
+
+    const { data: existingDbAssignments, error: checkErr } = await (supabase as any)
+      .from("worker_assignments")
+      .select("assignment_id, worker_id")
+      .eq("step_id", stepId);
+
+    if (checkErr) {
+      throw new Error(`Gagal mengecek assignment di database: ${checkErr.message}`);
+    }
+
+    if (existingDbAssignments) {
+      const isAlreadyAssigned = existingDbAssignments.some((a: any) => a.worker_id === workerId);
+      if (isAlreadyAssigned) {
+        throw new Error("Worker sudah ditugaskan pada step ini.");
+      }
+    }
+
+    const workers = await this.getWorkers();
+    const workerObj = workers.find((w) => w.worker_id === workerId || (w as any).id === workerId) || null;
+
+    const assignmentId = safeUUID();
+    const assignedAt = new Date().toISOString();
+
+    const insertPayload = {
+      assignment_id: assignmentId,
       step_id: stepId,
       worker_id: workerId,
-      role_id: roleId,
-      assigned_at: new Date().toISOString(),
+      role_id: selectedRole.role_id,
+      assigned_at: assignedAt,
+    };
+
+    console.group("SUPABASE INSERT worker_assignments");
+    console.log("Table: worker_assignments");
+    console.log("Payload:", insertPayload);
+
+    const { data: insertedData, error: insertError } = await (supabase as any)
+      .from("worker_assignments")
+      .insert(insertPayload)
+      .select()
+      .single();
+
+    console.log("Response:", insertedData);
+    console.log("Error:", insertError);
+    console.groupEnd();
+
+    if (insertError) {
+      throw new Error(`Gagal menyimpan assignment ke database: ${insertError.message || insertError.details || "Error database"}`);
+    }
+
+    return {
+      assignment_id: assignmentId,
+      step_id: stepId,
+      worker_id: workerId,
+      role_id: selectedRole.role_id,
+      assigned_at: assignedAt,
       completed_at: null,
-      created_at: new Date().toISOString(),
+      created_at: assignedAt,
       worker: workerObj,
-      role: roleObj,
+      role: selectedRole,
       event_type: context?.event_type || "installation",
       step_type: context?.step_type || "installation",
       step_title: context?.step_title || "Step",
@@ -810,35 +594,28 @@ export const workersService = {
       product_serial: context?.product_serial || "",
       product_name: context?.product_name || "",
     };
-
-    try {
-      await (supabase as any).from("worker_assignments").insert({
-        assignment_id: newAssignment.assignment_id,
-        step_id: newAssignment.step_id,
-        worker_id: newAssignment.worker_id,
-        role_id: newAssignment.role_id,
-        assigned_at: newAssignment.assigned_at,
-      });
-    } catch {}
-
-    const stored = getStoredAssignments();
-    setStoredAssignments([newAssignment, ...stored]);
-
-    return newAssignment;
   },
 
   /**
-   * Remove worker assignment from step
+   * Remove worker assignment from step with strict database check
    */
   async removeWorkerAssignment(assignmentId: string): Promise<void> {
-    try {
-      await (supabase as any)
-        .from("worker_assignments")
-        .delete()
-        .eq("assignment_id", assignmentId);
-    } catch {}
+    console.group("SUPABASE DELETE worker_assignments");
+    console.log("Table: worker_assignments");
+    console.log("assignment_id:", assignmentId);
 
-    const stored = getStoredAssignments();
-    setStoredAssignments(stored.filter((a) => a.assignment_id !== assignmentId));
+    const { data, error } = await (supabase as any)
+      .from("worker_assignments")
+      .delete()
+      .eq("assignment_id", assignmentId)
+      .select();
+
+    console.log("Response:", data);
+    console.log("Error:", error);
+    console.groupEnd();
+
+    if (error) {
+      throw new Error(`Gagal menghapus assignment dari database: ${error.message || "Error database"}`);
+    }
   },
 };

@@ -31,6 +31,7 @@ import {
   Loader2Icon,
 } from 'lucide-react'
 
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { optimizeImage } from '@/lib/image-optimizer'
@@ -208,8 +209,9 @@ export function TableDrawer({
             setImages((prev) => [...prev, { ...newImage, sortOrder: prev.length }])
           })
         )
-      } catch (err) {
+      } catch (err: any) {
         console.error('Image upload failed:', err)
+        toast.error(err?.message ?? 'Gagal mengunggah foto')
       } finally {
         setUploading(false)
       }

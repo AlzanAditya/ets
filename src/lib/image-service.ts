@@ -32,7 +32,7 @@ import { optimizeAvatarImage, optimizeImage } from '@/lib/image-optimizer'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-export const IMAGE_BUCKET = 'product-images'
+export const IMAGE_BUCKET = 'product-assets'
 export const CLIENT_BUCKET = 'client-assets'
 export const PRODUCT_ASSETS_BUCKET = 'product-assets'
 export const WORKER_PROFILES_BUCKET = 'worker-profiles'
@@ -101,7 +101,7 @@ export async function uploadFile(
   if (!primaryErr) return path
 
   // Fallback to alternate bucket if primary failed
-  const altBucket = bucket === IMAGE_BUCKET ? PRODUCT_ASSETS_BUCKET : IMAGE_BUCKET
+  const altBucket = bucket === 'product-assets' ? 'product-images' : 'product-assets'
   const { error: altErr } = await supabase.storage
     .from(altBucket)
     .upload(path, file, {
@@ -357,10 +357,9 @@ export async function getSignedUrls(
   if (uncached.length === 0) return result
 
   // 2. Batch resolve uncached paths with fallback across primary and alternate buckets
-  const bucketsToTry = [
-    bucket,
-    bucket === IMAGE_BUCKET ? PRODUCT_ASSETS_BUCKET : IMAGE_BUCKET,
-  ]
+  const bucketsToTry = Array.from(
+    new Set([bucket, 'product-assets', 'product-images'])
+  )
   let remainingUncached = [...uncached]
 
   for (const currentBucket of bucketsToTry) {

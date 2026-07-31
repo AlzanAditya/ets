@@ -29,7 +29,7 @@ export interface ProductWithRelations extends ProductRow {
 
 /**
  * Safely fetch and attach product_images to a list of product objects.
- * Uses a direct .in('product_id', ids) query to bypass PostgREST relationship requirements.
+ * Connects product_images via product_events -> product_event_steps (step_id).
  */
 async function attachProductImages(products: ProductWithRelations[]): Promise<ProductWithRelations[]> {
   if (!products || products.length === 0) return [];
@@ -39,29 +39,13 @@ async function attachProductImages(products: ProductWithRelations[]): Promise<Pr
   try {
     const imgMap: Record<string, ProductImageRow[]> = {};
 
-    // 1. Fetch direct product_images
-    const { data: directImages } = await supabase
-      .from("product_images")
-      .select("*")
-      .in("product_id", productIds)
-      .order("sort_order", { ascending: true });
-
-    if (directImages && directImages.length > 0) {
-      directImages.forEach((img: any) => {
-        if (img.product_id) {
-          if (!imgMap[img.product_id]) imgMap[img.product_id] = [];
-          imgMap[img.product_id].push(img);
-        }
-      });
-    }
-
-    // 2. Fetch event step images for these products
-    const { data: events } = await supabase
+    // Fetch event step images for these products via step_id relation
+    const { data: events, error: evtErr } = await supabase
       .from("product_events")
       .select("product_id, product_event_steps(step_id)")
       .in("product_id", productIds);
 
-    if (events && events.length > 0) {
+    if (!evtErr && events && events.length > 0) {
       const stepToProductMap: Record<string, string> = {};
       const stepIds: string[] = [];
 
@@ -77,13 +61,13 @@ async function attachProductImages(products: ProductWithRelations[]): Promise<Pr
       });
 
       if (stepIds.length > 0) {
-        const { data: stepImages } = await supabase
+        const { data: stepImages, error: stepImgErr } = await supabase
           .from("product_images")
           .select("*")
           .in("step_id", stepIds)
           .order("sort_order", { ascending: true });
 
-        if (stepImages && stepImages.length > 0) {
+        if (!stepImgErr && stepImages && stepImages.length > 0) {
           stepImages.forEach((img: any) => {
             const pid = stepToProductMap[img.step_id];
             if (pid) {
@@ -412,12 +396,32 @@ export const productsService = {
   // ─── Image Management ────────────────────────────────────────────────────────
 
   /**
-   * Insert a product_images record linking a storage path to a product.
+   * Insert a product_images record linking a storage path to a product step.
    */
   async addProductImage(record: ProductImageInsert): Promise<ProductImageRow> {
+    let stepId = record.step_id;
+    if (!stepId && record.product_id) {
+      stepId = await resolveStepIdForProduct(record.product_id);
+    }
+
+    if (!stepId) {
+      throw new Error("Cannot insert product_images record without step_id");
+    }
+
+    const payload = {
+      image_id: record.image_id || safeUUID(),
+      step_id: stepId,
+      storage_path: record.storage_path,
+      thumbnail_path: record.thumbnail_path ?? null,
+      file_name: record.file_name ?? null,
+      file_size: record.file_size ?? null,
+      mime_type: record.mime_type ?? "image/webp",
+      sort_order: record.sort_order ?? 0,
+    };
+
     const { data, error } = await supabase
       .from("product_images")
-      .insert(record)
+      .insert(payload)
       .select()
       .single();
 
@@ -434,9 +438,31 @@ export const productsService = {
   ): Promise<ProductImageRow[]> {
     if (records.length === 0) return [];
 
+    const processedRecords = [];
+    for (const record of records) {
+      let stepId = record.step_id;
+      if (!stepId && record.product_id) {
+        stepId = await resolveStepIdForProduct(record.product_id);
+      }
+      if (!stepId) {
+        throw new Error("Cannot insert product_images record without step_id");
+      }
+
+      processedRecords.push({
+        image_id: record.image_id || safeUUID(),
+        step_id: stepId,
+        storage_path: record.storage_path,
+        thumbnail_path: record.thumbnail_path ?? null,
+        file_name: record.file_name ?? null,
+        file_size: record.file_size ?? null,
+        mime_type: record.mime_type ?? "image/webp",
+        sort_order: record.sort_order ?? 0,
+      });
+    }
+
     const { data, error } = await supabase
       .from("product_images")
-      .insert(records)
+      .insert(processedRecords)
       .select();
 
     if (error)
@@ -467,10 +493,83 @@ export const productsService = {
   async updateImageSortOrder(
     updates: Array<{ id: string; sort_order: number }>,
   ): Promise<void> {
-    await Promise.all(
+    const results = await Promise.all(
       updates.map(({ id, sort_order }) =>
         supabase.from("product_images").update({ sort_order }).eq("image_id", id),
       ),
     );
+
+    for (const res of results) {
+      if (res.error) {
+        throw new Error(`Failed to update image sort order: ${res.error.message}`);
+      }
+    }
   },
 };
+
+/**
+ * Helper function to find or create a default event step for a product
+ * to link images when step_id is not directly specified.
+ */
+async function resolveStepIdForProduct(productId: string): Promise<string> {
+  const { data: dbEvts } = await (supabase as any)
+    .from("product_events")
+    .select("event_id, steps:product_event_steps(step_id)")
+    .eq("product_id", productId)
+    .order("sequence_number", { ascending: true });
+
+  if (dbEvts && dbEvts.length > 0) {
+    const firstEvt = dbEvts[0];
+    if (firstEvt.steps && firstEvt.steps.length > 0) {
+      return firstEvt.steps[0].step_id;
+    }
+    const stepId = safeUUID();
+    const { error: stepErr } = await (supabase as any).from("product_event_steps").insert({
+      step_id: stepId,
+      event_id: firstEvt.event_id,
+      step_type: "delivery",
+      step_order: 1,
+      status: "active",
+    });
+    if (!stepErr) return stepId;
+  }
+
+  const eventId = safeUUID();
+  const stepId = safeUUID();
+
+  const { error: evtErr } = await (supabase as any).from("product_events").insert({
+    event_id: eventId,
+    product_id: productId,
+    event_type: "installation",
+    sequence_number: 1,
+    status: "active",
+    created_at: new Date().toISOString(),
+  });
+
+  if (evtErr) {
+    const { data: retryEvt } = await (supabase as any)
+      .from("product_events")
+      .select("event_id, steps:product_event_steps(step_id)")
+      .eq("product_id", productId)
+      .maybeSingle();
+
+    if (retryEvt && retryEvt.steps && retryEvt.steps.length > 0) {
+      return retryEvt.steps[0].step_id;
+    }
+    throw new Error(`Failed to create default event for product: ${evtErr.message}`);
+  }
+
+  const { error: stepErr } = await (supabase as any).from("product_event_steps").insert({
+    step_id: stepId,
+    event_id: eventId,
+    step_type: "delivery",
+    step_order: 1,
+    status: "active",
+  });
+
+  if (stepErr) {
+    throw new Error(`Failed to create default step for product: ${stepErr.message}`);
+  }
+
+  return stepId;
+}

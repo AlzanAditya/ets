@@ -1,5 +1,7 @@
 import * as React from "react";
 import { UserPlusIcon, Trash2Icon, HardHatIcon } from "lucide-react";
+import { toast } from "sonner";
+import { isValidUUID } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -77,7 +79,24 @@ export function EventWorkerAssignment({
   const unassignedWorkers = availableWorkers.filter((w) => !assignedWorkerIds.has(w.worker_id));
 
   const handleAssign = async () => {
-    if (!selectedWorkerId || !selectedRoleId) return;
+    if (!selectedWorkerId) {
+      toast.error("Silakan pilih pekerja terlebih dahulu.");
+      return;
+    }
+    if (roles.length === 0) {
+      toast.error("Worker roles belum tersedia. Silakan hubungi administrator untuk mengisi master data worker roles.");
+      return;
+    }
+    if (!selectedRoleId || !isValidUUID(selectedRoleId)) {
+      toast.error("Role ID tidak valid. Silakan pilih role yang valid.");
+      return;
+    }
+
+    const selectedRole = roles.find((r) => r.role_id === selectedRoleId);
+    console.log("Worker Roles dari DB", roles);
+    console.log("Selected Role", selectedRole);
+    console.log("Selected Role UUID", selectedRole?.role_id);
+
     try {
       await assignMutation.mutateAsync({
         steps,
@@ -89,10 +108,13 @@ export function EventWorkerAssignment({
         productSerial,
         productName,
       });
+      toast.success("Pekerja berhasil ditugaskan ke event.");
       setIsDialogOpen(false);
       setSelectedWorkerId("");
       setSelectedRoleId("");
-    } catch {}
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menugaskan pekerja ke event.");
+    }
   };
 
   const handleRemove = async (workerId: string) => {
@@ -256,23 +278,29 @@ export function EventWorkerAssignment({
 
             <div className="space-y-1">
               <Label className="text-xs font-semibold text-zinc-200">Peran Dalam Event (Role)</Label>
-              <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-                <SelectTrigger className="w-full text-xs h-9 bg-zinc-900 border-zinc-800 text-zinc-100">
-                  <SelectValue placeholder="-- Pilih Role --" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-                  {roles.map((r) => (
-                    <SelectItem key={r.role_id} value={r.role_id} className="text-xs focus:bg-zinc-800 focus:text-zinc-100">
-                      <div>
-                        <div className="font-medium text-zinc-200">{r.name}</div>
-                        {r.description && (
-                          <div className="text-[10px] text-zinc-400">{r.description}</div>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {roles.length === 0 ? (
+                <div className="p-2.5 rounded-lg text-xs bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                  Worker roles belum tersedia. Silakan hubungi administrator untuk mengisi master data worker roles.
+                </div>
+              ) : (
+                <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
+                  <SelectTrigger className="w-full text-xs h-9 bg-zinc-900 border-zinc-800 text-zinc-100">
+                    <SelectValue placeholder="-- Pilih Role --" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                    {roles.map((r) => (
+                      <SelectItem key={r.role_id} value={r.role_id} className="text-xs focus:bg-zinc-800 focus:text-zinc-100">
+                        <div>
+                          <div className="font-medium text-zinc-200">{r.name}</div>
+                          {r.description && (
+                            <div className="text-[10px] text-zinc-400">{r.description}</div>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 

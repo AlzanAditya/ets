@@ -316,7 +316,7 @@ export default function WorkersPage() {
   // Compute metrics for list view
   const totalWorkers = workers.length;
   const activeOnSite = workers.filter((w) => w.operational_status !== "Inactive").length;
-  const totalAssignments = workers.reduce((acc, w) => acc + w.total_assignments, 0);
+  const totalAssignments = workers.reduce((acc, w) => acc + (w.total_assignments || 0), 0);
 
   const metrics: MetricCardItem[] = [
     {

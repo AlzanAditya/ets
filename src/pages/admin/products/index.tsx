@@ -707,26 +707,30 @@ export default function ProductsPage() {
             thumbPath: img.thumbPath,
           }));
 
-          const finalPairs = await moveDraftToProduct(
-            namespace === "draft" ? sourceId : `temp_${sourceId}`,
-            editTarget.product_id,
-            pairs,
-          );
+          let finalPairs: { fullPath: string; thumbPath: string }[] = [];
+          try {
+            finalPairs = await moveDraftToProduct(
+              namespace === "draft" ? sourceId : `temp_${sourceId}`,
+              editTarget.product_id,
+              pairs,
+            );
 
-          newlyInsertedImages = await productsService.addProductImages(
-            finalPairs.map((p, i) => ({
-              product_id: editTarget.product_id,
-              storage_path: p.fullPath,
-              thumbnail_path: p.thumbPath,
-              mime_type: "image/webp",
-              sort_order: i,
-              uploaded_by: null,
-              width: null,
-              height: null,
-              file_name: null,
-              file_size: null,
-            })),
-          );
+            newlyInsertedImages = await productsService.addProductImages(
+              finalPairs.map((p, i) => ({
+                product_id: editTarget.product_id,
+                storage_path: p.fullPath,
+                thumbnail_path: p.thumbPath,
+                mime_type: "image/webp",
+                sort_order: i,
+              })),
+            );
+          } catch (imgErr) {
+            if (finalPairs.length > 0) {
+              const pathsToDelete = finalPairs.flatMap((p) => [p.fullPath, p.thumbPath]);
+              await deleteFiles(pathsToDelete).catch(console.error);
+            }
+            throw imgErr;
+          }
         }
 
         // 3. Re-index and update sort_order for all final images
@@ -788,26 +792,30 @@ export default function ProductsPage() {
             thumbPath: img.thumbPath,
           }));
 
-          const finalPairs = await moveDraftToProduct(
-            namespace === "draft" ? sourceId : `temp_${sourceId}`,
-            created.product_id,
-            pairs,
-          );
+          let finalPairs: { fullPath: string; thumbPath: string }[] = [];
+          try {
+            finalPairs = await moveDraftToProduct(
+              namespace === "draft" ? sourceId : `temp_${sourceId}`,
+              created.product_id,
+              pairs,
+            );
 
-          await productsService.addProductImages(
-            finalPairs.map((p, i) => ({
-              product_id: created.product_id,
-              storage_path: p.fullPath,
-              thumbnail_path: p.thumbPath,
-              mime_type: "image/webp",
-              sort_order: i,
-              uploaded_by: null,
-              width: null,
-              height: null,
-              file_name: null,
-              file_size: null,
-            })),
-          );
+            await productsService.addProductImages(
+              finalPairs.map((p, i) => ({
+                product_id: created.product_id,
+                storage_path: p.fullPath,
+                thumbnail_path: p.thumbPath,
+                mime_type: "image/webp",
+                sort_order: i,
+              })),
+            );
+          } catch (imgErr) {
+            if (finalPairs.length > 0) {
+              const pathsToDelete = finalPairs.flatMap((p) => [p.fullPath, p.thumbPath]);
+              await deleteFiles(pathsToDelete).catch(console.error);
+            }
+            throw imgErr;
+          }
         }
 
         if (activeDraftId) {
