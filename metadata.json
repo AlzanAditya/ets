@@ -1,6 +1,6 @@
 {
   "name": "ETS Web Internal",
-  "description": "Internal ETS Web Application cloned from repository",
+  "description": "System Tracking & Verification Application with Admin Dashboard, Worker Interface, and Public Verification Pages",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

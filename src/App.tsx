@@ -36,6 +36,7 @@ import AIAgentPage from "@/pages/admin/ai-agent"
 import WorkersPage from "@/pages/admin/workers"
 import ImagesPage from "@/pages/admin/images"
 import QrStatisticsPage from "@/pages/admin/qr-statistics"
+import PublicLanding from "@/pages/public/PublicLanding"
 import PublicProductDetail from "@/pages/public/ProductDetail"
 import { useRealtimeSync } from "@/hooks/use-realtime-sync"
 
@@ -217,6 +218,7 @@ export default function App() {
                     </GuestGuard>
                   }
                 />
+                <Route path="/p" element={<PublicLanding />} />
                 <Route path="/p/:serial_number" element={<PublicProductDetail />} />
 
                 {/* Worker App standalone layout routes (Only for role: worker) */}

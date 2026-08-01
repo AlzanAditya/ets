@@ -12,9 +12,19 @@ import {
   DownloadIcon,
   TagIcon,
   BatteryChargingIcon,
+  ExternalLinkIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   EntityProfileBanner,
@@ -60,6 +70,7 @@ export function ProductViewMode({
   const navigate = useNavigate();
   const [currentProduct, setCurrentProduct] = React.useState<ProductWithRelations>(product);
   const [events, setEvents] = React.useState<ProductEventData[]>([]);
+  const [isQrDialogOpen, setIsQrDialogOpen] = React.useState(false);
 
   // Sync prop changes
   React.useEffect(() => {
@@ -201,7 +212,7 @@ export function ProductViewMode({
       label: "QR Code",
       icon: QrCodeIcon,
       onClick: () => {
-        window.open(`https://qr.zanxa.studio/p/${currentProduct.serial_number}`, "_blank");
+        setIsQrDialogOpen(true);
       },
       hideTextOnMobile: true,
       variant: "outline",
@@ -380,6 +391,66 @@ export function ProductViewMode({
         </h2>
         <ProductActivityTimeline productId={currentProduct.product_id} product={currentProduct} />
       </div>
+
+      {/* ── Dialog QR Code Modal ── */}
+      <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl bg-zinc-950 border-zinc-800 text-zinc-100 p-6 shadow-2xl">
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-zinc-100">
+              <QrCodeIcon className="h-5 w-5 text-emerald-500" />
+              <span>Kode QR Resmi Aset Produk</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">
+              Pindai atau pratinjau halaman resmi produk dengan Serial Number: {currentProduct.serial_number}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center justify-center space-y-4 py-4">
+            <div className="relative p-3 bg-white rounded-2xl shadow-inner border-2 border-zinc-700 shrink-0">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(
+                  `https://ets.zanxa.studio/p/${currentProduct.serial_number}`
+                )}`}
+                alt={`QR Code ${currentProduct.serial_number}`}
+                className="w-48 h-48 object-contain"
+              />
+            </div>
+            <div className="text-center space-y-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                Serial Number (SN)
+              </span>
+              <h4 className="text-lg font-mono font-bold text-emerald-400">
+                {currentProduct.serial_number}
+              </h4>
+              <p className="text-xs text-zinc-300 font-medium">
+                {currentProduct.product_name}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t border-zinc-800">
+            <DialogClose asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white text-xs rounded-xl"
+              >
+                Kembali
+              </Button>
+            </DialogClose>
+            <Button
+              size="sm"
+              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl gap-1.5"
+              onClick={() => {
+                window.open(`https://ets.zanxa.studio/p/${currentProduct.serial_number}`, "_blank");
+              }}
+            >
+              <ExternalLinkIcon className="h-3.5 w-3.5" />
+              <span>Preview</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

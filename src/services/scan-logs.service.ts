@@ -113,4 +113,30 @@ export const scanLogsService = {
 
     return result
   },
+
+  /**
+   * Log a new scan event.
+   */
+  async logScan(payload: {
+    product_id?: string;
+    nomor_seri: string;
+    location?: string;
+    device_info?: string;
+    ip_address?: string;
+  }): Promise<void> {
+    try {
+      const { error } = await (supabase as any).from('scan_logs').insert({
+        product_id: payload.product_id || null,
+        nomor_seri: payload.nomor_seri,
+        user_agent: payload.device_info || (typeof navigator !== 'undefined' ? navigator.userAgent : 'Web Browser'),
+        ip_address: payload.ip_address || '127.0.0.1',
+        referer: typeof document !== 'undefined' ? document.referrer : null,
+      })
+      if (error) {
+        console.warn("Could not record scan log:", error.message)
+      }
+    } catch (e) {
+      console.warn("Failed to insert scan log:", e)
+    }
+  },
 }
