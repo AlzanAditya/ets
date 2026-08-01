@@ -28,6 +28,48 @@ export interface ProductWithRelations extends ProductRow {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
+ * Ensures client and branch relations are populated if IDs exist on the product.
+ * Fetches directly from Supabase tables if joined fields are unpopulated or missing.
+ */
+async function enrichProductRelations(product: ProductWithRelations): Promise<ProductWithRelations> {
+  if (!product) return product;
+
+  // 1. Enrich Client
+  const clientId = product.current_client_id || (product as any).client_id;
+  if (clientId && (!product.client || !product.client.client_name)) {
+    const { data: clientData, error: clientErr } = await supabase
+      .from("clients")
+      .select("client_id, client_name, client_code")
+      .eq("client_id", clientId)
+      .maybeSingle();
+
+    if (clientErr) {
+      console.error("[Supabase Error] Table: clients | Action: SELECT | Details:", clientErr.message, clientErr);
+    } else if (clientData) {
+      product.client = clientData;
+    }
+  }
+
+  // 2. Enrich Branch
+  const branchId = product.current_branch_id || (product as any).branch_id;
+  if (branchId && (!product.branch || !product.branch.branch_name)) {
+    const { data: branchData, error: branchErr } = await supabase
+      .from("branches")
+      .select("branch_name, branch_code")
+      .eq("branch_id", branchId)
+      .maybeSingle();
+
+    if (branchErr) {
+      console.error("[Supabase Error] Table: branches | Action: SELECT | Details:", branchErr.message, branchErr);
+    } else if (branchData) {
+      product.branch = branchData;
+    }
+  }
+
+  return product;
+}
+
+/**
  * Safely fetch and attach product_images to a list of product objects.
  * Connects product_images via product_events -> product_event_steps (step_id).
  */
@@ -44,6 +86,10 @@ async function attachProductImages(products: ProductWithRelations[]): Promise<Pr
       .from("product_events")
       .select("product_id, product_event_steps(step_id)")
       .in("product_id", productIds);
+
+    if (evtErr) {
+      console.error("[Supabase Error] Table: product_events | Action: SELECT (steps) | Details:", evtErr.message, evtErr);
+    }
 
     if (!evtErr && events && events.length > 0) {
       const stepToProductMap: Record<string, string> = {};
@@ -67,6 +113,10 @@ async function attachProductImages(products: ProductWithRelations[]): Promise<Pr
           .in("step_id", stepIds)
           .order("sort_order", { ascending: true });
 
+        if (stepImgErr) {
+          console.error("[Supabase Error] Table: product_images | Action: SELECT | Details:", stepImgErr.message, stepImgErr);
+        }
+
         if (!stepImgErr && stepImages && stepImages.length > 0) {
           stepImages.forEach((img: any) => {
             const pid = stepToProductMap[img.step_id];
@@ -89,7 +139,7 @@ async function attachProductImages(products: ProductWithRelations[]): Promise<Pr
       images: imgMap[p.product_id] ?? p.images ?? [],
     }));
   } catch (err) {
-    console.warn("Could not fetch product_images separately:", err);
+    console.error("[Supabase Error] Action: attachProductImages | Details:", err);
   }
 
   return products.map((p) => ({ ...p, images: p.images ?? [] }));
@@ -178,7 +228,8 @@ export const productsService = {
     }
 
     const products = (data ?? []) as ProductWithRelations[];
-    return attachProductImages(products);
+    const enrichedProducts = await Promise.all(products.map((p) => enrichProductRelations(p)));
+    return attachProductImages(enrichedProducts);
   },
 
   /**
@@ -200,24 +251,29 @@ export const productsService = {
       .eq("product_id", product_id)
       .single();
 
-    if (res.error && res.error.code !== "PGRST116") {
-      // Fallback simple query
-      const fallback = await supabase
-        .from("products")
-        .select("*")
-        .eq("product_id", product_id)
-        .single();
+    if (res.error) {
+      if (res.error.code !== "PGRST116") {
+        console.error("[Supabase Error] Table: products | Action: SELECT (getProductById) | Message:", res.error.message, res.error);
+        const fallback = await supabase
+          .from("products")
+          .select("*")
+          .eq("product_id", product_id)
+          .single();
 
-      if (fallback.error && fallback.error.code !== "PGRST116") {
-        throw new Error(`Failed to fetch product: ${fallback.error.message}`);
+        if (fallback.error && fallback.error.code !== "PGRST116") {
+          console.error("[Supabase Error] Table: products | Action: SELECT (fallback getProductById) | Message:", fallback.error.message, fallback.error);
+          throw new Error(`Failed to fetch product: ${fallback.error.message}`);
+        }
+        data = fallback.data;
       }
-      data = fallback.data;
     } else {
       data = res.data;
     }
 
     if (!data) return null;
-    const [withImages] = await attachProductImages([data as unknown as ProductWithRelations]);
+    let prod = data as unknown as ProductWithRelations;
+    prod = await enrichProductRelations(prod);
+    const [withImages] = await attachProductImages([prod]);
     return withImages ?? null;
   },
 
@@ -240,23 +296,29 @@ export const productsService = {
       .eq("serial_number", serial_number)
       .single();
 
-    if (res.error && res.error.code !== "PGRST116") {
-      const fallback = await supabase
-        .from("products")
-        .select("*")
-        .eq("serial_number", serial_number)
-        .single();
+    if (res.error) {
+      if (res.error.code !== "PGRST116") {
+        console.error("[Supabase Error] Table: products | Action: SELECT (getProductBySerial) | Message:", res.error.message, res.error);
+        const fallback = await supabase
+          .from("products")
+          .select("*")
+          .eq("serial_number", serial_number)
+          .single();
 
-      if (fallback.error && fallback.error.code !== "PGRST116") {
-        throw new Error(`Failed to fetch product: ${fallback.error.message}`);
+        if (fallback.error && fallback.error.code !== "PGRST116") {
+          console.error("[Supabase Error] Table: products | Action: SELECT (fallback getProductBySerial) | Message:", fallback.error.message, fallback.error);
+          throw new Error(`Failed to fetch product: ${fallback.error.message}`);
+        }
+        data = fallback.data;
       }
-      data = fallback.data;
     } else {
       data = res.data;
     }
 
     if (!data) return null;
-    const [withImages] = await attachProductImages([data as unknown as ProductWithRelations]);
+    let prod = data as unknown as ProductWithRelations;
+    prod = await enrichProductRelations(prod);
+    const [withImages] = await attachProductImages([prod]);
     return withImages ?? null;
   },
 

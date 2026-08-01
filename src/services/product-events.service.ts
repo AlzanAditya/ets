@@ -364,6 +364,7 @@ export const productEventsService = {
     console.log("Table: product_events");
     console.log("Params: product_id =", productId);
 
+    let rawEvents: any[] | null = null;
     const { data: dbEvents, error } = await (supabase as any)
       .from("product_events")
       .select(`
@@ -381,15 +382,74 @@ export const productEventsService = {
     console.groupEnd();
 
     if (error) {
-      throw new Error(`Gagal mengambil data event dari database: ${error.message || "Database error"}`);
+      console.error("[Supabase Error] Table: product_events | Action: SELECT (nested join) | Message:", error.message, error);
+
+      // Step-by-step fallback query if nested join fails
+      const { data: evList, error: evErr } = await supabase
+        .from("product_events")
+        .select("*")
+        .eq("product_id", productId)
+        .order("sequence_number", { ascending: true });
+
+      if (evErr) {
+        console.error("[Supabase Error] Table: product_events | Action: SELECT (fallback) | Message:", evErr.message, evErr);
+        throw new Error(`Gagal mengambil data event dari database: ${evErr.message || "Database error"}`);
+      }
+
+      if (!evList || evList.length === 0) {
+        return [];
+      }
+
+      const eventIds = evList.map((e: any) => e.event_id || e.id).filter(Boolean);
+      const { data: stepList, error: stErr } = await supabase
+        .from("product_event_steps")
+        .select("*")
+        .in("event_id", eventIds);
+
+      if (stErr) {
+        console.error("[Supabase Error] Table: product_event_steps | Action: SELECT (fallback) | Message:", stErr.message, stErr);
+      }
+
+      const steps = stepList || [];
+      const stepIds = steps.map((s: any) => s.step_id || s.id).filter(Boolean);
+
+      let imgList: any[] = [];
+      if (stepIds.length > 0) {
+        const { data: imgs, error: imgErr } = await supabase
+          .from("product_images")
+          .select("*")
+          .in("step_id", stepIds)
+          .order("sort_order", { ascending: true });
+
+        if (imgErr) {
+          console.error("[Supabase Error] Table: product_images | Action: SELECT (fallback) | Message:", imgErr.message, imgErr);
+        } else {
+          imgList = imgs || [];
+        }
+      }
+
+      // Assemble fallback structure
+      rawEvents = evList.map((e: any) => {
+        const eId = e.event_id || e.id;
+        const eSteps = steps
+          .filter((s: any) => s.event_id === eId)
+          .map((s: any) => {
+            const sId = s.step_id || s.id;
+            const sImgs = imgList.filter((i: any) => i.step_id === sId);
+            return { ...s, images: sImgs };
+          });
+        return { ...e, steps: eSteps };
+      });
+    } else {
+      rawEvents = dbEvents;
     }
 
-    if (!dbEvents || dbEvents.length === 0) {
+    if (!rawEvents || rawEvents.length === 0) {
       return [];
     }
 
     const allPaths: string[] = [];
-    dbEvents.forEach((e: any) => {
+    rawEvents.forEach((e: any) => {
       e.steps?.forEach((s: any) => {
         s.images?.forEach((img: any) => {
           if (img.storage_path) allPaths.push(img.storage_path);
@@ -399,7 +459,7 @@ export const productEventsService = {
 
     const signedMap = allPaths.length > 0 ? await getSignedUrls(allPaths, PRODUCT_ASSETS_BUCKET) : {};
 
-    return dbEvents.map((e: any) => ({
+    return rawEvents.map((e: any) => ({
       event_id: e.event_id || e.id,
       product_id: e.product_id,
       event_type: e.event_type,
