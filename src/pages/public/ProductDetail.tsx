@@ -20,7 +20,6 @@ import { PublicQrCodeCard } from "./components/PublicQrCodeCard";
 import { PublicEventAccordion } from "./components/PublicEventAccordion";
 import { productsService, type ProductWithRelations } from "@/services/products.service";
 import { productEventsService, type ProductEventData, STEP_TYPE_TITLES } from "@/services/product-events.service";
-import { scanLogsService } from "@/services/scan-logs.service";
 import { getClientAvatarUrl } from "@/lib/image-service";
 import { exportImages } from "@/lib/image-export";
 import { toast } from "sonner";
@@ -90,12 +89,6 @@ export default function PublicProductDetail() {
         // Fetch events
         const evts = await productEventsService.getProductEvents(prod.product_id);
         if (isMounted) setEvents(evts || []);
-
-        // Log scan event in Supabase
-        scanLogsService.logScan({
-          product_id: prod.product_id,
-          nomor_seri: serial_number,
-        }).catch((err) => console.warn("Scan log recording error:", err));
 
       } catch (err) {
         console.error("Failed to load public product detail:", err);

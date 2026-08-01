@@ -385,9 +385,7 @@ export const productEventsService = {
     }
 
     if (!dbEvents || dbEvents.length === 0) {
-      const defaultEvt = buildDefaultInstallationEvent(productId);
-      await syncEventToDB(defaultEvt);
-      return [defaultEvt];
+      return [];
     }
 
     const allPaths: string[] = [];
@@ -435,6 +433,20 @@ export const productEventsService = {
           };
         }),
     }));
+  },
+
+  /**
+   * Helper for Admin/Worker: Ensures an installation event exists for a product in DB.
+   * Only to be called during admin/worker write operations.
+   */
+  async ensureInstallationEvent(productId: string): Promise<ProductEventData[]> {
+    const events = await this.getProductEvents(productId);
+    if (events.length === 0) {
+      const defaultEvt = buildDefaultInstallationEvent(productId);
+      await syncEventToDB(defaultEvt);
+      return this.getProductEvents(productId);
+    }
+    return events;
   },
 
   /**
