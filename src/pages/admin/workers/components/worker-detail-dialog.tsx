@@ -136,15 +136,15 @@ export function WorkerDetailDialog({
               <BriefcaseIcon className="size-3 text-amber-500" /> Total Assignment
             </span>
             <span className="font-bold text-foreground text-sm mt-0.5">
-              {worker.total_assignments} Assignment
+              {worker.total_assignments || 0} Event
             </span>
           </div>
           <div className="p-2.5 rounded-lg border border-border/50 bg-muted/30 flex flex-col">
             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-              <LayersIcon className="size-3 text-emerald-500" /> Total Step & Event
+              <LayersIcon className="size-3 text-emerald-500" /> Total Event
             </span>
             <span className="font-bold text-foreground text-sm mt-0.5">
-              {worker.total_steps} Step / {worker.total_events} Event
+              {worker.total_events || 0} Event
             </span>
           </div>
         </div>

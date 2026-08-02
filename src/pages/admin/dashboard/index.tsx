@@ -4,6 +4,7 @@ import { DashboardSkeleton } from "@/components/dashboard-skeleton"
 import { ErrorState } from "@/components/error-state"
 import { MetricCards } from "@/components/metric-cards"
 import { GreetingCard, type TimeRangeOption } from "@/components/greeting-card"
+import { ActiveIndicatorsCards } from "@/components/dashboard/active-indicators-cards"
 import { PageContent } from "@/components/page-content"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable, type DataTableRow } from "@/components/data-table"
@@ -261,7 +262,10 @@ export default function DashboardPage() {
           onRangeChange={(range) => setSelectedRange(range)}
         />
 
-        {/* 2. 3x2 Metric Cards Grid */}
+        {/* 2. Active Worker & Active Client Indicators Cards */}
+        <ActiveIndicatorsCards />
+
+        {/* 3. Metric Cards Grid */}
         <MetricCards items={metrics} timeRangeText={rangeText} className="px-0 lg:px-0" />
       </div>
 

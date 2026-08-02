@@ -33,6 +33,15 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
 
   const loadedUserRef = React.useRef<string | null>(null)
 
+  const authEmail = (authProfile?.email || user?.email || "").toLowerCase()
+  const authWorkerCode = authProfile?.worker_code || ""
+  const userId = user?.id || ""
+  const authFullName = authProfile?.full_name || authProfile?.name || user?.user_metadata?.full_name || ""
+
+  const renderCountRef = React.useRef(0)
+  renderCountRef.current += 1
+  console.log(`[WorkerDataProvider] Render count: ${renderCountRef.current}`)
+
   const loadData = React.useCallback(
     async (silent = false) => {
       if (!silent && loadedUserRef.current === null) {
@@ -44,30 +53,29 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
         const allWorkers = await workersService.getWorkers()
         let currentWorkerObj: WorkerWithDetails | null = null
 
-        const userEmail = (authProfile?.email || user?.email || "").toLowerCase()
-        if (userEmail || authProfile?.worker_code) {
+        if (authEmail || authWorkerCode) {
           currentWorkerObj =
             allWorkers.find(
               (w) =>
-                (w.email && w.email.toLowerCase() === userEmail) ||
-                (w.worker_code && w.worker_code === authProfile?.worker_code)
+                (w.email && w.email.toLowerCase() === authEmail) ||
+                (w.worker_code && w.worker_code === authWorkerCode)
             ) || null
         }
 
-        if (!currentWorkerObj && (userEmail || user?.id)) {
+        if (!currentWorkerObj && (authEmail || userId)) {
           currentWorkerObj = {
-            worker_id: authProfile?.worker_code || user?.id || "wrk-user",
-            id: user?.id || "wrk-user",
-            full_name: authProfile?.full_name || user?.user_metadata?.full_name || (userEmail ? userEmail.split("@")[0] : "Pekerja Lapangan"),
-            email: userEmail,
-            worker_code: authProfile?.worker_code || "WKR-NEW",
+            worker_id: authWorkerCode || userId || "wrk-user",
+            id: userId || "wrk-user",
+            full_name: authFullName || (authEmail ? authEmail.split("@")[0] : "Pekerja Lapangan"),
+            email: authEmail,
+            worker_code: authWorkerCode || "WKR-NEW",
           } as any
         }
 
         setWorker(currentWorkerObj)
         const currentWorkerId = currentWorkerObj?.worker_id || currentWorkerObj?.id || ""
 
-        // 2. Fetch assignments to check which steps belong strictly to this worker
+        // 2. Fetch assignments to check which events belong strictly to this worker
         const allAssignments = await workersService.getAllAssignments()
 
         const isAssignedToCurrentWorker = (a: any) => {
@@ -89,11 +97,16 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
         }
 
         const assignedEventIds = new Set<string>()
+        const assignedList: any[] = []
         allAssignments.forEach((a) => {
           if (isAssignedToCurrentWorker(a) && a.event_id) {
             assignedEventIds.add(a.event_id)
+            assignedList.push(a)
           }
         })
+
+        console.log(`[WorkerDataProvider] Assignment berhasil dimuat. Total di DB: ${allAssignments.length}, Assignment diterima worker: ${assignedList.length}`)
+        console.log(`[WorkerDataProvider] Event ID yang digunakan:`, Array.from(assignedEventIds))
 
         // 3. Get products & product events
         const products = await productsService.getProducts({ limit: 50 })
@@ -108,6 +121,10 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
           for (const event of events) {
             // Check if this event is assigned to current worker
             const isEventAssigned = assignedEventIds.has(event.event_id)
+            if (isEventAssigned) {
+              console.log(`[WorkerDataProvider] Event berhasil dimuat: ID ${event.event_id} (${event.title || event.event_type}), Status: ${event.status}`)
+              console.log(`[WorkerDataProvider] Step berhasil dimuat: ${event.steps?.length || 0} step(s) untuk Event ID ${event.event_id}`)
+            }
 
             // Check completed steps for history (if worker assigned to event)
             event.steps?.forEach((st) => {
@@ -214,7 +231,7 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
         setLoading(false)
       }
     },
-    [authProfile, user]
+    [authEmail, authWorkerCode, userId, authFullName]
   )
 
   React.useEffect(() => {
@@ -258,14 +275,12 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
     const name =
       worker?.full_name ||
       worker?.name ||
-      authProfile?.full_name ||
-      authProfile?.name ||
-      user?.user_metadata?.full_name ||
-      (user?.email ? user.email.split("@")[0] : null) ||
+      authFullName ||
+      (authEmail ? authEmail.split("@")[0] : null) ||
       "Pekerja Lapangan"
 
-    const email = worker?.email || authProfile?.email || user?.email || "-"
-    const workerCode = worker?.worker_code || authProfile?.worker_code || "WKR-001"
+    const email = worker?.email || authEmail || "-"
+    const workerCode = worker?.worker_code || authWorkerCode || "WKR-001"
     const phone = worker?.phone_number || authProfile?.phone_number || "-"
     const position = worker?.position?.name || authProfile?.position || "Teknisi Lapangan"
     const joinDate = worker?.joined_date
@@ -284,7 +299,7 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
       totalTasksCompleted: historyItems.length,
       activeTasksCount: currentJob ? 1 : 0,
     }
-  }, [worker, authProfile, user, historyItems, currentJob])
+  }, [worker, authFullName, authEmail, authWorkerCode, authProfile?.phone_number, authProfile?.position, historyItems.length, currentJob])
 
   const value = React.useMemo(
     () => ({

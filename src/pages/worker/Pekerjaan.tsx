@@ -1,3 +1,4 @@
+import * as React from "react"
 import { TaskCard } from "@/components/worker/cards/TaskCard"
 import { useWorkerData } from "@/hooks/use-worker-data"
 import { EmptyState } from "@/components/empty-state"
@@ -5,6 +6,10 @@ import { ClipboardList } from "lucide-react"
 
 export default function WorkerPekerjaan() {
   const { allTasks, loading } = useWorkerData()
+
+  const renderCountRef = React.useRef(0)
+  renderCountRef.current += 1
+  console.log(`[WorkerPekerjaan] Render count: ${renderCountRef.current}`)
 
   if (loading) {
     return (

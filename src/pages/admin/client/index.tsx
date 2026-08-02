@@ -106,11 +106,18 @@ const CLIENT_PRODUCT_PINNED_COLUMNS: ColumnDef<ProductRowWithId>[] = [
   {
     accessorKey: "serial_number",
     header: "No. Seri",
-    cell: ({ row }) => (
-      <span className="font-mono text-xs font-semibold tracking-wider text-foreground bg-muted px-2 py-0.5 rounded">
-        {row.original.serial_number}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const serial =
+        row.original.serial_number ||
+        (row.original as any).serialNumber ||
+        (row.original as any).serial_no ||
+        "—";
+      return (
+        <span className="font-mono text-xs font-semibold tracking-wider text-foreground bg-muted px-2 py-0.5 rounded">
+          {serial}
+        </span>
+      );
+    },
   },
   {
     accessorKey: "product_name",
@@ -346,7 +353,16 @@ export default function ClientPage() {
   // Filter products owned by this client
   const clientProducts = React.useMemo(() => {
     if (!editTarget) return [];
-    return allProducts.filter((p) => p.current_client_id === editTarget.client_id);
+    const targetId = editTarget.client_id || (editTarget as any).id;
+    const targetName = editTarget.client_name ? editTarget.client_name.toLowerCase() : "";
+
+    return allProducts.filter((p: any) => {
+      if (!p) return false;
+      const pClientId = p.current_client_id || p.client_id || p.client?.client_id;
+      if (targetId && pClientId && pClientId === targetId) return true;
+      if (targetName && p.client?.client_name && p.client.client_name.toLowerCase() === targetName) return true;
+      return false;
+    });
   }, [allProducts, editTarget]);
 
   const mappedClientProducts = React.useMemo(() => {

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   PencilIcon,
   PhoneIcon,
@@ -7,7 +8,6 @@ import {
   ClockIcon,
   LayersIcon,
   ArrowLeftIcon,
-  CheckCircle2Icon,
   HardHatIcon,
   CalendarIcon,
 } from "lucide-react";
@@ -24,6 +24,9 @@ import {
 import { useWorkerHistory } from "@/hooks/use-workers";
 import { getWorkerProfilePhotoUrl } from "@/lib/image-service";
 import type { WorkerWithDetails } from "@/services/workers.service";
+import { productsService } from "@/services/products.service";
+import { clientsService } from "@/services/clients.service";
+import { WorkerEventCard } from "@/components/worker-event-card";
 import { cn } from "@/lib/utils";
 
 interface WorkerViewModeProps {
@@ -48,6 +51,16 @@ export function WorkerViewMode({
   const { data: history = [], isLoading: isLoadingHistory } = useWorkerHistory(
     worker.worker_id || worker.id || null
   );
+
+  const { data: products = [] } = useQuery({
+    queryKey: ["products", "all-for-history"],
+    queryFn: () => productsService.getProducts({ limit: 200 }).catch(() => []),
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients", "all-for-history"],
+    queryFn: () => clientsService.getClients().catch(() => []),
+  });
 
   const resolvedAvatarUrl =
     propAvatarUrl !== undefined
@@ -84,14 +97,14 @@ export function WorkerViewMode({
     {
       id: "assignments-badge",
       icon: BriefcaseIcon,
-      value: worker.total_assignments,
+      value: `${worker.total_assignments || 0} Event`,
       label: "Assignments",
       color: "blue",
     },
     {
       id: "steps-badge",
       icon: LayersIcon,
-      value: `${worker.total_steps} Step / ${worker.total_events} Event`,
+      value: `${worker.total_events || 0} Event`,
       color: "emerald",
     },
   ];
@@ -252,50 +265,71 @@ export function WorkerViewMode({
               Belum ada riwayat penugasan terikat pada worker ini.
             </div>
           ) : (
-            <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
-              {history.map((item) => (
-                <div key={item.assignment_id} className="relative space-y-2">
-                  <div className="absolute -left-6 top-1 size-3 rounded-full bg-primary border-2 border-background" />
+            <div className="space-y-3">
+              {history.map((item, idx) => {
+                const rawEventType = item.event_type || "installation";
+                const isInstallation = rawEventType === "installation";
+                const eventTypeLabel = isInstallation ? "Instalasi" : "Maintenance";
 
-                  <div className="bg-muted/30 border border-border/60 rounded-xl p-3.5 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-foreground">
-                          {item.event_title || item.event_type || "Penugasan Event"}
-                        </span>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px] capitalize",
-                            item.event_type === "installation"
-                              ? "bg-blue-500/10 text-blue-500 border-blue-500/30"
-                              : "bg-amber-500/10 text-amber-500 border-amber-500/30"
-                          )}
-                        >
-                          {item.event_type || "instalasi"}
-                        </Badge>
-                      </div>
-                      {item.product_serial && (
-                        <span className="text-[11px] font-mono text-muted-foreground">
-                          SN: {item.product_serial}
-                        </span>
-                      )}
-                    </div>
+                let serialNumber = item.product_serial || "";
+                let productName = item.product_name || "Unit Perangkat";
+                let clientName = "";
+                let clientId = "";
 
-                    <div className="flex items-center justify-between text-xs bg-card p-2 rounded-lg border border-border/40">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2Icon className="size-3.5 text-emerald-500 shrink-0" />
-                        <span className="font-medium text-foreground">
-                          {item.assigned_at ? `Ditugaskan: ${new Date(item.assigned_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}` : "Aktif"}
-                        </span>
-                      </div>
-                      <Badge variant="secondary" className="text-[10px] font-normal">
-                        Role: {item.role?.name || "Teknisi"}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                if (serialNumber) {
+                  const matchedProd = products.find(
+                    (p: any) => p.serial_number === serialNumber
+                  );
+                  if (matchedProd) {
+                    productName = matchedProd.product_name || productName;
+                    if (matchedProd.client?.client_name) {
+                      clientName = matchedProd.client.client_name;
+                      clientId =
+                        matchedProd.client.client_id ||
+                        matchedProd.current_client_id ||
+                        "";
+                    } else if (matchedProd.current_client_id) {
+                      const matchedClient = clients.find(
+                        (c: any) => c.client_id === matchedProd.current_client_id
+                      );
+                      if (matchedClient) {
+                        clientName = matchedClient.client_name;
+                        clientId = matchedClient.client_id;
+                      }
+                    }
+                  }
+                }
+
+                if (!clientName && clients.length > 0) {
+                  clientName = clients[0].client_name;
+                  clientId = clients[0].client_id;
+                }
+
+                const rawDate = item.assigned_at
+                  ? new Date(item.assigned_at)
+                  : new Date();
+
+                const formattedDate = rawDate.toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                });
+
+                return (
+                  <WorkerEventCard
+                    key={item.assignment_id || item.event_id || idx}
+                    eventId={item.event_id || item.assignment_id}
+                    eventTitle={item.event_title || `Project ${eventTypeLabel}`}
+                    eventType={rawEventType}
+                    eventTypeLabel={eventTypeLabel}
+                    clientId={clientId}
+                    clientName={clientName || "Klien Utama"}
+                    productName={productName}
+                    serialNumber={serialNumber}
+                    date={formattedDate}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

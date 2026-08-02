@@ -33,7 +33,7 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.workers.details(), id] as const,
     positions: () => [...queryKeys.workers.all, 'positions'] as const,
     roles: () => [...queryKeys.workers.all, 'roles'] as const,
-    assignments: (stepId: string) => [...queryKeys.workers.all, 'assignments', stepId] as const,
+    assignments: (eventId: string) => [...queryKeys.workers.all, 'assignments', eventId] as const,
     history: (workerId: string) => [...queryKeys.workers.all, 'history', workerId] as const,
   },
   clients: {

@@ -102,26 +102,11 @@ export default function WorkersPage() {
       {
         accessorKey: "full_name",
         header: "Nama Lengkap",
-        cell: ({ row }) => {
-          const worker = row.original;
-          return (
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
-                <span>{worker.full_name}</span>
-                {worker.nickname && (
-                  <span className="text-[11px] text-muted-foreground font-normal">
-                    ("{worker.nickname}")
-                  </span>
-                )}
-              </div>
-              {worker.joined_date && (
-                <div className="text-[10px] text-muted-foreground">
-                  Joined: {worker.joined_date}
-                </div>
-              )}
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <span className="font-semibold text-foreground text-sm">
+            {row.original.full_name}
+          </span>
+        ),
       },
       {
         accessorKey: "operational_status",
@@ -132,7 +117,7 @@ export default function WorkersPage() {
             <Badge
               variant="outline"
               className={cn(
-                "text-[11px] font-semibold gap-1 px-2 py-0.5",
+                "text-xs font-semibold gap-1.5 px-2.5 py-1",
                 status === "In Installation"
                   ? "bg-blue-500/10 text-blue-500 border-blue-500/30"
                   : status === "In Maintenance"
@@ -141,9 +126,9 @@ export default function WorkersPage() {
               )}
             >
               {status === "In Installation" ? (
-                <HardHatIcon className="size-3" />
+                <HardHatIcon className="size-3.5" />
               ) : status === "In Maintenance" ? (
-                <WrenchIcon className="size-3" />
+                <WrenchIcon className="size-3.5" />
               ) : null}
               {status || "Inactive"}
             </Badge>
@@ -157,7 +142,7 @@ export default function WorkersPage() {
         cell: ({ row }) => {
           const posName = row.original.position?.name || "Teknisi";
           return (
-            <Badge variant="outline" className="font-normal text-[11px]">
+            <Badge variant="outline" className="font-normal text-xs px-2.5 py-1">
               {posName}
             </Badge>
           );
@@ -168,7 +153,7 @@ export default function WorkersPage() {
         header: "Kode Worker",
         meta: { defaultHidden: true },
         cell: ({ row }) => (
-          <span className="font-mono text-xs text-muted-foreground font-medium">
+          <span className="font-mono text-sm text-muted-foreground font-medium">
             {row.original.worker_code || "—"}
           </span>
         ),
@@ -178,7 +163,7 @@ export default function WorkersPage() {
         header: "Nomor Telepon",
         meta: { defaultHidden: true },
         cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {row.original.phone_number || "—"}
           </span>
         ),
@@ -188,7 +173,7 @@ export default function WorkersPage() {
         header: "Email",
         meta: { defaultHidden: true },
         cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {row.original.email || "—"}
           </span>
         ),
@@ -198,7 +183,7 @@ export default function WorkersPage() {
         header: "Tanggal Bergabung",
         meta: { defaultHidden: true },
         cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {row.original.joined_date || "—"}
           </span>
         ),
@@ -208,7 +193,7 @@ export default function WorkersPage() {
         header: "Status Akun",
         meta: { defaultHidden: true },
         cell: ({ row }) => (
-          <Badge variant="secondary" className="text-[11px] font-normal capitalize">
+          <Badge variant="secondary" className="text-xs font-normal capitalize px-2.5 py-1">
             {row.original.status || "active"}
           </Badge>
         ),
@@ -218,8 +203,8 @@ export default function WorkersPage() {
         header: "Total Assignment",
         meta: { defaultHidden: true },
         cell: ({ row }) => (
-          <span className="px-2 py-0.5 rounded-full bg-muted font-mono text-xs font-semibold">
-            {row.original.total_assignments || 0} task
+          <span className="px-2.5 py-1 rounded-full bg-muted font-mono text-sm font-semibold">
+            {row.original.total_assignments || 0} event
           </span>
         ),
       },
@@ -228,7 +213,7 @@ export default function WorkersPage() {
         header: "Catatan",
         meta: { defaultHidden: true },
         cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground truncate max-w-[180px] block">
+          <span className="text-sm text-muted-foreground truncate max-w-[180px] block">
             {row.original.notes || "—"}
           </span>
         ),
@@ -238,13 +223,13 @@ export default function WorkersPage() {
         enableHiding: true,
         cell: ({ row }) => {
           const worker = row.original;
-          const targetId = worker.worker_id || worker.id || "";
+          const targetCode = worker.worker_code || worker.worker_id || worker.id || "";
           return (
             <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate(`/workers/${encodeURIComponent(targetId)}`)}
+                onClick={() => navigate(`/workers/${encodeURIComponent(targetCode)}`)}
                 className="size-8 text-muted-foreground hover:text-foreground"
                 title="Lihat Detail & History"
               >
@@ -253,7 +238,7 @@ export default function WorkersPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate(`/workers/${encodeURIComponent(targetId)}?edit=true`)}
+                onClick={() => navigate(`/workers/${encodeURIComponent(targetCode)}?edit=true`)}
                 className="size-8 text-muted-foreground hover:text-foreground"
                 title="Edit Worker"
               >
@@ -534,7 +519,8 @@ export default function WorkersPage() {
           },
         });
         toast.success("Data worker berhasil diperbarui");
-        navigate(`/workers/${encodeURIComponent(targetId)}`, { replace: true });
+        const targetCode = currentWorker?.worker_code || targetId;
+        navigate(`/workers/${encodeURIComponent(targetCode)}`, { replace: true });
       } else {
         const newWorker = await createMutation.mutateAsync(payload);
         const newId = newWorker.worker_id || newWorker.id || "";
@@ -587,9 +573,9 @@ export default function WorkersPage() {
     {
       label: "Total Assignments",
       value: String(totalAssignments),
-      delta: "Task Step",
+      delta: "Event",
       trend: "up",
-      summary: "Total penugasan step",
+      summary: "Total penugasan event",
       description: "Tercatat di seluruh proyek",
       icon: BriefcaseIcon,
     },
@@ -632,8 +618,8 @@ export default function WorkersPage() {
           onSubmit={handleSubmit}
           onCancel={() => {
             if (currentWorker) {
-              const targetId = currentWorker.worker_id || currentWorker.id || "";
-              navigate(`/workers/${encodeURIComponent(targetId)}`);
+              const targetCode = currentWorker.worker_code || currentWorker.worker_id || currentWorker.id || "";
+              navigate(`/workers/${encodeURIComponent(targetCode)}`);
             } else {
               navigate("/workers");
             }
@@ -667,8 +653,8 @@ export default function WorkersPage() {
           onAvatarChange={handleFileChange}
           onAvatarRemove={handleRemoveAvatar}
           onEdit={() => {
-            const targetId = currentWorker.worker_id || currentWorker.id || "";
-            navigate(`/workers/${encodeURIComponent(targetId)}?edit=true`);
+            const targetCode = currentWorker.worker_code || currentWorker.worker_id || currentWorker.id || "";
+            navigate(`/workers/${encodeURIComponent(targetCode)}?edit=true`);
           }}
           onBack={() => navigate("/workers")}
         />
@@ -696,8 +682,8 @@ export default function WorkersPage() {
         tabs={tabs}
         onAddClick={() => navigate("/workers/add")}
         onRowClick={(row) => {
-          const targetId = row.worker_id || row.id || "";
-          navigate(`/workers/${encodeURIComponent(targetId)}`);
+          const targetCode = row.worker_code || row.worker_id || row.id || "";
+          navigate(`/workers/${encodeURIComponent(targetCode)}`);
         }}
         searchPlaceholder="Cari nama, ID, email..."
       />

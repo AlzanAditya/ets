@@ -137,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (workerRecord) {
+        console.log(`[AuthContext] Resolved worker profile for user ${userId} (${email}):`, workerRecord.full_name)
         setAdmin(null)
         setWorker(workerRecord)
         setProfile(workerRecord)
@@ -144,7 +145,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // 3. Neither found — default to guest or fallback worker if authenticated
+      // 3. Neither found — default to worker if authenticated user is non-admin
+      if (email && !email.toLowerCase().includes("admin")) {
+        console.log(`[AuthContext] Non-admin user ${email} fallback as field worker`)
+        const fallbackWorker: any = {
+          id: userId,
+          worker_id: userId,
+          worker_code: "WKR-APP",
+          full_name: email.split("@")[0],
+          email,
+        }
+        setAdmin(null)
+        setWorker(fallbackWorker)
+        setProfile(fallbackWorker)
+        setRole("worker")
+        return
+      }
+
+      console.warn(`[AuthContext] User ${userId} (${email}) resolved as guest`)
       setAdmin(null)
       setWorker(null)
       setProfile(null)
@@ -160,7 +178,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = React.useCallback(async () => {
     if (user?.id) {
+      setLoading(true)
       await fetchProfile(user.id, user.email)
+      setLoading(false)
     }
   }, [user, fetchProfile])
 
@@ -187,6 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, s) => {
         if (!isMounted) return
+        setLoading(true)
         setSession(s)
         setUser(s?.user ?? null)
         if (s?.user) {
@@ -207,7 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchProfile])
 
-  async function signOut() {
+  const signOut = React.useCallback(async () => {
     await supabase.auth.signOut()
     setSession(null)
     setUser(null)
@@ -215,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setWorker(null)
     setProfile(null)
     setRole("guest")
-  }
+  }, [])
 
   const value = React.useMemo<AuthContextValue>(
     () => ({

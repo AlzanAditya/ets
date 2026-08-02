@@ -198,17 +198,33 @@ export const workersService = {
     return rawWorkers.map((worker) => {
       const workerAssigns = assignments.filter((a) => a.worker_id === worker.worker_id || a.worker_id === (worker as any).id);
 
+      // Group assignments per unique event_id
+      const eventsMap = new Map<string, WorkerAssignmentDetail>();
+      const activeEventsMap = new Map<string, WorkerAssignmentDetail>();
+
+      workerAssigns.forEach((a) => {
+        const eventId = a.event_id || a.assignment_id;
+        if (!eventId) return;
+
+        if (!eventsMap.has(eventId)) {
+          eventsMap.set(eventId, a);
+        }
+
+        if (!a.completed_at && !activeEventsMap.has(eventId)) {
+          activeEventsMap.set(eventId, a);
+        }
+      });
+
+      const uniqueEventsCount = eventsMap.size;
+      const activeEventsList = Array.from(activeEventsMap.values());
+      const activeTaskCount = activeEventsMap.size;
+      const completedTaskCount = uniqueEventsCount - activeTaskCount;
+
       let operationalStatus: WorkerOperationalStatus = "Inactive";
-      const activeAssigns = workerAssigns.filter((a) => !a.completed_at);
-      if (activeAssigns.length > 0) {
-        const hasInstallation = activeAssigns.some((a) => a.event_type === "installation");
+      if (activeEventsList.length > 0) {
+        const hasInstallation = activeEventsList.some((a) => a.event_type === "installation");
         operationalStatus = hasInstallation ? "In Installation" : "In Maintenance";
       }
-
-      const activeTaskCount = activeAssigns.length;
-      const completedTaskCount = workerAssigns.filter((a) => a.completed_at).length;
-      const totalAssignments = workerAssigns.length;
-      const uniqueEvents = new Set(workerAssigns.map((a) => a.event_id)).size;
 
       const posId = worker.position_id;
       const pos = posId ? (positionsMap.get(posId) || null) : null;
@@ -220,9 +236,9 @@ export const workersService = {
         operational_status: operationalStatus,
         active_task_count: activeTaskCount,
         completed_task_count: completedTaskCount,
-        total_assignments: totalAssignments,
-        total_steps: uniqueEvents,
-        total_events: uniqueEvents,
+        total_assignments: uniqueEventsCount,
+        total_steps: uniqueEventsCount,
+        total_events: uniqueEventsCount,
         signed_avatar_url: avatarUrl,
         assignments: workerAssigns,
       };
@@ -536,7 +552,18 @@ export const workersService = {
 
   async getWorkerHistory(workerId: string): Promise<WorkerAssignmentDetail[]> {
     const all = await this.getAllAssignments();
-    return all.filter((a) => a.worker_id === workerId);
+    const workerAssigns = all.filter((a) => a.worker_id === workerId || (a as any).worker_id === (workerId as any));
+
+    // Group by unique event_id
+    const eventsMap = new Map<string, WorkerAssignmentDetail>();
+    workerAssigns.forEach((assign) => {
+      const eventKey = assign.event_id || assign.assignment_id;
+      if (eventKey && !eventsMap.has(eventKey)) {
+        eventsMap.set(eventKey, assign);
+      }
+    });
+
+    return Array.from(eventsMap.values());
   },
 
   /**

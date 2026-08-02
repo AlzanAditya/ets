@@ -50,7 +50,12 @@ export function TaskCard({ job: initialJobProp, task: initialTaskProp, className
   })
 
   React.useEffect(() => {
-    setJob(initialJob)
+    setJob((prev) => {
+      if (prev?.id === initialJob?.id && prev?.eventId === initialJob?.eventId && prev?.steps?.length === initialJob?.steps?.length) {
+        return prev
+      }
+      return initialJob
+    })
   }, [initialJob])
 
   const toggleStepExpand = (stepId: string) => {

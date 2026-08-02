@@ -74,10 +74,16 @@ export function CurrentJobCard({
   })
 
   React.useEffect(() => {
-    setJob(initialJob)
+    setJob((prev) => {
+      if (prev?.id === initialJob?.id && prev?.eventId === initialJob?.eventId && prev?.steps?.length === initialJob?.steps?.length) {
+        return prev
+      }
+      return initialJob
+    })
     if (initialJob?.steps && initialJob.steps.length > 0) {
       const activeIdx = initialJob.currentStepIndex >= 0 ? initialJob.currentStepIndex : 0
-      setSelectedStepId(initialJob.steps[activeIdx]?.id || initialJob.steps[0]?.id || "")
+      const newStepId = initialJob.steps[activeIdx]?.id || initialJob.steps[0]?.id || ""
+      setSelectedStepId((prev) => (prev === newStepId ? prev : newStepId))
     }
   }, [initialJob])
 

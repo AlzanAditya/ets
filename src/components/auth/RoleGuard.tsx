@@ -20,7 +20,13 @@ interface RoleGuardProps {
  * - If user's role is in the `allow` list, renders `children`.
  */
 export function RoleGuard({ allow, redirectTo, children }: RoleGuardProps) {
-  const { role, loading } = useAuth()
+  const { role, loading, user } = useAuth()
+
+  React.useEffect(() => {
+    if (!loading) {
+      console.log(`[RoleGuard] Checked role: "${role}", user: "${user?.email}", allow: [${allow.join(", ")}]`)
+    }
+  }, [role, loading, user?.email, allow])
 
   if (loading) {
     return (
@@ -30,15 +36,25 @@ export function RoleGuard({ allow, redirectTo, children }: RoleGuardProps) {
     )
   }
 
+  // Unauthenticated or guest role must be redirected to /login, not cross-redirected between routes
+  if (!user || role === "guest") {
+    console.warn(`[RoleGuard] Access denied for guest/unauthenticated user (${user?.email || 'no-user'}). Redirecting to /login`)
+    return <Navigate to="/login" replace />
+  }
+
   if (!allow.includes(role)) {
-    if (redirectTo) {
-      return <Navigate to={redirectTo} replace />
-    }
+    console.warn(`[RoleGuard] Role "${role}" not in allowed list [${allow.join(", ")}]. Actioning role-based redirect.`)
     if (role === "worker") {
+      console.log(`[RoleGuard] Redirecting worker to /worker/beranda`)
       return <Navigate to="/worker/beranda" replace />
     }
     if (role === "admin" || role === "super_admin") {
+      console.log(`[RoleGuard] Redirecting admin to /dashboard`)
       return <Navigate to="/dashboard" replace />
+    }
+    if (redirectTo) {
+      console.log(`[RoleGuard] Redirecting to ${redirectTo}`)
+      return <Navigate to={redirectTo} replace />
     }
     return <Navigate to="/login" replace />
   }
