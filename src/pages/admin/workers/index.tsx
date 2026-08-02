@@ -1,43 +1,34 @@
 import React from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
 import { getWorkerProfilePhotoUrl, uploadWorkerProfilePhoto, deleteWorkerProfilePhoto } from "@/lib/image-service";
 import { optimizeAvatarImage } from "@/lib/image-optimizer";
 import { queryKeys } from "@/lib/query-keys";
 import {
-  UserCheckIcon,
   UsersIcon,
   HardHatIcon,
   BriefcaseIcon,
-  SearchIcon,
-  PlusIcon,
   EyeIcon,
   PencilIcon,
   Trash2Icon,
-  FilterIcon,
   WrenchIcon,
 } from "lucide-react";
 
 import { MetricCards } from "@/components/metric-cards";
 import { PageContent } from "@/components/page-content";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { DataTable, type DataTableTab } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   useWorkers,
   useWorkerPositions,
   useCreateWorkerMutation,
   useUpdateWorkerMutation,
 } from "@/hooks/use-workers";
+import { useTableSchema } from "@/hooks/use-table-schema";
+import { mergeDynamicColumns } from "@/lib/dynamic-columns";
 import { WorkerViewMode } from "./components/worker-view-mode";
 import { WorkerEditMode } from "./components/worker-edit-mode";
 import { WorkerDeleteDialog } from "./components/worker-delete-dialog";
@@ -46,17 +37,28 @@ import type { MetricCardItem } from "@/types/metrics";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+const EXCLUDED_WORKER_COLUMNS = [
+  "worker_id",
+  "position_id",
+  "profile_photo_path",
+  "profile_image_path",
+  "password_hash",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+];
+
 export default function WorkersPage() {
   const params = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedPosition, setSelectedPosition] = React.useState<string>("all");
 
-  const { data: workers = [], isLoading } = useWorkers(searchTerm, selectedPosition);
+  const { data: workers = [], refetch } = useWorkers("", selectedPosition);
   const { data: positions = [] } = useWorkerPositions();
+  const { columns: schemaColumns } = useTableSchema("workers");
 
   const createMutation = useCreateWorkerMutation();
   const updateMutation = useUpdateWorkerMutation();
@@ -64,6 +66,251 @@ export default function WorkersPage() {
   // Dialogs & edit state
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [workerToDelete, setWorkerToDelete] = React.useState<WorkerWithDetails | null>(null);
+
+  // Define pinned columns for DataTable
+  const PINNED_COLUMNS = React.useMemo<ColumnDef<WorkerWithDetails & { id: string }>[]>(
+    () => [
+      {
+        id: "profile",
+        header: "Profil",
+        cell: ({ row }) => {
+          const worker = row.original;
+          const targetId = worker.worker_id || worker.id || "";
+          const photoUrl = getWorkerProfilePhotoUrl(
+            targetId,
+            worker.profile_photo_path || worker.profile_image_path
+          );
+          const initials = worker.full_name
+            ? worker.full_name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .substring(0, 2)
+                .toUpperCase()
+            : "WK";
+
+          return (
+            <Avatar className="size-9 border border-border/60 shrink-0">
+              {photoUrl ? <AvatarImage src={photoUrl} alt={worker.full_name} /> : null}
+              <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+          );
+        },
+      },
+      {
+        accessorKey: "full_name",
+        header: "Nama Lengkap",
+        cell: ({ row }) => {
+          const worker = row.original;
+          return (
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
+                <span>{worker.full_name}</span>
+                {worker.nickname && (
+                  <span className="text-[11px] text-muted-foreground font-normal">
+                    ("{worker.nickname}")
+                  </span>
+                )}
+              </div>
+              {worker.joined_date && (
+                <div className="text-[10px] text-muted-foreground">
+                  Joined: {worker.joined_date}
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "operational_status",
+        header: "Status Operasional",
+        cell: ({ row }) => {
+          const status = row.original.operational_status;
+          return (
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-[11px] font-semibold gap-1 px-2 py-0.5",
+                status === "In Installation"
+                  ? "bg-blue-500/10 text-blue-500 border-blue-500/30"
+                  : status === "In Maintenance"
+                  ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                  : "bg-slate-500/10 text-slate-400 border-slate-500/30"
+              )}
+            >
+              {status === "In Installation" ? (
+                <HardHatIcon className="size-3" />
+              ) : status === "In Maintenance" ? (
+                <WrenchIcon className="size-3" />
+              ) : null}
+              {status || "Inactive"}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: "position",
+        accessorKey: "position_id",
+        header: "Jabatan",
+        cell: ({ row }) => {
+          const posName = row.original.position?.name || "Teknisi";
+          return (
+            <Badge variant="outline" className="font-normal text-[11px]">
+              {posName}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "worker_code",
+        header: "Kode Worker",
+        meta: { defaultHidden: true },
+        cell: ({ row }) => (
+          <span className="font-mono text-xs text-muted-foreground font-medium">
+            {row.original.worker_code || "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "phone_number",
+        header: "Nomor Telepon",
+        meta: { defaultHidden: true },
+        cell: ({ row }) => (
+          <span className="text-xs text-muted-foreground">
+            {row.original.phone_number || "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "email",
+        header: "Email",
+        meta: { defaultHidden: true },
+        cell: ({ row }) => (
+          <span className="text-xs text-muted-foreground">
+            {row.original.email || "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "joined_date",
+        header: "Tanggal Bergabung",
+        meta: { defaultHidden: true },
+        cell: ({ row }) => (
+          <span className="text-xs text-muted-foreground">
+            {row.original.joined_date || "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: "Status Akun",
+        meta: { defaultHidden: true },
+        cell: ({ row }) => (
+          <Badge variant="secondary" className="text-[11px] font-normal capitalize">
+            {row.original.status || "active"}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "total_assignments",
+        header: "Total Assignment",
+        meta: { defaultHidden: true },
+        cell: ({ row }) => (
+          <span className="px-2 py-0.5 rounded-full bg-muted font-mono text-xs font-semibold">
+            {row.original.total_assignments || 0} task
+          </span>
+        ),
+      },
+      {
+        accessorKey: "notes",
+        header: "Catatan",
+        meta: { defaultHidden: true },
+        cell: ({ row }) => (
+          <span className="text-xs text-muted-foreground truncate max-w-[180px] block">
+            {row.original.notes || "—"}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        enableHiding: true,
+        cell: ({ row }) => {
+          const worker = row.original;
+          const targetId = worker.worker_id || worker.id || "";
+          return (
+            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(`/workers/${encodeURIComponent(targetId)}`)}
+                className="size-8 text-muted-foreground hover:text-foreground"
+                title="Lihat Detail & History"
+              >
+                <EyeIcon className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(`/workers/${encodeURIComponent(targetId)}?edit=true`)}
+                className="size-8 text-muted-foreground hover:text-foreground"
+                title="Edit Worker"
+              >
+                <PencilIcon className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setWorkerToDelete(worker);
+                  setIsDeleteOpen(true);
+                }}
+                className="size-8 text-muted-foreground hover:text-destructive"
+                title="Hapus Worker"
+              >
+                <Trash2Icon className="size-4" />
+              </Button>
+            </div>
+          );
+        },
+      },
+    ],
+    [navigate]
+  );
+
+  const columns = React.useMemo(() => {
+    return mergeDynamicColumns(
+      PINNED_COLUMNS,
+      schemaColumns,
+      EXCLUDED_WORKER_COLUMNS
+    );
+  }, [PINNED_COLUMNS, schemaColumns]);
+
+  const tabs: DataTableTab[] = React.useMemo(() => {
+    return [
+      {
+        value: "all",
+        label: "Semua",
+        badge: workers.length,
+      },
+      ...positions.map((pos) => {
+        const count = workers.filter((w) => w.position_id === pos.position_id).length;
+        return {
+          value: pos.position_id,
+          label: pos.name,
+          badge: count,
+        };
+      }),
+    ];
+  }, [positions, workers]);
+
+  const mappedWorkers = React.useMemo(() => {
+    return workers.map((w) => ({
+      ...w,
+      id: w.worker_id || w.id || w.worker_code,
+    }));
+  }, [workers]);
 
   // Determine current active worker from route param
   const isAddPage = location.pathname.endsWith("/add");
@@ -438,226 +685,22 @@ export default function WorkersPage() {
     >
       <MetricCards items={metrics} />
 
-      <div className="px-4 lg:px-6 space-y-4">
-        <Card className="border-border/60 shadow-xs">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
-            <div>
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <UserCheckIcon className="size-5 text-emerald-500" />
-                Daftar Pekerja &amp; Teknisi Lapangan
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Kelola profil personel, status operasional, dan riwayat penugasan step proyek.
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Filter Jabatan */}
-              <div className="w-40">
-                <Select value={selectedPosition} onValueChange={setSelectedPosition}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <FilterIcon className="size-3 text-muted-foreground shrink-0" />
-                      <SelectValue placeholder="Semua Jabatan" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="text-xs">
-                      Semua Jabatan
-                    </SelectItem>
-                    {positions.map((pos) => (
-                      <SelectItem key={pos.position_id} value={pos.position_id} className="text-xs">
-                        {pos.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Search Bar */}
-              <div className="relative w-full sm:w-56">
-                <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari nama, ID, email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-9 text-xs"
-                />
-              </div>
-
-              {/* Add Button */}
-              <Button
-                size="sm"
-                onClick={() => navigate("/workers/add")}
-                className="h-9 gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                <PlusIcon className="size-4" />
-                Tambah Worker
-              </Button>
-            </div>
-          </CardHeader>
-
-          <CardContent className="pt-0">
-            <div className="rounded-lg border border-border/50 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-muted/50 text-xs font-semibold text-muted-foreground border-b border-border/50">
-                    <tr>
-                      <th className="px-4 py-3">Pekerja</th>
-                      <th className="px-4 py-3">Kode Worker</th>
-                      <th className="px-4 py-3">Jabatan</th>
-                      <th className="px-4 py-3">Kontak</th>
-                      <th className="px-4 py-3">Status Operasional</th>
-                      <th className="px-4 py-3 text-center">Total Assignment</th>
-                      <th className="px-4 py-3 text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
-                    {isLoading ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-xs text-muted-foreground">
-                          Memuat data worker...
-                        </td>
-                      </tr>
-                    ) : workers.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-xs text-muted-foreground italic">
-                          Tidak ada data worker ditemukan.
-                        </td>
-                      </tr>
-                    ) : (
-                      workers.map((worker) => {
-                        const targetId = worker.worker_id || worker.id || "";
-                        const initials = worker.full_name
-                          ? worker.full_name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .substring(0, 2)
-                              .toUpperCase()
-                          : "WK";
-
-                        return (
-                          <tr
-                            key={targetId}
-                            onClick={() => navigate(`/workers/${encodeURIComponent(targetId)}`)}
-                            className="hover:bg-muted/30 transition-colors cursor-pointer"
-                          >
-                            <td className="px-4 py-3 font-medium text-foreground">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="size-9 border border-border/60">
-                                  {getWorkerProfilePhotoUrl(targetId, worker.profile_photo_path || worker.profile_image_path) ? (
-                                    <AvatarImage src={getWorkerProfilePhotoUrl(targetId, worker.profile_photo_path || worker.profile_image_path) || undefined} alt={worker.full_name} />
-                                  ) : null}
-                                  <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                                    {initials}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
-                                    <span>{worker.full_name}</span>
-                                    {worker.nickname && (
-                                      <span className="text-[11px] text-muted-foreground font-normal">
-                                        ("{worker.nickname}")
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="text-[10px] text-muted-foreground">
-                                    Joined: {worker.joined_date || "-"}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="px-4 py-3 font-mono text-xs text-muted-foreground font-medium">
-                              {worker.worker_code}
-                            </td>
-
-                            <td className="px-4 py-3 text-xs">
-                              <Badge variant="outline" className="font-normal text-[11px]">
-                                {worker.position?.name || "Teknisi"}
-                              </Badge>
-                            </td>
-
-                            <td className="px-4 py-3 text-xs text-muted-foreground">
-                              <div>{worker.phone_number || "-"}</div>
-                              <div className="text-[11px] opacity-70">{worker.email || "-"}</div>
-                            </td>
-
-                            <td className="px-4 py-3">
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[11px] font-semibold gap-1 px-2 py-0.5",
-                                  worker.operational_status === "In Installation"
-                                    ? "bg-blue-500/10 text-blue-500 border-blue-500/30"
-                                    : worker.operational_status === "In Maintenance"
-                                    ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
-                                    : "bg-slate-500/10 text-slate-400 border-slate-500/30"
-                                )}
-                              >
-                                {worker.operational_status === "In Installation" ? (
-                                  <HardHatIcon className="size-3" />
-                                ) : worker.operational_status === "In Maintenance" ? (
-                                  <WrenchIcon className="size-3" />
-                                ) : null}
-                                {worker.operational_status}
-                              </Badge>
-                            </td>
-
-                            <td className="px-4 py-3 text-center text-xs font-semibold">
-                              <span className="px-2 py-0.5 rounded-full bg-muted font-mono">
-                                {worker.total_assignments} task
-                              </span>
-                            </td>
-
-                            <td
-                              className="px-4 py-3 text-right"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => navigate(`/workers/${encodeURIComponent(targetId)}`)}
-                                  className="size-8 text-muted-foreground hover:text-foreground"
-                                  title="Lihat Detail & History"
-                                >
-                                  <EyeIcon className="size-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => navigate(`/workers/${encodeURIComponent(targetId)}?edit=true`)}
-                                  className="size-8 text-muted-foreground hover:text-foreground"
-                                  title="Edit Worker"
-                                >
-                                  <PencilIcon className="size-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    setWorkerToDelete(worker);
-                                    setIsDeleteOpen(true);
-                                  }}
-                                  className="size-8 text-muted-foreground hover:text-destructive"
-                                  title="Hapus Worker"
-                                >
-                                  <Trash2Icon className="size-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <DataTable
+        persistenceKey="workers"
+        onRefresh={refetch}
+        addButtonLabel="Tambah Worker"
+        columns={columns}
+        data={mappedWorkers}
+        activeTab={selectedPosition}
+        onTabChange={setSelectedPosition}
+        tabs={tabs}
+        onAddClick={() => navigate("/workers/add")}
+        onRowClick={(row) => {
+          const targetId = row.worker_id || row.id || "";
+          navigate(`/workers/${encodeURIComponent(targetId)}`);
+        }}
+        searchPlaceholder="Cari nama, ID, email..."
+      />
 
       {/* Delete Dialog */}
       <WorkerDeleteDialog

@@ -61,20 +61,11 @@ export function useWorkerHistory(workerId: string | null) {
   });
 }
 
-export function useStepAssignments(stepId: string | null) {
+export function useEventAssignments(eventId: string | null) {
   return useQuery({
-    queryKey: queryKeys.workers.assignments(stepId || ""),
-    queryFn: () => (stepId ? workersService.getAssignmentsByStep(stepId) : []),
-    enabled: Boolean(stepId),
-  });
-}
-
-export function useEventAssignments(stepIds: string[]) {
-  const key = stepIds.slice().sort().join(",");
-  return useQuery({
-    queryKey: [...queryKeys.workers.all, "event-assignments", key],
-    queryFn: () => (stepIds.length > 0 ? workersService.getAssignmentsByEventSteps(stepIds) : []),
-    enabled: stepIds.length > 0,
+    queryKey: [...queryKeys.workers.all, "event-assignments", eventId || ""],
+    queryFn: () => (eventId ? workersService.getAssignmentsByEvent(eventId) : []),
+    enabled: Boolean(eventId),
   });
 }
 
@@ -128,37 +119,13 @@ export function useDeleteWorkerMutation() {
   });
 }
 
-export function useAssignWorkerMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      stepId,
-      workerId,
-      roleId,
-      context,
-    }: {
-      stepId: string;
-      workerId: string;
-      roleId: string;
-      context?: Parameters<typeof workersService.assignWorkerToStep>[3];
-    }) => workersService.assignWorkerToStep(stepId, workerId, roleId, context),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
-      toast.success("Pekerja berhasil ditugaskan pada step ini");
-    },
-    onError: (err: any) => {
-      toast.error(err.message || "Gagal menugaskan pekerja");
-    },
-  });
-}
-
 export function useRemoveAssignmentMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (assignmentId: string) => workersService.removeWorkerAssignment(assignmentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
-      toast.success("Penugasan pekerja berhasil dihapus");
+      toast.success("Penugasan worker berhasil dihapus");
     },
     onError: (err: any) => {
       toast.error(err.message || "Gagal menghapus penugasan");
@@ -170,7 +137,6 @@ export function useAssignWorkerToEventMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
-      steps,
       eventId,
       eventTitle,
       eventType,
@@ -179,7 +145,6 @@ export function useAssignWorkerToEventMutation() {
       productSerial,
       productName,
     }: {
-      steps: { step_id: string; step_type?: string; title?: string }[];
       eventId: string;
       eventTitle: string;
       eventType: "installation" | "maintenance";
@@ -188,22 +153,18 @@ export function useAssignWorkerToEventMutation() {
       productSerial?: string;
       productName?: string;
     }) =>
-      workersService.assignWorkerToEventSteps(
-        steps,
-        eventId,
-        eventTitle,
-        eventType,
-        workerId,
-        roleId,
-        productSerial,
-        productName
-      ),
+      workersService.assignWorkerToEvent(eventId, workerId, roleId, {
+        event_title: eventTitle,
+        event_type: eventType,
+        product_serial: productSerial,
+        product_name: productName,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
-      toast.success("Pekerja berhasil ditugaskan pada Event ini");
+      toast.success("Worker berhasil ditugaskan pada Event ini");
     },
     onError: (err: any) => {
-      toast.error(err.message || "Gagal menugaskan pekerja");
+      toast.error(err.message || "Gagal menugaskan worker");
     },
   });
 }
@@ -212,15 +173,15 @@ export function useRemoveWorkerFromEventMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
-      stepIds,
+      eventId,
       workerId,
     }: {
-      stepIds: string[];
+      eventId: string;
       workerId: string;
-    }) => workersService.removeWorkerFromEventSteps(stepIds, workerId),
+    }) => workersService.removeWorkerFromEvent(eventId, workerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.workers.all });
-      toast.success("Penugasan pekerja berhasil dihapus dari Event");
+      toast.success("Penugasan worker berhasil dihapus dari Event");
     },
     onError: (err: any) => {
       toast.error(err.message || "Gagal menghapus penugasan");

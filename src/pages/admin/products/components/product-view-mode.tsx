@@ -186,8 +186,21 @@ export function ProductViewMode({
     }
   };
 
-  // Build badges for Product (Status badge stays under avatar/banner, without shield/wrench icon)
+  // Build badges for Product (Client badge before status badge)
+  const clientBadge: EntityBadge[] = currentProduct.client?.client_name
+    ? [
+        {
+          id: "client-badge",
+          icon: Building2Icon,
+          label: currentProduct.client.client_name,
+          color: "zinc",
+          className: "bg-zinc-800 text-zinc-100 border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 font-bold",
+        },
+      ]
+    : [];
+
   const badges: EntityBadge[] = [
+    ...clientBadge,
     {
       id: "status-badge",
       label: statusLabel,
@@ -314,12 +327,6 @@ export function ProductViewMode({
         }
         meta={
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap pt-1 sm:pt-1.5">
-            {currentProduct.client && (
-              <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full border font-bold text-[10px] sm:text-xs bg-zinc-800 text-zinc-100 border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
-                <Building2Icon className="size-3 sm:size-3.5 shrink-0" />
-                <span>{currentProduct.client.client_name}</span>
-              </div>
-            )}
             {currentProduct.model && (
               <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full border font-bold text-[10px] sm:text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
                 <TagIcon className="size-3 sm:size-3.5 shrink-0" />

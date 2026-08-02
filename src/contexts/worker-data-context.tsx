@@ -88,10 +88,10 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
           return false
         }
 
-        const assignedStepIds = new Set<string>()
+        const assignedEventIds = new Set<string>()
         allAssignments.forEach((a) => {
-          if (isAssignedToCurrentWorker(a)) {
-            assignedStepIds.add(a.step_id)
+          if (isAssignedToCurrentWorker(a) && a.event_id) {
+            assignedEventIds.add(a.event_id)
           }
         })
 
@@ -106,12 +106,12 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
           const events: ProductEventData[] = await productEventsService.getProductEvents(prod.product_id)
 
           for (const event of events) {
-            // Check if ANY step in this event is assigned to current worker
-            const hasAssignedStep = event.steps?.some((s) => assignedStepIds.has(s.step_id))
+            // Check if this event is assigned to current worker
+            const isEventAssigned = assignedEventIds.has(event.event_id)
 
-            // Check completed steps for history (only if assigned to this worker)
+            // Check completed steps for history (if worker assigned to event)
             event.steps?.forEach((st) => {
-              if (st.status === "completed" && assignedStepIds.has(st.step_id)) {
+              if (st.status === "completed" && isEventAssigned) {
                 const isInstallation = event.event_type === "installation"
                 const mainEventName = isInstallation ? "Instalasi" : "Maintenance"
                 historyList.push({
@@ -138,8 +138,8 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
               }
             })
 
-            // Only map to active tasks/jobs if event is active AND worker has assigned step
-            if (event.status === "active" && hasAssignedStep) {
+            // Only map to active tasks/jobs if event is active AND worker is assigned to event
+            if (event.status === "active" && isEventAssigned) {
               const isInstallation = event.event_type === "installation"
               const mainEventName = isInstallation ? "Instalasi" : "Maintenance"
 

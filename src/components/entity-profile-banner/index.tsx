@@ -156,7 +156,7 @@ export function EntityProfileBanner({
       )}
     >
       {/* ── Top Main Header Row ── */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-3.5 md:gap-4 w-full">
         {/* Left Column: Avatar & Identity */}
         <div className="flex flex-row items-start gap-4 md:gap-5 flex-1 min-w-0">
           {/* Profile Container */}
@@ -275,10 +275,25 @@ export function EntityProfileBanner({
                   </button>
                 )}
             </div>
+          </div>
 
-            {/* Badges placed under avatar in both Mobile and Desktop layout */}
+          {/* Identity Info Column */}
+          <div className="space-y-1.5 sm:space-y-2 flex-1 min-w-0 pt-0.5 sm:pt-1">
+            <div className="space-y-1">
+              <h1 className="text-base sm:text-lg md:text-2xl font-bold tracking-tight text-foreground break-words leading-snug">
+                {title}
+              </h1>
+
+              {subtitle && (
+                <div className="text-[11px] sm:text-xs md:text-sm text-muted-foreground font-medium">
+                  {subtitle}
+                </div>
+              )}
+            </div>
+
+            {/* Badges placed inside identity info column */}
             {badges.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap justify-center pt-1">
+              <div className="flex items-center gap-2 flex-wrap pt-0.5">
                 {badges.map((b, i) => {
                   const colorStyle = BADGE_COLOR_MAP[b.color || "emerald"];
                   return (
@@ -300,21 +315,6 @@ export function EntityProfileBanner({
                 })}
               </div>
             )}
-          </div>
-
-          {/* Identity Info Column */}
-          <div className="space-y-1.5 sm:space-y-2 flex-1 min-w-0 pt-0.5 sm:pt-1">
-            <div className="space-y-1">
-              <h1 className="text-base sm:text-lg md:text-2xl font-bold tracking-tight text-foreground break-words leading-snug">
-                {title}
-              </h1>
-
-              {subtitle && (
-                <div className="text-[11px] sm:text-xs md:text-sm text-muted-foreground font-medium">
-                  {subtitle}
-                </div>
-              )}
-            </div>
 
             {meta && <div className="pt-0.5 text-[11px] sm:text-xs">{meta}</div>}
           </div>
@@ -349,11 +349,14 @@ export function EntityProfileBanner({
         )}
       </div>
 
-      {/* ── Details Row / Flexible Flex Container ── */}
+      {/* ── Details Row / Flexible Grid & Flex Container ── */}
       {details.length > 0 && (
-        <div className="flex flex-wrap items-stretch gap-3 pt-3 border-t border-border/50">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch gap-2.5 sm:gap-3 pt-3 border-t border-border/50">
           {details.map((item, i) => {
             const ItemIcon = item.icon;
+            const isFullWidthMobile = (details.length % 2 !== 0 && i === details.length - 1) || Boolean((item as any).fullWidth);
+            const wrapperSpanClass = `${isFullWidthMobile ? "col-span-2" : "col-span-1"} sm:col-span-1 sm:flex-1 sm:min-w-[200px] sm:max-w-full min-w-0`;
+
             const content = (
               <div
                 key={item.id || i}
@@ -388,7 +391,7 @@ export function EntityProfileBanner({
                   href={item.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 min-w-[200px] sm:min-w-[240px] max-w-full block"
+                  className={`${wrapperSpanClass} block`}
                 >
                   {content}
                 </a>
@@ -398,7 +401,7 @@ export function EntityProfileBanner({
             return (
               <div
                 key={item.id || i}
-                className="flex-1 min-w-[200px] sm:min-w-[240px] max-w-full"
+                className={wrapperSpanClass}
               >
                 {content}
               </div>

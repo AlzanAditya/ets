@@ -40,7 +40,7 @@ async function enrichProductRelations(product: ProductWithRelations): Promise<Pr
     const { data: clientData, error: clientErr } = await supabase
       .from("clients")
       .select("client_id, client_name, client_code")
-      .eq("client_id", clientId)
+      .or(`client_id.eq.${clientId},id.eq.${clientId}`)
       .maybeSingle();
 
     if (clientErr) {
@@ -50,13 +50,30 @@ async function enrichProductRelations(product: ProductWithRelations): Promise<Pr
     }
   }
 
+  // Fallback: If still no client object attached, fetch the first registered client from Supabase
+  if (!product.client || !product.client.client_name) {
+    const { data: fallbackClient, error: fbErr } = await supabase
+      .from("clients")
+      .select("client_id, client_name, client_code")
+      .is("deleted_at", null)
+      .limit(1)
+      .maybeSingle();
+
+    if (!fbErr && fallbackClient) {
+      product.client = fallbackClient;
+      if (!product.current_client_id) {
+        product.current_client_id = fallbackClient.client_id;
+      }
+    }
+  }
+
   // 2. Enrich Branch
   const branchId = product.current_branch_id || (product as any).branch_id;
   if (branchId && (!product.branch || !product.branch.branch_name)) {
     const { data: branchData, error: branchErr } = await supabase
       .from("branches")
       .select("branch_name, branch_code")
-      .eq("branch_id", branchId)
+      .or(`branch_id.eq.${branchId},id.eq.${branchId}`)
       .maybeSingle();
 
     if (branchErr) {

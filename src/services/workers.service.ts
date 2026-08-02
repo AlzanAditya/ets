@@ -208,7 +208,7 @@ export const workersService = {
       const activeTaskCount = activeAssigns.length;
       const completedTaskCount = workerAssigns.filter((a) => a.completed_at).length;
       const totalAssignments = workerAssigns.length;
-      const uniqueSteps = new Set(workerAssigns.map((a) => a.step_id)).size;
+      const uniqueEvents = new Set(workerAssigns.map((a) => a.event_id)).size;
 
       const posId = worker.position_id;
       const pos = posId ? (positionsMap.get(posId) || null) : null;
@@ -221,8 +221,8 @@ export const workersService = {
         active_task_count: activeTaskCount,
         completed_task_count: completedTaskCount,
         total_assignments: totalAssignments,
-        total_steps: uniqueSteps,
-        total_events: uniqueSteps,
+        total_steps: uniqueEvents,
+        total_events: uniqueEvents,
         signed_avatar_url: avatarUrl,
         assignments: workerAssigns,
       };
@@ -414,96 +414,18 @@ export const workersService = {
     return data || [];
   },
 
-  async getAssignmentsByStep(stepId: string): Promise<WorkerAssignmentDetail[]> {
+  async getAssignmentsByEvent(eventId: string): Promise<WorkerAssignmentDetail[]> {
+    if (!eventId) return [];
     const all = await this.getAllAssignments();
-    return all.filter((a) => a.step_id === stepId);
+    return all.filter((a) => a.event_id === eventId);
   },
 
-  async getAssignmentsByEventSteps(stepIds: string[]): Promise<WorkerAssignmentDetail[]> {
-    if (!stepIds || stepIds.length === 0) return [];
-    const all = await this.getAllAssignments();
-    return all.filter((a) => stepIds.includes(a.step_id));
-  },
-
-  async assignWorkerToEventSteps(
-    steps: { step_id: string; step_type?: string; title?: string }[],
-    _eventId: string,
-    eventTitle: string,
-    eventType: "installation" | "maintenance",
-    workerId: string,
-    roleId: string,
-    productSerial?: string,
-    productName?: string
-  ): Promise<WorkerAssignmentDetail[]> {
-    if (!steps || steps.length === 0) {
-      throw new Error("Event tidak memiliki step untuk penugasan worker.");
-    }
-
-    const results: WorkerAssignmentDetail[] = [];
-    const errorMsgs: string[] = [];
-
-    for (const step of steps) {
-      try {
-        const assigned = await this.assignWorkerToStep(
-          step.step_id,
-          workerId,
-          roleId,
-          {
-            event_type: eventType,
-            step_type: step.step_type || "installation",
-            step_title: step.title || "Step",
-            event_title: eventTitle,
-            product_serial: productSerial,
-            product_name: productName,
-          }
-        );
-        results.push(assigned);
-      } catch (err: any) {
-        if (err.message && err.message.includes("sudah ditugaskan")) {
-          console.warn(`Worker ${workerId} already assigned to step ${step.step_id}`);
-        } else {
-          console.error(`Error assigning worker to step ${step.step_id}:`, err);
-          errorMsgs.push(err.message || "Gagal assign step");
-        }
-      }
-    }
-
-    if (results.length === 0 && errorMsgs.length > 0) {
-      throw new Error(errorMsgs[0] || "Gagal melakukan penugasan worker ke event.");
-    }
-
-    return results;
-  },
-
-  async removeWorkerFromEventSteps(
-    stepIds: string[],
-    workerId: string
-  ): Promise<void> {
-    if (!stepIds || stepIds.length === 0) return;
-    const all = await this.getAllAssignments();
-    const toRemove = all.filter((a) => stepIds.includes(a.step_id) && a.worker_id === workerId);
-
-    for (const a of toRemove) {
-      await this.removeWorkerAssignment(a.assignment_id);
-    }
-  },
-
-  async getWorkerHistory(workerId: string): Promise<WorkerAssignmentDetail[]> {
-    const all = await this.getAllAssignments();
-    return all.filter((a) => a.worker_id === workerId);
-  },
-
-  /**
-   * Assign worker to step with role (Guarantees Supabase insert)
-   */
-  async assignWorkerToStep(
-    stepId: string,
+  async assignWorkerToEvent(
+    eventId: string,
     workerId: string,
     roleId: string,
     context?: {
       event_type?: "installation" | "maintenance";
-      step_type?: string;
-      step_title?: string;
       event_title?: string;
       product_serial?: string;
       product_name?: string;
@@ -523,16 +445,12 @@ export const workersService = {
       throw new Error("Role yang dipilih tidak ditemukan di master data database.");
     }
 
-    console.log("Worker Roles dari DB", roles);
-    console.log("Selected Role", selectedRole);
-    console.log("Selected Role UUID", selectedRole.role_id);
-
     await this.getPositions();
 
     const { data: existingDbAssignments, error: checkErr } = await (supabase as any)
       .from("worker_assignments")
       .select("assignment_id, worker_id")
-      .eq("step_id", stepId);
+      .eq("event_id", eventId);
 
     if (checkErr) {
       throw new Error(`Gagal mengecek assignment di database: ${checkErr.message}`);
@@ -541,7 +459,7 @@ export const workersService = {
     if (existingDbAssignments) {
       const isAlreadyAssigned = existingDbAssignments.some((a: any) => a.worker_id === workerId);
       if (isAlreadyAssigned) {
-        throw new Error("Worker sudah ditugaskan pada step ini.");
+        throw new Error("Worker sudah ditugaskan pada event ini.");
       }
     }
 
@@ -553,7 +471,7 @@ export const workersService = {
 
     const insertPayload = {
       assignment_id: assignmentId,
-      step_id: stepId,
+      event_id: eventId,
       worker_id: workerId,
       role_id: selectedRole.role_id,
       assigned_at: assignedAt,
@@ -579,7 +497,7 @@ export const workersService = {
 
     return {
       assignment_id: assignmentId,
-      step_id: stepId,
+      event_id: eventId,
       worker_id: workerId,
       role_id: selectedRole.role_id,
       assigned_at: assignedAt,
@@ -588,16 +506,41 @@ export const workersService = {
       worker: workerObj,
       role: selectedRole,
       event_type: context?.event_type || "installation",
-      step_type: context?.step_type || "installation",
-      step_title: context?.step_title || "Step",
       event_title: context?.event_title || "Event",
       product_serial: context?.product_serial || "",
       product_name: context?.product_name || "",
     };
   },
 
+  async removeWorkerFromEvent(eventId: string, workerId: string): Promise<void> {
+    if (!eventId || !workerId) return;
+    console.group("SUPABASE DELETE worker_assignments");
+    console.log("Table: worker_assignments");
+    console.log("event_id:", eventId, "worker_id:", workerId);
+
+    const { data, error } = await (supabase as any)
+      .from("worker_assignments")
+      .delete()
+      .eq("event_id", eventId)
+      .eq("worker_id", workerId)
+      .select();
+
+    console.log("Response:", data);
+    console.log("Error:", error);
+    console.groupEnd();
+
+    if (error) {
+      throw new Error(`Gagal menghapus assignment dari database: ${error.message || "Error database"}`);
+    }
+  },
+
+  async getWorkerHistory(workerId: string): Promise<WorkerAssignmentDetail[]> {
+    const all = await this.getAllAssignments();
+    return all.filter((a) => a.worker_id === workerId);
+  },
+
   /**
-   * Remove worker assignment from step with strict database check
+   * Remove worker assignment directly by ID
    */
   async removeWorkerAssignment(assignmentId: string): Promise<void> {
     console.group("SUPABASE DELETE worker_assignments");

@@ -198,7 +198,7 @@ export function WorkerDetailDialog({
                             {item.event_type || "installation"}
                           </Badge>
                           <span className="text-xs font-semibold text-foreground">
-                            {item.step_title || item.step_type || "Tahapan"}
+                            {item.event_title || item.event_type || "Event"}
                           </span>
                         </div>
 

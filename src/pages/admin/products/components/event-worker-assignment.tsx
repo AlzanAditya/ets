@@ -36,7 +36,7 @@ interface EventWorkerAssignmentProps {
   eventId: string;
   eventTitle: string;
   eventType: "installation" | "maintenance";
-  steps: ProductStepData[];
+  steps?: ProductStepData[];
   productSerial?: string;
   productName?: string;
   isReadOnly?: boolean;
@@ -46,13 +46,11 @@ export function EventWorkerAssignment({
   eventId,
   eventTitle,
   eventType,
-  steps,
   productSerial = "",
   productName = "",
   isReadOnly = false,
 }: EventWorkerAssignmentProps) {
-  const stepIds = React.useMemo(() => steps.map((s) => s.step_id), [steps]);
-  const { data: assignments = [], isLoading } = useEventAssignments(stepIds);
+  const { data: assignments = [], isLoading } = useEventAssignments(eventId);
   const { data: availableWorkers = [] } = useWorkers();
   const { data: roles = [] } = useWorkerRoles();
 
@@ -63,7 +61,7 @@ export function EventWorkerAssignment({
   const [selectedWorkerId, setSelectedWorkerId] = React.useState<string>("");
   const [selectedRoleId, setSelectedRoleId] = React.useState<string>("");
 
-  // Deduplicate assignments by worker_id so each worker is shown once for the Main Event
+  // Deduplicate assignments by worker_id
   const uniqueAssignedWorkers = React.useMemo(() => {
     const map = new Map<string, WorkerAssignmentDetail>();
     assignments.forEach((a) => {
@@ -92,14 +90,8 @@ export function EventWorkerAssignment({
       return;
     }
 
-    const selectedRole = roles.find((r) => r.role_id === selectedRoleId);
-    console.log("Worker Roles dari DB", roles);
-    console.log("Selected Role", selectedRole);
-    console.log("Selected Role UUID", selectedRole?.role_id);
-
     try {
       await assignMutation.mutateAsync({
-        steps,
         eventId,
         eventTitle,
         eventType,
@@ -120,7 +112,7 @@ export function EventWorkerAssignment({
   const handleRemove = async (workerId: string) => {
     try {
       await removeMutation.mutateAsync({
-        stepIds,
+        eventId,
         workerId,
       });
     } catch {}

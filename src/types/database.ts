@@ -308,12 +308,12 @@ export type WorkerRow = {
 
 export type WorkerAssignmentRow = {
   assignment_id: string; // UUID PK
-  step_id: string; // FK → product_event_steps
+  event_id: string; // FK → product_events
   worker_id: string; // FK → workers
   role_id: string; // FK → worker_roles
   assigned_at: string; // TIMESTAMPTZ
   completed_at: string | null; // TIMESTAMPTZ
-  created_at: string;
+  created_at?: string;
 };
 
 export type WorkerOperationalStatus = "In Installation" | "In Maintenance" | "Inactive";

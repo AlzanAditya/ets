@@ -341,6 +341,13 @@ export default function PublicProductDetail() {
                 <span className="text-emerald-400 font-bold">{product.serial_number}</span>
               </div>
 
+              {product.client?.client_name && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-zinc-700 bg-zinc-800 font-bold text-xs text-zinc-100">
+                  <Building2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>{product.client.client_name}</span>
+                </div>
+              )}
+
               {product.model && (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-zinc-800 bg-zinc-950 font-medium text-xs text-zinc-300">
                   <Tag className="h-3.5 w-3.5 text-amber-400" />

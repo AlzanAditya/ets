@@ -19,6 +19,7 @@ import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { DataTableRow } from "@/components/data-table";
 import type { ColumnSchema } from "@/hooks/use-table-schema";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ArrowUpDownIcon,
   ChevronDownIcon,
@@ -29,12 +30,55 @@ import { Button } from "@/components/ui/button";
 
 // ─── Safe Cell Renderer ───────────────────────────────────────────────────────
 
+function isImageKeyOrValue(key?: string, value?: unknown): boolean {
+  if (key) {
+    const k = key.toLowerCase();
+    if (
+      k.includes("image") ||
+      k.includes("photo") ||
+      k.includes("avatar") ||
+      k.includes("picture") ||
+      k.includes("logo")
+    ) {
+      return true;
+    }
+  }
+  if (typeof value === "string" && value.length > 5) {
+    if (
+      value.startsWith("data:image/") ||
+      (value.startsWith("http") &&
+        /\.(jpg|jpeg|png|webp|svg|gif)(\?.*)?$/i.test(value))
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
- * Renders any cell value safely. Handles null, undefined, objects, arrays.
+ * Renders any cell value safely. Handles null, undefined, objects, arrays, images.
  */
-function SafeCellValue({ value }: { value: unknown }): React.ReactElement {
-  if (value === null || value === undefined) {
+function SafeCellValue({
+  value,
+  keyName,
+}: {
+  value: unknown;
+  keyName?: string;
+}): React.ReactElement {
+  if (value === null || value === undefined || value === "") {
     return <span className="text-muted-foreground/50">—</span>;
+  }
+
+  if (isImageKeyOrValue(keyName, value)) {
+    const srcStr = String(value);
+    return (
+      <Avatar className="size-8 border border-border/60">
+        <AvatarImage src={srcStr} alt="Photo" />
+        <AvatarFallback className="text-[10px] bg-muted font-semibold">
+          IMG
+        </AvatarFallback>
+      </Avatar>
+    );
   }
 
   if (typeof value === "boolean") {
@@ -147,14 +191,13 @@ export function buildColumnDefFromSchema<TData extends DataTableRow>(
     accessorKey: key,
     id: key,
     header: label.charAt(0).toUpperCase() + label.slice(1),
-    // UUID FK columns and timestamps start hidden — users can toggle them via
-    // the Columns dropdown without cluttering the default view.
-    ...(isUuid ? { meta: { defaultHidden: true } } : {}),
+    // Dynamic schema columns start hidden by default so pinned primary columns take priority
+    meta: { defaultHidden: true },
     cell: ({ row }) => {
       const value = (row.original as Record<string, unknown>)[key];
 
       if (isComplex) {
-        return <SafeCellValue value={value} />;
+        return <SafeCellValue value={value} keyName={key} />;
       }
       if (isUuid) {
         return <UuidCellValue value={value} />;
@@ -163,7 +206,7 @@ export function buildColumnDefFromSchema<TData extends DataTableRow>(
         return <DateCellValue value={value} />;
       }
 
-      return <SafeCellValue value={value} />;
+      return <SafeCellValue value={value} keyName={key} />;
     },
   };
 }

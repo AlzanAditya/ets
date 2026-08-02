@@ -261,7 +261,7 @@ export function WorkerViewMode({
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-sm text-foreground">
-                          {item.event_title || item.step_title || "Penugasan Step"}
+                          {item.event_title || item.event_type || "Penugasan Event"}
                         </span>
                         <Badge
                           variant="outline"
@@ -286,7 +286,7 @@ export function WorkerViewMode({
                       <div className="flex items-center gap-2">
                         <CheckCircle2Icon className="size-3.5 text-emerald-500 shrink-0" />
                         <span className="font-medium text-foreground">
-                          {item.step_title || "Step Pengerjaan"}
+                          {item.assigned_at ? `Ditugaskan: ${new Date(item.assigned_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}` : "Aktif"}
                         </span>
                       </div>
                       <Badge variant="secondary" className="text-[10px] font-normal">

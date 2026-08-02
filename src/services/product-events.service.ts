@@ -445,7 +445,9 @@ export const productEventsService = {
     }
 
     if (!rawEvents || rawEvents.length === 0) {
-      return [];
+      const defaultEvt = buildDefaultInstallationEvent(productId);
+      syncEventToDB(defaultEvt).catch((e) => console.warn("Failed to auto-sync default installation event:", e));
+      rawEvents = [defaultEvt];
     }
 
     const allPaths: string[] = [];
