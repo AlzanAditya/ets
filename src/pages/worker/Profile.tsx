@@ -4,7 +4,7 @@ import { useWorkerData } from "@/hooks/use-worker-data"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 
-export default function WorkerProfil() {
+export default function WorkerProfile() {
   const { logout } = useAuth()
   const { workerProfile, loading } = useWorkerData()
 

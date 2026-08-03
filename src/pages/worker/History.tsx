@@ -1,7 +1,7 @@
 import { HistoryTimeline } from "@/components/worker/timeline/HistoryTimeline"
 import { useWorkerData } from "@/hooks/use-worker-data"
 
-export default function WorkerHistori() {
+export default function WorkerHistory() {
   const { historyItems, loading } = useWorkerData()
 
   if (loading) {

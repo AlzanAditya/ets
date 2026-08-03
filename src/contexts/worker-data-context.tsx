@@ -137,7 +137,7 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
                   stepEvent: STEP_TYPE_TITLES[st.step_type] || st.title || st.step_type,
                   clientName: prod.client?.client_name || "Klien Lapangan",
                   serialNumber: prod.serial_number,
-                  address: prod.branch?.branch_name || "Lokasi Operasional",
+                  address: prod.client?.address || prod.branch?.branch_name || "Lokasi Operasional",
                   dateGroup: st.completed_at
                     ? new Date(st.completed_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
                     : "Hari Ini",
@@ -189,7 +189,7 @@ export function WorkerDataProvider({ children }: { children: React.ReactNode }) 
                 clientName: prod.client?.client_name || "Klien Lapangan",
                 clientLogo: clientAvatar,
                 clientPhone: "",
-                clientAddress: prod.client?.client_code ? `[${prod.client.client_code}] ${prod.client.client_name}` : "Alamat Klien Lapangan",
+                clientAddress: prod.client?.address || (prod.client?.client_code ? `[${prod.client.client_code}] ${prod.client.client_name}` : "Alamat Klien Lapangan"),
                 location: prod.branch?.branch_name || "Lokasi Operasional",
                 serialNumber: prod.serial_number,
                 productName: prod.product_name,

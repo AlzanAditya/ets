@@ -1,7 +1,7 @@
 import { WorkerScheduleTimeline } from "@/components/worker/timeline/WorkerScheduleTimeline"
 import { useWorkerData } from "@/hooks/use-worker-data"
 
-export default function WorkerJadwal() {
+export default function WorkerSchedule() {
   const { allTasks, loading } = useWorkerData()
 
   if (loading) {

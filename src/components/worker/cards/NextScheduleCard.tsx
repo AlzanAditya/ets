@@ -34,7 +34,7 @@ export function NextScheduleCard({ schedules, className }: NextScheduleCardProps
         </h3>
         <button
           type="button"
-          onClick={() => navigate("/worker/jadwal")}
+          onClick={() => navigate("/worker/schedule")}
           className="text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer"
         >
           Lihat Semua
@@ -53,7 +53,7 @@ export function NextScheduleCard({ schedules, className }: NextScheduleCardProps
           return (
             <div
               key={item.id}
-              onClick={() => navigate("/worker/jadwal")}
+              onClick={() => navigate("/worker/schedule")}
               className="rounded-xl border border-slate-800 bg-[#162028] p-3 shadow-xs flex items-center gap-3 hover:border-slate-700 transition-colors cursor-pointer"
             >
               <Avatar className="size-10 rounded-full border border-slate-700 bg-slate-800 shrink-0">

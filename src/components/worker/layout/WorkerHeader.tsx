@@ -33,13 +33,18 @@ export function WorkerHeader({
     type === "beranda" ||
     path === "/worker" ||
     path === "/worker/" ||
+    path === "/worker/home" ||
     path === "/worker/beranda" ||
     (!path.includes("/jadwal") &&
+      !path.includes("/schedule") &&
       !path.includes("/tugas") &&
+      !path.includes("/task") &&
       !path.includes("/pekerjaan") &&
       !path.includes("/riwayat") &&
+      !path.includes("/history") &&
       !path.includes("/histori") &&
-      !path.includes("/profil"))
+      !path.includes("/profil") &&
+      !path.includes("/profile"))
 
   // Determine user name
   const fullName =
@@ -59,13 +64,23 @@ export function WorkerHeader({
   let pageTitle = customTitle
 
   if (!pageTitle) {
-    if (type === "jadwal" || path.includes("/jadwal")) {
+    if (type === "jadwal" || path.includes("/jadwal") || path.includes("/schedule")) {
       pageTitle = "Jadwal Saya"
-    } else if (type === "tugas" || path.includes("/tugas") || path.includes("/pekerjaan")) {
+    } else if (
+      type === "tugas" ||
+      path.includes("/tugas") ||
+      path.includes("/pekerjaan") ||
+      path.includes("/task")
+    ) {
       pageTitle = "Tugas Saya"
-    } else if (type === "riwayat" || path.includes("/riwayat") || path.includes("/histori")) {
+    } else if (
+      type === "riwayat" ||
+      path.includes("/riwayat") ||
+      path.includes("/histori") ||
+      path.includes("/history")
+    ) {
       pageTitle = "Riwayat Pekerjaan"
-    } else if (type === "profil" || path.includes("/profil")) {
+    } else if (type === "profil" || path.includes("/profil") || path.includes("/profile")) {
       pageTitle = "Profil Saya"
     } else {
       // Default to Beranda

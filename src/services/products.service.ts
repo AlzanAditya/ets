@@ -21,7 +21,7 @@ export interface GetProductsParams {
 
 export interface ProductWithRelations extends ProductRow {
   branch?: { branch_name: string; branch_code: string } | null;
-  client?: { client_id?: string; client_name: string; client_code: string } | null;
+  client?: { client_id?: string; client_name: string; client_code: string; address?: string | null } | null;
   images?: ProductImageRow[];
 }
 
@@ -39,7 +39,7 @@ async function enrichProductRelations(product: ProductWithRelations): Promise<Pr
   if (clientId && (!product.client || !product.client.client_name)) {
     const { data: clientData, error: clientErr } = await supabase
       .from("clients")
-      .select("client_id, client_name, client_code")
+      .select("client_id, client_name, client_code, address")
       .or(`client_id.eq.${clientId},id.eq.${clientId}`)
       .maybeSingle();
 
@@ -54,7 +54,7 @@ async function enrichProductRelations(product: ProductWithRelations): Promise<Pr
   if (!product.client || !product.client.client_name) {
     const { data: fallbackClient, error: fbErr } = await supabase
       .from("clients")
-      .select("client_id, client_name, client_code")
+      .select("client_id, client_name, client_code, address")
       .is("deleted_at", null)
       .limit(1)
       .maybeSingle();
@@ -187,7 +187,7 @@ export const productsService = {
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_id, client_name, client_code)
+        client:clients(client_id, client_name, client_code, address)
       `,
       )
       .order("created_at", { ascending: false })
@@ -262,7 +262,7 @@ export const productsService = {
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_id, client_name, client_code)
+        client:clients(client_id, client_name, client_code, address)
       `,
       )
       .eq("product_id", product_id)
@@ -307,7 +307,7 @@ export const productsService = {
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_id, client_name, client_code)
+        client:clients(client_id, client_name, client_code, address)
       `,
       )
       .eq("serial_number", serial_number)
@@ -447,7 +447,7 @@ export const productsService = {
         `
         *,
         branch:branches(branch_name, branch_code),
-        client:clients(client_id, client_name, client_code)
+        client:clients(client_id, client_name, client_code, address)
       `,
       )
       .order("created_at", { ascending: false })

@@ -31,11 +31,11 @@ function useIsInputFocused(): boolean {
 }
 
 const WORKER_NAV_ITEMS = [
-  { title: "Beranda", url: "/worker/beranda", icon: House },
-  { title: "Tugas", url: "/worker/tugas", icon: ClipboardList },
-  { title: "Jadwal", url: "/worker/jadwal", icon: Calendar },
-  { title: "Riwayat", url: "/worker/riwayat", icon: RotateCcw },
-  { title: "Profil", url: "/worker/profil", icon: UserRound },
+  { title: "Beranda", url: "/worker/home", icon: House },
+  { title: "Tugas", url: "/worker/task", icon: ClipboardList },
+  { title: "Jadwal", url: "/worker/schedule", icon: Calendar },
+  { title: "Riwayat", url: "/worker/history", icon: RotateCcw },
+  { title: "Profil", url: "/worker/profile", icon: UserRound },
 ] as const
 
 export function WorkerBottomNavigation() {
@@ -44,8 +44,9 @@ export function WorkerBottomNavigation() {
   const isInputFocused = useIsInputFocused()
 
   const isActive = (url: string) => {
-    if (url === "/worker/beranda") {
+    if (url === "/worker/home") {
       return (
+        location.pathname === "/worker/home" ||
         location.pathname === "/worker/beranda" ||
         location.pathname === "/worker" ||
         location.pathname === "/worker/"
@@ -84,6 +85,8 @@ export function WorkerBottomNavigation() {
                   active && "scale-110"
                 )}
                 strokeWidth={active ? 2.25 : 1.75}
+                fill={active ? "currentColor" : "none"}
+                fillOpacity={active ? 0.4 : undefined}
               />
               <span
                 className={cn(

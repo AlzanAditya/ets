@@ -12,7 +12,7 @@ interface GuestGuardProps {
  * - While loading, renders loading state.
  * - If user is logged in:
  *   - super_admin / admin -> Redirect to /dashboard
- *   - worker -> Redirect to /worker/beranda
+ *   - worker -> Redirect to /worker/home
  * - If unauthenticated, renders children (e.g. LoginForm).
  */
 export function GuestGuard({ children }: GuestGuardProps) {
@@ -34,7 +34,7 @@ export function GuestGuard({ children }: GuestGuardProps) {
 
   if (session) {
     if (role === "worker") {
-      return <Navigate to="/worker/beranda" replace />
+      return <Navigate to="/worker/home" replace />
     }
     if (role === "admin" || role === "super_admin") {
       return <Navigate to="/dashboard" replace />

@@ -14,7 +14,7 @@ interface RoleGuardProps {
  * Purpose: Protect routes based on user role.
  * - While AuthContext is loading, renders a loading state.
  * - If user's role is NOT in the `allow` list:
- *   - If worker tries to access unauthorized page -> redirect to /worker/beranda
+ *   - If worker tries to access unauthorized page -> redirect to /worker/home
  *   - If admin/super_admin tries to access unauthorized page -> redirect to /dashboard
  *   - Or use explicit `redirectTo` if provided.
  * - If user's role is in the `allow` list, renders `children`.
@@ -45,8 +45,8 @@ export function RoleGuard({ allow, redirectTo, children }: RoleGuardProps) {
   if (!allow.includes(role)) {
     console.warn(`[RoleGuard] Role "${role}" not in allowed list [${allow.join(", ")}]. Actioning role-based redirect.`)
     if (role === "worker") {
-      console.log(`[RoleGuard] Redirecting worker to /worker/beranda`)
-      return <Navigate to="/worker/beranda" replace />
+      console.log(`[RoleGuard] Redirecting worker to /worker/home`)
+      return <Navigate to="/worker/home" replace />
     }
     if (role === "admin" || role === "super_admin") {
       console.log(`[RoleGuard] Redirecting admin to /dashboard`)

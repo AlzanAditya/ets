@@ -74,7 +74,7 @@ export function LoginForm({
     }
 
     // Auth state change will propagate through AuthContext automatically
-    navigate(roleMode === "worker" ? "/worker/beranda" : "/dashboard", { replace: true });
+    navigate(roleMode === "worker" ? "/worker/home" : "/dashboard", { replace: true });
   }
 
   return (

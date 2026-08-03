@@ -41,11 +41,11 @@ import PublicProductDetail from "@/pages/public/ProductDetail"
 import { useRealtimeSync } from "@/hooks/use-realtime-sync"
 
 import { WorkerLayout } from "@/components/worker/layout/WorkerLayout"
-import WorkerBeranda from "@/pages/worker/Beranda"
-import WorkerJadwal from "@/pages/worker/Jadwal"
-import WorkerPekerjaan from "@/pages/worker/Pekerjaan"
-import WorkerHistori from "@/pages/worker/Histori"
-import WorkerProfil from "@/pages/worker/Profil"
+import WorkerHome from "@/pages/worker/Home"
+import WorkerSchedule from "@/pages/worker/Schedule"
+import WorkerTask from "@/pages/worker/Task"
+import WorkerHistory from "@/pages/worker/History"
+import WorkerProfile from "@/pages/worker/Profile"
 
 import { RoleGuard } from "@/components/auth/RoleGuard"
 import { GuestGuard } from "@/components/auth/GuestGuard"
@@ -232,21 +232,19 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 >
-                  <Route index element={<Navigate to="/worker/beranda" replace />} />
-                  <Route path="beranda" element={<WorkerBeranda />} />
-                  <Route path="jadwal" element={<WorkerJadwal />} />
-                  <Route path="tugas" element={<WorkerPekerjaan />} />
-                  <Route path="pekerjaan" element={<WorkerPekerjaan />} />
-                  <Route path="riwayat" element={<WorkerHistori />} />
-                  <Route path="histori" element={<WorkerHistori />} />
-                  <Route path="profil" element={<WorkerProfil />} />
+                  <Route index element={<Navigate to="/worker/home" replace />} />
+                  <Route path="home" element={<WorkerHome />} />
+                  <Route path="task" element={<WorkerTask />} />
+                  <Route path="schedule" element={<WorkerSchedule />} />
+                  <Route path="history" element={<WorkerHistory />} />
+                  <Route path="profile" element={<WorkerProfile />} />
                 </Route>
 
                 {/* Admin protected routes (Only for roles: admin, super_admin) */}
                 <Route
                   element={
                     <ProtectedRoute>
-                      <RoleGuard allow={ADMIN_ROLES} redirectTo="/worker/beranda">
+                      <RoleGuard allow={ADMIN_ROLES} redirectTo="/worker/home">
                         <AppLayout />
                       </RoleGuard>
                     </ProtectedRoute>

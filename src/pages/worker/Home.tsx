@@ -3,12 +3,12 @@ import { CurrentJobCard } from "@/components/worker/cards/CurrentJobCard"
 import { NextScheduleCard } from "@/components/worker/cards/NextScheduleCard"
 import { useWorkerData } from "@/hooks/use-worker-data"
 
-export default function WorkerBeranda() {
+export default function WorkerHome() {
   const { currentJob, nextSchedules, loading } = useWorkerData()
 
   const renderCountRef = React.useRef(0)
   renderCountRef.current += 1
-  console.log(`[WorkerBeranda] Render count: ${renderCountRef.current}`)
+  console.log(`[WorkerHome] Render count: ${renderCountRef.current}`)
 
   if (loading) {
     return (
