@@ -443,7 +443,7 @@ export function ProductEventAccordion({
         const eventDateDisplay = isEventCompleted && evt.completed_at
           ? new Date(evt.completed_at).toLocaleDateString("id-ID", {
               day: "2-digit",
-              month: "2-digit",
+              month: "long",
               year: "numeric",
             })
           : null;
@@ -549,7 +549,7 @@ export function ProductEventAccordion({
                   const stepDateDisplay = isStepCompleted && step.completed_at
                     ? new Date(step.completed_at).toLocaleDateString("id-ID", {
                         day: "2-digit",
-                        month: "2-digit",
+                        month: "long",
                         year: "numeric",
                       })
                     : null;

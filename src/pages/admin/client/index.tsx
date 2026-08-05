@@ -20,6 +20,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { PageContent } from "@/components/page-content";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { uploadClientAvatar, getClientAvatarUrl } from "@/lib/image-service";
 import { optimizeAvatarImage } from "@/lib/image-optimizer";
 
@@ -41,14 +42,51 @@ function emptyFields(): ClientInsert {
   };
 }
 
+function getClientInitials(name: string): string {
+  if (!name || !name.trim()) return "CL";
+  const cleaned = name
+    .trim()
+    .replace(/^(PT\.?|CV\.?|UD\.?|PD\.?|TB\.?|FIRMA)\s+/i, "")
+    .trim();
+  if (!cleaned) return name.slice(0, 2).toUpperCase();
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return words
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 // ─── Pinned Columns for Main Client Table ──────────────────────────────────────
 
 type ClientRowWithId = ClientRow & DataTableRow;
 
 const PINNED_COLUMNS: ColumnDef<ClientRowWithId>[] = [
   {
+    id: "profile",
+    header: "Profil",
+    cell: ({ row }) => {
+      const client = row.original;
+      const targetId = String(client.client_id || client.id || "");
+      const savedAvatar = typeof window !== "undefined" ? localStorage.getItem(`client_avatar_${targetId}`) : null;
+      const avatarUrl = savedAvatar || getClientAvatarUrl(targetId);
+      const initials = getClientInitials(client.client_name);
+
+      return (
+        <Avatar className="size-9 border border-border/60 shrink-0">
+          {avatarUrl ? <AvatarImage src={avatarUrl} alt={client.client_name} /> : null}
+          <AvatarFallback className="bg-emerald-500/10 text-emerald-600 font-bold text-xs dark:text-emerald-400">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+      );
+    },
+  },
+  {
     accessorKey: "client_code",
     header: "Kode Klien",
+    meta: { defaultHidden: true },
     cell: ({ row }) => (
       <span className="font-mono text-xs font-semibold tracking-wider text-foreground bg-muted px-1.5 py-0.5 rounded">
         {row.original.client_code}

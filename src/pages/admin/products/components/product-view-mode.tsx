@@ -416,7 +416,7 @@ export function ProductViewMode({
             <div className="relative p-3 bg-white rounded-2xl shadow-inner border-2 border-zinc-700 shrink-0">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(
-                  `https://ets.zanxa.studio/p/${currentProduct.serial_number}`
+                  `${window.location.origin}/p/${currentProduct.serial_number}`
                 )}`}
                 alt={`QR Code ${currentProduct.serial_number}`}
                 className="w-48 h-48 object-contain"
@@ -449,7 +449,7 @@ export function ProductViewMode({
               size="sm"
               className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl gap-1.5"
               onClick={() => {
-                window.open(`https://ets.zanxa.studio/p/${currentProduct.serial_number}`, "_blank");
+                window.open(`${window.location.origin}/p/${currentProduct.serial_number}`, "_blank");
               }}
             >
               <ExternalLinkIcon className="h-3.5 w-3.5" />

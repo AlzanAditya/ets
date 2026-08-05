@@ -1,10 +1,10 @@
 import * as React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Wrench,
   Check,
   ChevronDown,
   Loader2,
-  Calendar,
   Download,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import {
   productEventsService,
   deduplicateImages,
   type ProductEventData,
+  type ProductStepData,
   type ProductStepImage,
   STEP_TYPE_TITLES,
 } from "@/services/product-events.service";
@@ -57,12 +58,12 @@ export function PublicEventAccordion({
       const initialStepState: Record<string, boolean> = {};
 
       sortedEvents.forEach((evt, idx) => {
-        initialEventState[evt.event_id] = idx === 0 || evt.status === "active";
-        evt.steps.forEach((st) => {
-          if (st.images.length > 0) {
-            initialStepState[st.step_id] = true;
-          }
-        });
+        // Only top-most main event is expanded
+        initialEventState[evt.event_id] = idx === 0;
+        // Inside top-most main event, only expand the first step
+        if (idx === 0 && evt.steps.length > 0) {
+          initialStepState[evt.steps[0].step_id] = true;
+        }
       });
 
       setExpandedEvents(initialEventState);
@@ -143,6 +144,62 @@ export function PublicEventAccordion({
     }
   };
 
+  // Export step images as ZIP
+  const handleExportStepImages = async (evt: ProductEventData, step: ProductStepData) => {
+    const images = step.images.map((img) => ({
+      source: img.signedUrl || img.storage_path,
+      fileName: img.file_name || undefined,
+      context: {
+        event: evt.title || evt.event_type,
+        step: STEP_TYPE_TITLES[step.step_type] || step.title,
+        productCode: "",
+        serialNumber: serialNumber,
+      },
+    }));
+
+    if (images.length === 0) {
+      toast.info("Tidak ada foto pada tahap ini.");
+      return;
+    }
+
+    const stepTitle = STEP_TYPE_TITLES[step.step_type] || step.title;
+    const toastId = toast.loading(`Mempersiapkan ${images.length} foto ${stepTitle}...`);
+    try {
+      await exportImages({
+        images,
+        pipeline: ["convert:jpeg", "zip", "download"],
+        jpegQuality: 0.9,
+        zip: {
+          name: `${serialNumber}_${evt.title}_${stepTitle}_Foto`,
+          folderStrategy: "none",
+        },
+        fileNaming: {
+          template: "{step}_{index}",
+          indexPadding: 3,
+        },
+        onProgress: (p) => {
+          if (p.stage === "fetching" || p.stage === "converting") {
+            toast.loading(`Memproses foto (${p.currentFileIndex}/${p.totalFiles})...`, { id: toastId });
+          } else if (p.stage === "zipping") {
+            toast.loading(`Membuat ZIP (${p.percentage}%)...`, { id: toastId });
+          } else if (p.stage === "downloading") {
+            toast.loading("Memulai unduhan...", { id: toastId });
+          }
+        },
+        onComplete: (res) => {
+          if (res.success) {
+            toast.success(`Berhasil mengunduh ${res.exportedCount} foto ${stepTitle}`, { id: toastId });
+          }
+        },
+        onError: (err) => {
+          toast.error(`Gagal unduh foto: ${err.message}`, { id: toastId });
+        },
+      });
+    } catch (err: any) {
+      toast.error(`Gagal unduh foto: ${err?.message || err}`, { id: toastId });
+    }
+  };
+
   // Open Lightbox
   const openLightbox = (images: ProductStepImage[], initialIdx: number, stepTitle: string) => {
     const lightboxImages: LightboxImage[] = images.map((img, i) => ({
@@ -188,7 +245,7 @@ export function PublicEventAccordion({
         const eventDateDisplay = isEventCompleted && evt.completed_at
           ? new Date(evt.completed_at).toLocaleDateString("id-ID", {
               day: "2-digit",
-              month: "2-digit",
+              month: "long",
               year: "numeric",
             })
           : null;
@@ -226,9 +283,11 @@ export function PublicEventAccordion({
                   <h3 className="text-sm font-bold tracking-wider uppercase text-zinc-100">
                     {evt.title}
                   </h3>
-                  <p className="text-xs text-zinc-400 font-medium">
-                    {isEventCompleted ? "Event Selesai & Terverifikasi" : "Dalam Proses Pengerjaan"}
-                  </p>
+                  {eventDateDisplay && (
+                    <p className="text-xs font-mono font-medium text-zinc-400 mt-0.5">
+                      {eventDateDisplay}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -241,19 +300,12 @@ export function PublicEventAccordion({
                       e.stopPropagation();
                       handleExportEventImages(evt);
                     }}
-                    className="h-7 px-2.5 text-xs rounded-lg text-zinc-300 hover:text-white bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 gap-1.5 transition-colors"
+                    className="h-auto p-0 text-xs text-zinc-400 hover:text-white bg-transparent border-none hover:bg-transparent gap-1.5 shadow-none transition-colors"
                     title={`Unduh ${totalPhotos} foto event`}
                   >
                     <Download className="size-3.5 text-zinc-400" />
                     <span className="hidden sm:inline font-medium">Foto ({totalPhotos})</span>
                   </Button>
-                )}
-
-                {eventDateDisplay && (
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 text-xs font-mono font-medium">
-                    <Calendar className="size-3 text-zinc-400" />
-                    <span>{eventDateDisplay}</span>
-                  </div>
                 )}
 
                 <ChevronDown
@@ -266,95 +318,133 @@ export function PublicEventAccordion({
             </div>
 
             {/* Sub Events / Steps List */}
-            {isEventExpanded && (
-              <div className="p-3 sm:p-4 space-y-3 bg-zinc-950/60">
-                {evt.steps.map((step, stepIdx) => {
-                  const isStepExpanded = !!expandedSteps[step.step_id];
-                  const isStepCompleted = step.status === "completed";
+            <AnimatePresence initial={false}>
+              {isEventExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, filter: "blur(6px)", height: 0 }}
+                  animate={{ opacity: 1, filter: "blur(0px)", height: "auto" }}
+                  exit={{ opacity: 0, filter: "blur(6px)", height: 0 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-3 sm:p-4 space-y-3 bg-zinc-950/60">
+                    {evt.steps.map((step, stepIdx) => {
+                      const isStepExpanded = !!expandedSteps[step.step_id];
+                      const isStepCompleted = step.status === "completed";
 
-                  const stepDateDisplay = isStepCompleted && step.completed_at
-                    ? new Date(step.completed_at).toLocaleDateString("id-ID", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                      })
-                    : null;
+                      const stepDateDisplay = isStepCompleted && step.completed_at
+                        ? new Date(step.completed_at).toLocaleDateString("id-ID", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })
+                        : null;
 
-                  return (
-                    <div
-                      key={step.step_id}
-                      className="rounded-xl border border-zinc-800 bg-zinc-900/60 transition-all"
-                    >
-                      {/* Step Header */}
-                      <div
-                        onClick={() => toggleStep(step.step_id)}
-                        className="flex items-center justify-between p-3.5 select-none cursor-pointer hover:bg-zinc-800/40"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          {isStepCompleted ? (
-                            <Check className="size-4 text-emerald-400 stroke-[3]" />
-                          ) : (
-                            <Wrench className="size-4 text-amber-400 animate-pulse" />
-                          )}
+                      return (
+                        <div
+                          key={step.step_id}
+                          className="rounded-xl border border-zinc-800 bg-zinc-900/60 transition-all overflow-hidden"
+                        >
+                          {/* Step Header */}
+                          <div
+                            onClick={() => toggleStep(step.step_id)}
+                            className="flex items-center justify-between p-3.5 select-none cursor-pointer hover:bg-zinc-800/40"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              {isStepCompleted ? (
+                                <Check className="size-4 text-emerald-400 stroke-[3]" />
+                              ) : (
+                                <Wrench className="size-4 text-amber-400 animate-pulse" />
+                              )}
 
-                          <span className="text-xs sm:text-sm font-semibold text-zinc-200">
-                            {stepIdx + 1}. {STEP_TYPE_TITLES[step.step_type] || step.title}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {stepDateDisplay && (
-                            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-950 border border-zinc-800 text-[11px] font-mono text-zinc-300">
-                              {stepDateDisplay}
-                            </span>
-                          )}
-
-                          <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 text-xs font-mono font-semibold">
-                            {step.images.length} foto
-                          </span>
-
-                          <ChevronDown
-                            className={cn(
-                              "size-4 text-zinc-400 transition-transform duration-200",
-                              isStepExpanded && "rotate-180"
-                            )}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Step Gallery */}
-                      {isStepExpanded && (
-                        <div className="p-3 sm:p-4 border-t border-zinc-800/60 space-y-3 bg-zinc-950/80">
-                          {step.images.length === 0 ? (
-                            <p className="text-xs text-zinc-500 italic">Belum ada foto dokumentasi pada tahap ini.</p>
-                          ) : (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
-                              {deduplicateImages(step.images).map((img, imgIdx) => {
-                                const imgSrc = img.signedUrl || img.thumbnail_path || img.storage_path;
-                                return (
-                                  <div
-                                    key={img.storage_path || img.id || `public-img-${imgIdx}`}
-                                    onClick={() => openLightbox(step.images, imgIdx, STEP_TYPE_TITLES[step.step_type] || step.title)}
-                                    className="group relative aspect-square rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden cursor-pointer hover:border-emerald-500 transition-all shadow-sm"
-                                  >
-                                    <img
-                                      src={imgSrc}
-                                      alt={`Dokumentasi ${imgIdx + 1}`}
-                                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                      loading="lazy"
-                                    />
-                                  </div>
-                                );
-                              })}
+                              <span className="text-xs sm:text-sm font-semibold text-zinc-200">
+                                {stepIdx + 1}. {STEP_TYPE_TITLES[step.step_type] || step.title}
+                              </span>
                             </div>
-                          )}
+
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              {stepDateDisplay && (
+                                <span className="hidden sm:inline-flex items-center text-[11px] font-mono text-zinc-400 border-none bg-transparent p-0">
+                                  {stepDateDisplay}
+                                </span>
+                              )}
+
+                              {step.images.length > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleExportStepImages(evt, step);
+                                  }}
+                                  className="h-auto p-0 text-zinc-400 hover:text-white bg-transparent border-none hover:bg-transparent shadow-none transition-colors"
+                                  title={`Unduh ${step.images.length} foto tahap ini`}
+                                >
+                                  <Download className="size-3.5 text-zinc-400" />
+                                </Button>
+                              )}
+
+                              <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 text-xs font-mono font-semibold">
+                                {step.images.length}
+                              </span>
+
+                              <ChevronDown
+                                className={cn(
+                                  "size-4 text-zinc-400 transition-transform duration-200",
+                                  isStepExpanded && "rotate-180"
+                                )}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Step Gallery */}
+                          <AnimatePresence initial={false}>
+                            {isStepExpanded && (
+                              <motion.div
+                                initial={{ opacity: 0, filter: "blur(6px)", height: 0 }}
+                                animate={{ opacity: 1, filter: "blur(0px)", height: "auto" }}
+                                exit={{ opacity: 0, filter: "blur(6px)", height: 0 }}
+                                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                                className="overflow-hidden"
+                              >
+                                <div className="p-3 sm:p-4 border-t border-zinc-800/60 space-y-3 bg-zinc-950/80">
+                                  {step.images.length === 0 ? (
+                                    <p className="text-xs text-zinc-500 italic">Belum ada foto dokumentasi pada tahap ini.</p>
+                                  ) : (
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+                                      {deduplicateImages(step.images).map((img, imgIdx) => {
+                                        const imgSrc = img.signedUrl || img.thumbnail_path || img.storage_path;
+                                        return (
+                                          <motion.div
+                                            key={img.storage_path || img.id || `public-img-${imgIdx}`}
+                                            initial={{ opacity: 0, filter: "blur(4px)", scale: 0.95 }}
+                                            animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+                                            transition={{ duration: 0.25, delay: imgIdx * 0.04 }}
+                                            onClick={() => openLightbox(step.images, imgIdx, STEP_TYPE_TITLES[step.step_type] || step.title)}
+                                            className="group relative aspect-square rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden cursor-pointer hover:border-emerald-500 transition-all shadow-sm"
+                                          >
+                                            <img
+                                              src={imgSrc}
+                                              alt={`Dokumentasi ${imgIdx + 1}`}
+                                              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                              loading="lazy"
+                                            />
+                                          </motion.div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         );
       })}

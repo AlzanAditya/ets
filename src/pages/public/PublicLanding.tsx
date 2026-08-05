@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   QrCode,
   Search,
@@ -75,9 +76,19 @@ export default function PublicLanding() {
       <PublicHeader />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
+      <motion.main
+        initial={{ opacity: 0, filter: "blur(12px)", y: 16 }}
+        animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+        transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+        className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16"
+      >
         {/* Hero Section */}
-        <section className="relative rounded-3xl border border-zinc-800 bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-zinc-950 p-6 sm:p-12 overflow-hidden text-center shadow-2xl">
+        <motion.section
+          initial={{ opacity: 0, filter: "blur(10px)", scale: 0.98 }}
+          animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          className="relative rounded-3xl border border-zinc-800 bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-zinc-950 p-6 sm:p-12 overflow-hidden text-center shadow-2xl"
+        >
           <div className="absolute -top-24 -left-24 w-72 h-72 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -85,18 +96,17 @@ export default function PublicLanding() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-xs font-bold text-emerald-400">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
-              <span>Verifikasi Kode QR Aset Resmi ETS</span>
+              <span>Verifikasi resmi ETS</span>
             </div>
 
             {/* Main Headline */}
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-              Pindai Kode QR untuk Informasi &amp; Tracking Produk
+              Scan QR. Akses Semua Informasi Produk.
             </h1>
 
             {/* Subheadline */}
             <p className="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-              Dapatkan akses langsung ke spesifikasi teknis lengkap, status garansi aktif,
-              dokumentasi instalasi, riwayat maintenance, dan log aktivitas resmi produk Anda.
+              Cek spesifikasi, garansi, dokumentasi instalasi, dan riwayat maintenance produk Anda secara langsung.
             </p>
 
             {/* Primary Action Controls */}
@@ -107,7 +117,7 @@ export default function PublicLanding() {
                 className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm px-6 py-6 rounded-2xl shadow-lg shadow-emerald-600/20 gap-2"
               >
                 <QrCode className="h-5 w-5" />
-                <span>Pindai Kode QR Sekarang</span>
+                <span>Scan QR Code</span>
               </Button>
 
               <form
@@ -184,10 +194,15 @@ export default function PublicLanding() {
               </p>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Featured Sample Products Section */}
-        <section className="space-y-6">
+        <motion.section
+          initial={{ opacity: 0, filter: "blur(10px)", y: 12 }}
+          animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+          className="space-y-6"
+        >
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-zinc-100 flex items-center gap-2">
@@ -211,13 +226,16 @@ export default function PublicLanding() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {sampleProducts.map((prod) => {
+              {sampleProducts.map((prod, pIdx) => {
                 const clientName = prod.client?.client_name || "Client ETS";
                 const isMaintenance = prod.status === "maintenance";
 
                 return (
-                  <div
+                  <motion.div
                     key={prod.product_id}
+                    initial={{ opacity: 0, filter: "blur(8px)", y: 12 }}
+                    animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.4 + pIdx * 0.16 }}
                     onClick={() => navigate(`/p/${prod.serial_number}`)}
                     className="group rounded-2xl border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-900 p-5 space-y-4 cursor-pointer transition-all hover:border-emerald-500/50 shadow-lg"
                   >
@@ -268,22 +286,18 @@ export default function PublicLanding() {
                         <ArrowRight className="h-4 w-4" />
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
           )}
-        </section>
-      </main>
+        </motion.section>
+      </motion.main>
 
       {/* Footer */}
       <footer className="border-t border-zinc-800 py-6 bg-zinc-950 text-center text-xs text-zinc-500">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="max-w-6xl mx-auto px-4 flex items-center justify-center">
           <p>&copy; {new Date().getFullYear()} Electrical Tracking System (ETS). All rights reserved.</p>
-          <div className="flex items-center gap-2 text-[11px] text-zinc-400">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-            <span>Sistem Verifikasi Produk Terenkripsi</span>
-          </div>
         </div>
       </footer>
 

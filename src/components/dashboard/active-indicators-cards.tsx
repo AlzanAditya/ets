@@ -25,7 +25,6 @@ import {
   HardHat,
   Users,
   X,
-  Building2,
   Calendar,
   Package,
 } from "lucide-react"
@@ -33,7 +32,24 @@ import { workersService } from "@/services/workers.service"
 import { clientsService } from "@/services/clients.service"
 import { productsService } from "@/services/products.service"
 import { supabase } from "@/lib/supabase"
+import { getClientAvatarUrl } from "@/lib/image-service"
 import { WorkerEventCard } from "@/components/worker-event-card"
+
+function getClientInitials(name: string): string {
+  if (!name || !name.trim()) return "CL"
+  const cleaned = name
+    .trim()
+    .replace(/^(PT\.?|CV\.?|UD\.?|PD\.?|TB\.?|FIRMA)\s+/i, "")
+    .trim()
+  if (!cleaned) return name.slice(0, 2).toUpperCase()
+  const words = cleaned.split(/\s+/).filter(Boolean)
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
+  return words
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
+}
 
 export interface ActiveWorkerEventItem {
   event_id: string
@@ -60,6 +76,7 @@ export interface ActiveClientItem {
   id: string
   clientName: string
   clientCode: string
+  avatarUrl?: string | null
   activeEventsCount: number
   eventsList: {
     event_title: string
@@ -299,10 +316,19 @@ export function ActiveIndicatorsCards() {
         const eventsList = Array.from(eventsMap.values())
 
         if (eventsList.length > 0) {
+          const clientAvatar =
+            (client as any).avatar_url ||
+            (client as any).avatarUrl ||
+            getClientAvatarUrl(clientId) ||
+            (typeof window !== "undefined"
+              ? localStorage.getItem(`client_avatar_${clientId}`)
+              : null)
+
           clientsList.push({
             id: clientId,
             clientName: client.client_name,
             clientCode: client.client_code,
+            avatarUrl: clientAvatar,
             activeEventsCount: eventsList.length,
             eventsList,
           })
@@ -330,41 +356,37 @@ export function ActiveIndicatorsCards() {
   return (
     <>
       {/* Container Cards for Pekerja Aktif & Klien Aktif */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {/* Card Pekerja Aktif */}
         <Card
           onClick={() => handleOpenDrawer("workers")}
           className="group cursor-pointer border border-border/80 hover:border-primary/50 transition-all shadow-2xs hover:shadow-sm"
         >
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AvatarGroup>
-                {activeWorkers.slice(0, 3).map((w) => (
-                  <Avatar key={w.id} size="sm">
-                    {w.avatarUrl ? (
-                      <AvatarImage src={w.avatarUrl} alt={w.nickname} />
-                    ) : null}
-                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                      {w.nickname.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-                <AvatarGroupCount className="text-xs font-semibold">
-                  +{activeWorkers.length}
-                </AvatarGroupCount>
-              </AvatarGroup>
-
-              <FieldLabel className="text-sm font-semibold cursor-pointer text-foreground group-hover:text-primary transition-colors">
+          <CardContent className="px-3.5 sm:px-4 py-2 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <FieldLabel className="text-sm sm:text-base font-bold cursor-pointer text-foreground group-hover:text-primary transition-colors">
                 Pekerja Aktif
               </FieldLabel>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs font-medium">
-                {activeWorkers.length} Orang
-              </Badge>
               <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
             </div>
+
+            <AvatarGroup>
+              {activeWorkers.slice(0, 4).map((w) => (
+                <Avatar key={w.id} className="size-9 sm:size-10">
+                  {w.avatarUrl ? (
+                    <AvatarImage src={w.avatarUrl} alt={w.nickname} />
+                  ) : null}
+                  <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
+                    {w.nickname.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {activeWorkers.length > 4 && (
+                <AvatarGroupCount className="size-9 sm:size-10 text-xs sm:text-sm font-bold bg-neutral-800 text-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 ring-2 ring-background">
+                  +{activeWorkers.length - 4}
+                </AvatarGroupCount>
+              )}
+            </AvatarGroup>
           </CardContent>
         </Card>
 
@@ -373,32 +395,31 @@ export function ActiveIndicatorsCards() {
           onClick={() => handleOpenDrawer("clients")}
           className="group cursor-pointer border border-border/80 hover:border-primary/50 transition-all shadow-2xs hover:shadow-sm"
         >
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AvatarGroup>
-                {activeClients.slice(0, 3).map((c) => (
-                  <Avatar key={c.id} size="sm">
-                    <AvatarFallback className="text-[10px] bg-emerald-500/10 text-emerald-600 font-semibold dark:text-emerald-400">
-                      {c.clientName.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-                <AvatarGroupCount className="text-xs font-semibold">
-                  +{activeClients.length}
-                </AvatarGroupCount>
-              </AvatarGroup>
-
-              <FieldLabel className="text-sm font-semibold cursor-pointer text-foreground group-hover:text-primary transition-colors">
+          <CardContent className="px-3.5 sm:px-4 py-2 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <FieldLabel className="text-sm sm:text-base font-bold cursor-pointer text-foreground group-hover:text-primary transition-colors">
                 Klien Aktif
               </FieldLabel>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs font-medium">
-                {activeClients.length} Klien
-              </Badge>
               <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
             </div>
+
+            <AvatarGroup>
+              {activeClients.slice(0, 4).map((c) => (
+                <Avatar key={c.id} className="size-9 sm:size-10">
+                  {c.avatarUrl ? (
+                    <AvatarImage src={c.avatarUrl} alt={c.clientName} />
+                  ) : null}
+                  <AvatarFallback className="text-xs bg-emerald-500/10 text-emerald-600 font-semibold dark:text-emerald-400">
+                    {getClientInitials(c.clientName)}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {activeClients.length > 4 && (
+                <AvatarGroupCount className="size-9 sm:size-10 text-xs sm:text-sm font-bold bg-neutral-800 text-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 ring-2 ring-background">
+                  +{activeClients.length - 4}
+                </AvatarGroupCount>
+              )}
+            </AvatarGroup>
           </CardContent>
         </Card>
       </div>
@@ -550,9 +571,14 @@ export function ActiveIndicatorsCards() {
                         <AccordionTrigger className="hover:no-underline py-3 text-sm font-normal">
                           <div className="flex items-center justify-between gap-2.5 overflow-hidden pr-2 w-full">
                             <div className="flex items-center gap-2.5 overflow-hidden">
-                              <div className="size-7 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0">
-                                <Building2 className="size-3.5" />
-                              </div>
+                              <Avatar className="size-7 shrink-0">
+                                {client.avatarUrl ? (
+                                  <AvatarImage src={client.avatarUrl} alt={client.clientName} />
+                                ) : null}
+                                <AvatarFallback className="size-7 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                                  {getClientInitials(client.clientName)}
+                                </AvatarFallback>
+                              </Avatar>
 
                               <span
                                 role="button"

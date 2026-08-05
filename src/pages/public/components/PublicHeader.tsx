@@ -1,4 +1,3 @@
-import { ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function PublicHeader() {
@@ -22,19 +21,8 @@ export function PublicHeader() {
                 Electrical Tracking System
               </h1>
             </div>
-            <p className="text-[11px] text-zinc-400 font-medium">
-              Verifikasi &amp; Tracking Produk Resmi
-            </p>
           </div>
         </Link>
-
-        {/* Status Badge */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-            Portal Publik Resmi
-          </span>
-        </div>
       </div>
     </header>
   );

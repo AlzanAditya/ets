@@ -20,6 +20,7 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { AnimationProvider } from "@/contexts/animation-context"
 import { TableDensityProvider } from "@/contexts/table-density-context"
 import { NavModeProvider, useNavMode } from "@/contexts/nav-mode-context"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { useTransactionStats } from "@/hooks/use-transactions"
 import { BreadcrumbProvider } from "@/contexts/breadcrumb-context"
 import { cn } from "@/lib/utils"
@@ -69,7 +70,9 @@ function AppLayoutContent({
   userNav: { name: string; email: string; fallback: string }
   handleNavigate: (url: string) => void
 }) {
-  const { sidebarEnabled, navbarEnabled } = useNavMode()
+  const { sidebarEnabled, sidebarMobileEnabled, navbarEnabled } = useNavMode()
+  const isMobile = useIsMobile()
+  const isSidebarVisible = isMobile ? sidebarMobileEnabled : sidebarEnabled
 
   return (
     <SidebarProvider
@@ -80,7 +83,7 @@ function AppLayoutContent({
         } as React.CSSProperties
       }
     >
-      {sidebarEnabled && (
+      {isSidebarVisible && (
         <AppSidebar
           activeUrl={activeUrl}
           brand={appNavigation.brand}

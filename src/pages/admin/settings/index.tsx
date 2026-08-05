@@ -34,7 +34,7 @@ export default function SettingsPage() {
   const { animationsEnabled, toggleAnimations } = useAnimation()
   const { theme, setTheme } = useTheme()
   const { density, setDensity } = useTableDensity()
-  const { sidebarEnabled, navbarEnabled, setSidebarEnabled, setNavbarEnabled } = useNavMode()
+  const { sidebarEnabled, sidebarMobileEnabled, navbarEnabled, setSidebarEnabled, setSidebarMobileEnabled, setNavbarEnabled } = useNavMode()
 
   const [fullName, setFullName] = React.useState(admin?.full_name ?? "")
   const [saving, setSaving] = React.useState(false)
@@ -44,6 +44,15 @@ export default function SettingsPage() {
   const handleToggleSidebar = (checked: boolean) => {
     setNavErrorMsg(null)
     const success = setSidebarEnabled(checked)
+    if (!success) {
+      setNavErrorMsg("Tidak dapat menonaktifkan semua opsi. Minimal 1 opsi navigasi (Sidebar atau Navbar) harus tetap aktif.")
+      setTimeout(() => setNavErrorMsg(null), 4000)
+    }
+  }
+
+  const handleToggleSidebarMobile = (checked: boolean) => {
+    setNavErrorMsg(null)
+    const success = setSidebarMobileEnabled(checked)
     if (!success) {
       setNavErrorMsg("Tidak dapat menonaktifkan semua opsi. Minimal 1 opsi navigasi (Sidebar atau Navbar) harus tetap aktif.")
       setTimeout(() => setNavErrorMsg(null), 4000)
@@ -263,7 +272,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium">Navigasi Sidebar</p>
+                    <p className="text-sm font-medium">Sidebar (Desktop)</p>
                     <Badge variant="outline" className={`text-[0.6rem] px-1.5 py-0 ${sidebarEnabled ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-border text-muted-foreground"}`}>
                       {sidebarEnabled ? "Aktif" : "Nonaktif"}
                     </Badge>
@@ -278,6 +287,34 @@ export default function SettingsPage() {
                 checked={sidebarEnabled}
                 disabled={sidebarEnabled && !navbarEnabled}
                 onCheckedChange={handleToggleSidebar}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Mobile Sidebar option */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-2.5">
+                <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md ${sidebarMobileEnabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  <PanelLeftIcon className="size-3.5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Sidebar (Mobile)</p>
+                    <Badge variant="outline" className={`text-[0.6rem] px-1.5 py-0 ${sidebarMobileEnabled ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-border text-muted-foreground"}`}>
+                      {sidebarMobileEnabled ? "Aktif" : "Nonaktif (Default)"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Menu drawer sidebar di perangkat mobile (default: nonaktif)
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="settings-sidebar-mobile-toggle"
+                checked={sidebarMobileEnabled}
+                disabled={sidebarMobileEnabled && !navbarEnabled}
+                onCheckedChange={handleToggleSidebarMobile}
               />
             </div>
 

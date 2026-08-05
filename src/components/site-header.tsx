@@ -3,6 +3,7 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useBreadcrumb } from "@/contexts/breadcrumb-context"
 import { useNavMode } from "@/contexts/nav-mode-context"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { appNavigation } from "@/config/navigation"
 import { HeaderUser } from "@/components/header-user"
@@ -42,7 +43,9 @@ export function SiteHeader({
   actions?: React.ReactNode
 }) {
   const { subLabel } = useBreadcrumb()
-  const { sidebarEnabled } = useNavMode()
+  const { sidebarEnabled, sidebarMobileEnabled } = useNavMode()
+  const isMobile = useIsMobile()
+  const showSidebarTrigger = isMobile ? sidebarMobileEnabled : sidebarEnabled
   const breadcrumbs = getBreadcrumbs(activeUrl, breadcrumbLabels, defaultUrl)
 
   // If dynamic subLabel is set, replace the last breadcrumb segment
@@ -53,7 +56,7 @@ export function SiteHeader({
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        {sidebarEnabled && (
+        {showSidebarTrigger && (
           <>
             <SidebarTrigger className="-ml-1" />
             <Separator

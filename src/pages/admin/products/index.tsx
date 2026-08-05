@@ -368,7 +368,7 @@ const PINNED_COLUMNS: ColumnDef<ProductRowWithId>[] = [
         <DataTableRowActions
           row={row.original}
           showPreview
-          previewUrl={`https://ets.zanxa.studio/p/${row.original.serial_number}`}
+          previewUrl={`${window.location.origin}/p/${row.original.serial_number}`}
           onDelete={async (r) => {
             const {
               data: { user },

@@ -1,5 +1,6 @@
 import * as React from "react";
-import { QrCode, Download, ExternalLink, ShieldCheck } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Download, Copy, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -10,9 +11,10 @@ interface PublicQrCodeCardProps {
 
 export function PublicQrCodeCard({ serialNumber, productName }: PublicQrCodeCardProps) {
   const [isDownloading, setIsDownloading] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(true);
 
   // Full public URL for scanning
-  const publicUrl = `https://ets.zanxa.studio/p/${serialNumber}`;
+  const publicUrl = `${window.location.origin}/p/${serialNumber}`;
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(
     publicUrl
   )}`;
@@ -40,68 +42,103 @@ export function PublicQrCodeCard({ serialNumber, productName }: PublicQrCodeCard
     }
   };
 
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast.success("URL berhasil disalin ke clipboard!");
+    } catch (err) {
+      console.error("Failed to copy URL:", err);
+      toast.error("Gagal menyalin URL");
+    }
+  };
+
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-6 shadow-xl space-y-4 text-zinc-100">
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+    <motion.div
+      initial={{ opacity: 0, filter: "blur(8px)", y: 12 }}
+      animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+      className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 sm:p-5 shadow-xl space-y-3 text-zinc-100"
+    >
+      <button
+        type="button"
+        onClick={() => setIsExpanded((prev) => !prev)}
+        className="w-full flex items-center justify-between text-left focus:outline-none group cursor-pointer select-none py-1 pl-1"
+      >
+        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 group-hover:text-emerald-400 transition-colors">
+          KODE QR
+        </h3>
         <div className="flex items-center gap-2">
-          <QrCode className="h-5 w-5 text-emerald-400" />
-          <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200">
-            Kode QR Resmi Aset Produk
-          </h3>
+          <span className="text-[11px] font-mono text-zinc-400 group-hover:text-zinc-200 transition-colors">
+            {isExpanded ? "Sembunyikan" : "Tampilkan"}
+          </span>
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+          )}
         </div>
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400">
-          <ShieldCheck className="h-3 w-3" />
-          Terverifikasi System
-        </span>
-      </div>
+      </button>
 
-      <div className="flex flex-col sm:flex-row items-center gap-6 pt-1">
-        {/* QR Code Graphic Frame */}
-        <div className="relative p-3 bg-white rounded-2xl shadow-inner border-2 border-zinc-700 shrink-0">
-          <img
-            src={qrImageUrl}
-            alt={`QR Code ${serialNumber}`}
-            className="w-36 h-36 sm:w-40 sm:h-40 object-contain"
-          />
-        </div>
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, filter: "blur(6px)", height: 0 }}
+            animate={{ opacity: 1, filter: "blur(0px)", height: "auto" }}
+            exit={{ opacity: 0, filter: "blur(6px)", height: 0 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-row items-center gap-4 pt-1 text-left">
+              {/* QR Code Graphic Frame (60% smaller size) */}
+              <div className="relative p-2 bg-white rounded-xl shadow-inner border border-zinc-700 shrink-0">
+                <img
+                  src={qrImageUrl}
+                  alt={`QR Code ${serialNumber}`}
+                  className="w-22 h-22 sm:w-24 sm:h-24 object-contain"
+                />
+              </div>
 
-        {/* Info & Actions */}
-        <div className="space-y-3 flex-1 text-center sm:text-left">
-          <div>
-            <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">
-              Serial Number (SN)
-            </span>
-            <h4 className="text-xl font-mono font-bold text-emerald-400 mt-0.5">
-              {serialNumber}
-            </h4>
-            <p className="text-xs text-zinc-400 mt-1 line-clamp-1">
-              {productName}
-            </p>
-          </div>
+              {/* Info & Actions */}
+              <div className="space-y-2 flex-1 min-w-0 text-left">
+                <div>
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 block">
+                    Serial Number (SN)
+                  </span>
+                  <h4 className="text-base sm:text-lg font-mono font-bold text-emerald-400 mt-0.5 truncate">
+                    {serialNumber}
+                  </h4>
+                  <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1">
+                    {productName}
+                  </p>
+                </div>
 
-          <div className="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-            <Button
-              onClick={handleDownload}
-              disabled={isDownloading}
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs gap-1.5 rounded-xl shadow-md"
-            >
-              <Download className="h-4 w-4" />
-              <span>{isDownloading ? "Mengunduh..." : "Unduh Kode QR"}</span>
-            </Button>
+                <div className="pt-0.5 flex flex-wrap items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyUrl}
+                    className="border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-800 hover:text-white text-[11px] h-7 px-2.5 gap-1 rounded-lg"
+                  >
+                    <Copy className="h-3 w-3 text-zinc-400" />
+                    <span>URL</span>
+                  </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(publicUrl, "_blank")}
-              className="border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-800 hover:text-white text-xs gap-1.5 rounded-xl"
-            >
-              <ExternalLink className="h-3.5 w-3.5 text-zinc-400" />
-              <span>Buka Link Publik</span>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+                  <Button
+                    onClick={handleDownload}
+                    disabled={isDownloading}
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] h-7 px-2.5 gap-1 rounded-lg shadow-sm"
+                  >
+                    <Download className="h-3 w-3" />
+                    <span>{isDownloading ? "..." : "Unduh QR"}</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
+
