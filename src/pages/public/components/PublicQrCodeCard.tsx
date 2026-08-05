@@ -67,10 +67,7 @@ export function PublicQrCodeCard({ serialNumber, productName }: PublicQrCodeCard
         <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 group-hover:text-emerald-400 transition-colors">
           KODE QR
         </h3>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono text-zinc-400 group-hover:text-zinc-200 transition-colors">
-            {isExpanded ? "Sembunyikan" : "Tampilkan"}
-          </span>
+        <div>
           {isExpanded ? (
             <ChevronUp className="h-4 w-4 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
           ) : (

@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck,
-  Building2,
   Tag,
   Zap,
   ArrowLeft,
@@ -22,8 +21,20 @@ import {
   Plug,
   Shield,
   Cable,
+  Image as ImageIcon,
+  FileText,
+  Hexagon,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { PublicHeader } from "./components/PublicHeader";
 import { QrScannerModal } from "./components/QrScannerModal";
 import { PublicQrCodeCard } from "./components/PublicQrCodeCard";
@@ -61,16 +72,18 @@ function SpecDetailItem({
 }) {
   if (value === undefined || value === null || value === "") return null;
   return (
-    <div className="p-2.5 sm:p-3 rounded-xl bg-zinc-900/60 border border-zinc-800">
-      <div className="flex items-center gap-1.5 mb-1">
-        {Icon && <Icon className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
+    <div className="p-2.5 sm:p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-start gap-2.5">
+      {Icon && (
+        <Icon className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+      )}
+      <div className="flex-1 min-w-0">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 block truncate">
           {label}
         </span>
+        <span className="text-xs sm:text-sm font-semibold text-zinc-100 font-mono break-all block mt-0.5 leading-snug">
+          {String(value)}
+        </span>
       </div>
-      <span className="text-xs sm:text-sm font-semibold text-zinc-100 font-mono break-all">
-        {String(value)}
-      </span>
     </div>
   );
 }
@@ -197,6 +210,100 @@ export default function PublicProductDetail() {
     }
   };
 
+  // Handle downloading product & events text information report
+  const handleExportProductInfo = () => {
+    if (!product) return;
+
+    const lines: string[] = [];
+    lines.push("=================================================");
+    lines.push("   ELECTRICAL TRACKING SYSTEM (ETS) - INFORMASI PRODUK   ");
+    lines.push("=================================================");
+    lines.push(`Tanggal Unduh : ${new Date().toLocaleString("id-ID")}`);
+    lines.push("");
+
+    lines.push("1. IDENTITAS PRODUK");
+    lines.push("-------------------------------------------------");
+    lines.push(`Nama Produk     : ${product.product_name || "-"}`);
+    lines.push(`Serial Number   : ${product.serial_number || "-"}`);
+    lines.push(`Kode Produk     : ${product.product_code || "-"}`);
+    lines.push(`Kode Model      : ${product.model_code || "-"}`);
+    lines.push(`Model           : ${product.model || "-"}`);
+    lines.push(`Tahun Pembuatan : ${product.manufacture_year || "-"}`);
+    lines.push(`Status Garansi  : ${product.status === "maintenance" ? "Maintenance" : "Bergaransi"}`);
+    lines.push(`Pemilik/Client  : ${product.client?.client_name || "Pemilik Tidak Tercantum"}`);
+    lines.push("");
+
+    lines.push("2. SPESIFIKASI TEKNIS");
+    lines.push("-------------------------------------------------");
+    lines.push(`Kapasitas Daya  : ${product.power_capacity || "-"}`);
+    lines.push(`Input Voltage   : ${product.input_voltage || "-"}`);
+    lines.push(`Output Voltage  : ${product.output_voltage || "-"}`);
+    lines.push(`Frekuensi       : ${product.frequency || "-"}`);
+    lines.push(`Jumlah Socket   : ${product.socket_count || "-"}`);
+    lines.push(`Ground Output   : ${product.ground_output || "-"}`);
+    lines.push(`Soft Fuse       : ${product.soft_fuse || "-"}`);
+    lines.push(`Hard Fuse       : ${product.hard_fuse || "-"}`);
+    lines.push("");
+
+    lines.push("3. RIWAYAT EVENT & DOKUMENTASI TAHAPAN");
+    lines.push("-------------------------------------------------");
+    if (events.length === 0) {
+      lines.push("Belum ada event / riwayat pelaksanaan recorded.");
+    } else {
+      events.forEach((evt, evtIdx) => {
+        const evtDate = evt.created_at
+          ? new Date(evt.created_at).toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "-";
+
+        lines.push(`Event #${evtIdx + 1}: ${evt.title || evt.event_type}`);
+        lines.push(`  Tanggal Executed : ${evtDate}`);
+        lines.push(`  Status Event     : ${evt.status || "-"}`);
+        lines.push(`  Tahapan (${evt.steps.length} step):`);
+
+        evt.steps.forEach((step, stepIdx) => {
+          const stepTitle = STEP_TYPE_TITLES[step.step_type] || step.title;
+          const stepCompletedDate = step.completed_at
+            ? new Date(step.completed_at).toLocaleDateString("id-ID", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              })
+            : "Belum selesai";
+
+          lines.push(
+            `    - Step ${stepIdx + 1}: ${stepTitle} [Status: ${step.status}] (Tgl Selesai: ${stepCompletedDate}, Total Foto: ${step.images.length})`
+          );
+          if (step.notes) {
+            lines.push(`      Catatan: ${step.notes}`);
+          }
+        });
+        lines.push("");
+      });
+    }
+
+    lines.push("=================================================");
+    lines.push("End of Report - Electrical Tracking System (ETS)");
+
+    const fileContent = lines.join("\n");
+    const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ETS_Informasi_Produk_${product.serial_number}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success("Berhasil mengunduh dokumen informasi produk.");
+  };
+
   const handleScanSuccess = (newSerial: string) => {
     if (newSerial) {
       navigate(`/p/${encodeURIComponent(newSerial)}`);
@@ -261,10 +368,56 @@ export default function PublicProductDetail() {
   const clientAvatarUrl = clientId ? getClientAvatarUrl(clientId) : null;
   const initials = getClientInitials(clientName);
 
+  // Header Download Dropdown Element (Icon Only)
+  const headerDownloadDropdown = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-xl border-none bg-transparent text-zinc-300 hover:bg-zinc-800/60 hover:text-white shadow-none transition-all focus-visible:ring-1 focus-visible:ring-zinc-600"
+          title="Opsi Unduhan"
+        >
+          {isExportingAll ? (
+            <Loader2 className="h-4 w-4 text-zinc-300 animate-spin stroke-[2.5]" />
+          ) : (
+            <Download className="h-4 w-4 text-zinc-300 stroke-[2.5]" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-zinc-800 text-zinc-100 rounded-xl p-1.5 shadow-2xl z-50">
+        <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 px-2.5 py-1">
+          Opsi Unduhan Produk
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-zinc-800 my-1" />
+        <DropdownMenuItem
+          onClick={handleExportAllImages}
+          disabled={isExportingAll || totalPhotoCount === 0}
+          className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium rounded-lg cursor-pointer text-zinc-200 focus:bg-zinc-800 focus:text-white"
+        >
+          <ImageIcon className="h-4 w-4 text-emerald-400 shrink-0" />
+          <div className="flex-1 flex items-center justify-between min-w-0">
+            <span className="truncate">Unduh Semua Foto</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 shrink-0">
+              {totalPhotoCount}
+            </span>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={handleExportProductInfo}
+          className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium rounded-lg cursor-pointer text-zinc-200 focus:bg-zinc-800 focus:text-white"
+        >
+          <FileText className="h-4 w-4 text-cyan-400 shrink-0" />
+          <span className="truncate">Unduh Informasi</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
       {/* Public Header */}
-      <PublicHeader />
+      <PublicHeader rightAction={headerDownloadDropdown} />
 
       {/* Main Container */}
       <motion.main
@@ -274,132 +427,176 @@ export default function PublicProductDetail() {
         className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6"
       >
         {/* Navigation Bar */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center justify-between gap-4 flex-wrap -mt-2 sm:-mt-3 mb-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate("/p")}
-            className="gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 rounded-xl"
+            className="gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 rounded-xl py-1 h-8"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Kembali ke Beranda</span>
           </Button>
-
-          {totalPhotoCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportAllImages}
-              disabled={isExportingAll}
-              className="gap-1.5 text-xs border-zinc-800 bg-zinc-900 text-zinc-200 hover:bg-zinc-800 hover:text-white rounded-xl"
-            >
-              <Download className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Unduh Foto ({totalPhotoCount})</span>
-            </Button>
-          )}
         </div>
 
-        {/* 1. Header Produk Card */}
+        {/* 1. Header Group: Product Identity (Top) + Client (Bottom) */}
         <motion.div
           initial={{ opacity: 0, filter: "blur(8px)", y: 12 }}
           animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-          className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 sm:p-5 shadow-xl space-y-6"
+          className="space-y-1.5"
         >
-          {/* Top Row: Client & Status */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
-            {/* Client Profile */}
-            <div className="flex items-center gap-3">
-              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-zinc-800 border border-zinc-700 text-emerald-400 font-bold text-sm overflow-hidden">
-                {clientAvatarUrl && !clientAvatarError ? (
-                  <img
-                    src={clientAvatarUrl}
-                    alt={clientName}
-                    className="h-full w-full object-cover"
-                    onError={() => setClientAvatarError(true)}
-                  />
-                ) : (
-                  <span>{initials}</span>
-                )}
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                  <Building2 className="h-3.5 w-3.5 text-zinc-500" />
-                  <span>Pemilik / Perusahaan Client</span>
-                </div>
-                <h2 className="font-bold text-base text-zinc-100">{clientName}</h2>
-              </div>
-            </div>
+          {/* 1A. Product Identity Card (Top Section) */}
+          <div className="relative rounded-t-3xl rounded-b-none p-[1px] bg-gradient-to-bl from-emerald-400/60 via-zinc-800/40 to-emerald-400/60 shadow-[0_4px_24px_rgba(16,185,129,0.08)] overflow-hidden">
+            <div className="w-full h-full bg-gradient-to-br from-emerald-950/40 via-zinc-900/95 to-zinc-950 p-5 sm:p-6 rounded-t-[23px] rounded-b-none space-y-6">
+              
+              {/* Top Row: Left Text (Identitas Produk) + Right UPS Image */}
+              <div className="flex flex-row items-center justify-between gap-4">
+                {/* Left Text / Info */}
+                <div className="space-y-2.5 flex-1 min-w-0">
+                  <div className="flex items-center gap-2 text-emerald-400 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
+                    <Hexagon className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.5]" />
+                    <span>IDENTITAS PRODUK</span>
+                  </div>
 
-            {/* Status Badge */}
-            <div className="flex items-center gap-2">
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                  isMaintenance
-                    ? "bg-amber-500/10 text-amber-400 border-amber-500/30 animate-pulse"
-                    : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                }`}
-              >
-                {isMaintenance ? (
-                  <>
-                    <Wrench className="h-3.5 w-3.5" />
-                    Status: Maintenance
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Status: Bergaransi
-                  </>
-                )}
-              </span>
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-tight truncate">
+                    {product.product_name}
+                  </h1>
+
+                  {/* Accent Line */}
+                  <div className="h-1 w-16 sm:w-20 bg-gradient-to-r from-emerald-400 to-emerald-500/0 rounded-full my-1" />
+
+                  {/* Serial Number Badge */}
+                  <div className="pt-0.5">
+                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/60 font-mono text-xs sm:text-sm font-bold shadow-inner">
+                      <span className="text-emerald-400/80">SN:</span>
+                      <span className="text-emerald-300 tracking-wide">{product.serial_number}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Image Container (Side-by-side with Identitas Produk Header) */}
+                <div className="flex flex-col justify-center items-center relative shrink-0 w-32 sm:w-44 md:w-52 py-1">
+                  {/* Soft Radial Ambient Glow (Borderless, pure circular aura) */}
+                  <div className="absolute inset-0 m-auto w-24 h-24 sm:w-36 sm:h-36 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+                  
+                  {/* UPS Asset Image */}
+                  <img
+                    src="https://cdn.zanxa.studio/ets/UPS-0000.webp"
+                    alt={product.product_name}
+                    className="relative z-10 h-32 sm:h-44 md:h-52 w-auto object-contain transition-transform hover:scale-105 duration-300 pointer-events-none select-none"
+                  />
+                </div>
+              </div>
+
+              {/* Bottom Row: 2-Column Product Information Grid */}
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-zinc-700/80 transition-colors">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                    <Tag className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block truncate">
+                      Kode Produk
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold font-mono text-zinc-100 truncate block mt-0.5">
+                      {product.product_code || "-"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-zinc-700/80 transition-colors">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                    <FileCode className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block truncate">
+                      Kode Model
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold font-mono text-zinc-100 truncate block mt-0.5">
+                      {product.model_code || "-"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-zinc-700/80 transition-colors">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                    <Cpu className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block truncate">
+                      Model
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold font-mono text-zinc-100 truncate block mt-0.5">
+                      {product.model || "-"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-zinc-700/80 transition-colors">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block truncate">
+                      Tahun Produksi
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold font-mono text-zinc-100 truncate block mt-0.5">
+                      {product.manufacture_year || "-"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
 
-          {/* Product Identification */}
-          <div className="space-y-3">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                Identitas Produk
-              </span>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-0.5">
-                {product.product_name}
-              </h1>
-            </div>
+          {/* 1B. Client / Owner Card (Bottom Section) */}
+          <div className="rounded-b-3xl rounded-t-none border border-zinc-800/90 bg-zinc-900/90 p-4 sm:p-5 shadow-lg">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="relative flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-white p-1 shadow-md border border-zinc-700 overflow-hidden">
+                  {clientAvatarUrl && !clientAvatarError ? (
+                    <img
+                      src={clientAvatarUrl}
+                      alt={clientName}
+                      className="h-full w-full object-contain"
+                      onError={() => setClientAvatarError(true)}
+                    />
+                  ) : (
+                    <span className="font-bold text-sm text-zinc-900">{initials}</span>
+                  )}
+                </div>
 
-            {/* Serial Number & Key Tags */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 font-mono text-xs">
-                <span className="text-zinc-400 font-semibold">SN:</span>
-                <span className="text-emerald-400 font-bold">{product.serial_number}</span>
+                <div className="min-w-0">
+                  <h2 className="font-bold text-base sm:text-lg text-zinc-100 truncate leading-snug">
+                    {clientName}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                        isMaintenance
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                          : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                      }`}
+                    >
+                      {isMaintenance ? (
+                        <>
+                          <Wrench className="h-3 w-3" />
+                          <span>Status: Maintenance</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldCheck className="h-3 w-3" />
+                          <span>Status: Bergaransi</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {product.product_code && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-zinc-800 bg-zinc-950 font-medium text-xs text-zinc-300">
-                  <Tag className="h-3.5 w-3.5 text-cyan-400" />
-                  <span>Kode Produk: {product.product_code}</span>
-                </div>
-              )}
-
-              {product.model_code && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-zinc-800 bg-zinc-950 font-medium text-xs text-zinc-300">
-                  <FileCode className="h-3.5 w-3.5 text-purple-400" />
-                  <span>Kode Model: {product.model_code}</span>
-                </div>
-              )}
-
-              {product.model && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-zinc-800 bg-zinc-950 font-medium text-xs text-zinc-300">
-                  <Cpu className="h-3.5 w-3.5 text-amber-400" />
-                  <span>Model: {product.model}</span>
-                </div>
-              )}
-
-              {product.manufacture_year && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-zinc-800 bg-zinc-950 font-medium text-xs text-zinc-300">
-                  <Calendar className="h-3.5 w-3.5 text-blue-400" />
-                  <span>Tahun: {product.manufacture_year}</span>
-                </div>
-              )}
+              <ChevronRight className="h-5 w-5 text-zinc-500 shrink-0" />
             </div>
           </div>
         </motion.div>
@@ -419,10 +616,7 @@ export default function PublicProductDetail() {
             <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-200 group-hover:text-emerald-400 transition-colors">
               SPESIFIKASI
             </h2>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono text-zinc-400 group-hover:text-zinc-200 transition-colors">
-                {isSpecExpanded ? "Sembunyikan" : "Tampilkan"}
-              </span>
+            <div>
               {isSpecExpanded ? (
                 <ChevronUp className="h-4 w-4 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
               ) : (

@@ -19,6 +19,7 @@ import {
   ArrowLeftIcon,
   ShieldCheckIcon,
   HardHatIcon,
+  GlobeIcon,
 } from "lucide-react";
 
 /**
@@ -33,28 +34,37 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
 
-  const [roleMode, setRoleMode] = React.useState<"admin" | "worker">("admin");
+  const [roleMode, setRoleMode] = React.useState<"admin" | "worker" | "public">("admin");
   const [email, setEmail] = React.useState("admin@ets.co.id");
   const [password, setPassword] = React.useState("Admin123!");
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const handleRoleChange = (newRole: "admin" | "worker") => {
+  const handleRoleChange = (newRole: "admin" | "worker" | "public") => {
     setRoleMode(newRole);
     setError(null);
     if (newRole === "admin") {
       setEmail("admin@ets.co.id");
       setPassword("Admin123!");
-    } else {
+    } else if (newRole === "worker") {
       setEmail("budi@ets.co.id");
       setPassword("12345678");
+    } else {
+      setEmail("");
+      setPassword("");
     }
   };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (roleMode === "public") {
+      navigate("/p");
+      return;
+    }
+
     setLoading(true);
 
     const { error: authError } = await supabase.auth.signInWithPassword({
@@ -99,23 +109,23 @@ export function LoginForm({
                 </div>
               </div>
 
-              {/* Role Switch: 2 options in 1 switch control */}
+              {/* Role Switch: 3 options in 1 switch control */}
               <div className="flex flex-col gap-1.5 my-1">
                 <FieldLabel className="text-xs text-muted-foreground font-semibold">
                   Pilih Akses Login
                 </FieldLabel>
-                <div className="grid grid-cols-2 p-1 bg-muted/80 rounded-xl border border-border/60 text-xs font-semibold">
+                <div className="grid grid-cols-3 p-1 bg-muted/80 rounded-xl border border-border/60 text-xs font-semibold">
                   <button
                     type="button"
                     onClick={() => handleRoleChange("admin")}
                     className={cn(
-                      "flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-200 cursor-pointer select-none",
+                      "flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg transition-all duration-200 cursor-pointer select-none",
                       roleMode === "admin"
                         ? "bg-primary text-primary-foreground shadow-sm font-bold"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     )}
                   >
-                    <ShieldCheckIcon className="size-4" />
+                    <ShieldCheckIcon className="size-4 shrink-0" />
                     <span>Admin</span>
                   </button>
 
@@ -123,14 +133,28 @@ export function LoginForm({
                     type="button"
                     onClick={() => handleRoleChange("worker")}
                     className={cn(
-                      "flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-200 cursor-pointer select-none",
+                      "flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg transition-all duration-200 cursor-pointer select-none",
                       roleMode === "worker"
                         ? "bg-emerald-600 text-white shadow-sm font-bold"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     )}
                   >
-                    <HardHatIcon className="size-4" />
+                    <HardHatIcon className="size-4 shrink-0" />
                     <span>Worker</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRoleChange("public")}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg transition-all duration-200 cursor-pointer select-none",
+                      roleMode === "public"
+                        ? "bg-cyan-600 text-white shadow-sm font-bold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <GlobeIcon className="size-4 shrink-0" />
+                    <span>Public</span>
                   </button>
                 </div>
               </div>
@@ -149,12 +173,12 @@ export function LoginForm({
                 <Input
                   id="login-email"
                   type="email"
-                  placeholder="admin@perusahaan.com"
+                  placeholder={roleMode === "public" ? "Tidak diperlukan untuk Public" : "admin@perusahaan.com"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
+                  required={roleMode !== "public"}
                   autoComplete="email"
-                  disabled={loading}
+                  disabled={loading || roleMode === "public"}
                   className="h-[40px]"
                 />
               </Field>
@@ -168,11 +192,12 @@ export function LoginForm({
                   <Input
                     id="login-password"
                     type={showPassword ? "text" : "password"}
+                    placeholder={roleMode === "public" ? "Tidak diperlukan untuk Public" : "••••••••"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required
+                    required={roleMode !== "public"}
                     autoComplete="current-password"
-                    disabled={loading}
+                    disabled={loading || roleMode === "public"}
                     className="h-[40px]"
                   />
                   <Button
@@ -181,6 +206,7 @@ export function LoginForm({
                     size="icon"
                     className="absolute right-0 top-0 size-10 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading || roleMode === "public"}
                   >
                     {showPassword ? (
                       <EyeOffIcon className="size-4" />
@@ -208,11 +234,15 @@ export function LoginForm({
                     "h-10 flex-1 font-bold text-white transition-colors",
                     roleMode === "worker"
                       ? "bg-emerald-600 hover:bg-emerald-500"
+                      : roleMode === "public"
+                      ? "bg-cyan-600 hover:bg-cyan-500"
                       : "bg-primary hover:bg-primary/90"
                   )}
-                  disabled={loading || !email || !password}
+                  disabled={loading || (roleMode !== "public" && (!email || !password))}
                 >
-                  {loading ? "Sedang masuk..." : `Masuk (${roleMode === "worker" ? "Worker" : "Admin"})`}
+                  {loading
+                    ? "Sedang masuk..."
+                    : `Masuk (${roleMode === "public" ? "Public" : roleMode === "worker" ? "Worker" : "Admin"})`}
                 </Button>
               </div>
             </FieldGroup>
