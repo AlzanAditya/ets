@@ -24,15 +24,15 @@ const ROW_H = 48 // px — height of each row
 // Top row (collapsible) — 4 items, chevron takes the 5th visual slot
 const TOP_NAV_ITEMS = [
   { title: "QR Statistics", url: "/qr-statistics", icon: ScanQrCodeIcon },
-  { title: "Reports", url: "/reports", icon: FileChartColumnIcon },
   { title: "Images", url: "/images", icon: ImageIcon },
   { title: "Invoice", url: "/invoice", icon: ReceiptIcon },
 ] as const
 
-// Bottom row (always visible) — 5 items
+// Bottom row (always visible)
 const BOTTOM_NAV_ITEMS = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGridIcon },
   { title: "Products", url: "/products", icon: PackageIcon },
+  { title: "Reports", url: "/reports", icon: FileChartColumnIcon },
   { title: "Clients", url: "/clients", icon: UsersIcon },
   { title: "Workers", url: "/workers", icon: HardHatIcon },
   { title: "Settings", url: "/settings", icon: SettingsIcon },

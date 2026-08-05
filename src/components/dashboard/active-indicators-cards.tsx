@@ -32,7 +32,10 @@ import { workersService } from "@/services/workers.service"
 import { clientsService } from "@/services/clients.service"
 import { productsService } from "@/services/products.service"
 import { supabase } from "@/lib/supabase"
-import { getClientAvatarUrl } from "@/lib/image-service"
+import { getClientAvatarUrl, getWorkerProfilePhotoUrl } from "@/lib/image-service"
+
+let cachedActiveWorkers: ActiveWorkerItem[] = []
+let cachedActiveClients: ActiveClientItem[] = []
 import { WorkerEventCard } from "@/components/worker-event-card"
 
 function getClientInitials(name: string): string {
@@ -90,12 +93,14 @@ export function ActiveIndicatorsCards() {
   const navigate = useNavigate()
   const [open, setOpen] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState<"workers" | "clients">("workers")
-  const [loading, setLoading] = React.useState(true)
-  const [activeWorkers, setActiveWorkers] = React.useState<ActiveWorkerItem[]>([])
-  const [activeClients, setActiveClients] = React.useState<ActiveClientItem[]>([])
+  const [loading, setLoading] = React.useState(() => cachedActiveWorkers.length === 0 && cachedActiveClients.length === 0)
+  const [activeWorkers, setActiveWorkers] = React.useState<ActiveWorkerItem[]>(() => cachedActiveWorkers)
+  const [activeClients, setActiveClients] = React.useState<ActiveClientItem[]>(() => cachedActiveClients)
 
   const loadActiveData = React.useCallback(async () => {
-    setLoading(true)
+    if (cachedActiveWorkers.length === 0 && cachedActiveClients.length === 0) {
+      setLoading(true)
+    }
     try {
       const [workers, assignments, clients, products, dbEventsRes] = await Promise.all([
         workersService.getWorkers().catch(() => []),
@@ -202,12 +207,16 @@ export function ActiveIndicatorsCards() {
 
         // STRICT FILTERING: Only include worker if they currently have active events!
         if (eventsList.length > 0) {
+          const workerAvatar =
+            worker.signed_avatar_url ||
+            getWorkerProfilePhotoUrl(workerId, worker.profile_photo_path || worker.profile_image_path)
+
           workersList.push({
             id: workerId,
             fullName: worker.full_name,
             nickname,
             positionName,
-            avatarUrl: worker.signed_avatar_url || worker.profile_photo_path,
+            avatarUrl: workerAvatar,
             eventsList,
           })
         }
@@ -335,6 +344,8 @@ export function ActiveIndicatorsCards() {
         }
       })
 
+      cachedActiveWorkers = workersList
+      cachedActiveClients = clientsList
       setActiveWorkers(workersList)
       setActiveClients(clientsList)
     } catch (err) {

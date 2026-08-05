@@ -28,11 +28,8 @@ const NavModeContext = React.createContext<NavModeContextValue>({
  * Usage notes: wrap AppLayout or App root — must be ancestor of SiteHeader, AppSidebar, and MobileNavbar.
  */
 export function NavModeProvider({ children }: { children: React.ReactNode }) {
-  const [sidebarEnabled, setSidebarEnabledState] = React.useState<boolean>(() => {
-    const saved = localStorage.getItem("sidebar-enabled")
-    if (saved !== null) return saved === "true"
-    return true
-  })
+  // Sidebar on desktop is mandatory and always enabled
+  const sidebarEnabled = true
 
   const [sidebarMobileEnabled, setSidebarMobileEnabledState] = React.useState<boolean>(() => {
     const saved = localStorage.getItem("sidebar-mobile-enabled")
@@ -49,16 +46,11 @@ export function NavModeProvider({ children }: { children: React.ReactNode }) {
   const [topRowVisible, setTopRowVisible] = React.useState(true)
 
   const setSidebarEnabled = React.useCallback(
-    (enabled: boolean): boolean => {
-      if (!enabled && !navbarEnabled) {
-        // Minimal 1 option must remain enabled
-        return false
-      }
-      setSidebarEnabledState(enabled)
-      localStorage.setItem("sidebar-enabled", String(enabled))
+    (_enabled: boolean): boolean => {
+      // Sidebar desktop is mandatory
       return true
     },
-    [navbarEnabled]
+    []
   )
 
   const setSidebarMobileEnabled = React.useCallback(

@@ -142,6 +142,94 @@ export async function uploadImagePair(
   return { fullPath, thumbPath }
 }
 
+// ─── In-Memory Avatar Cache ─────────────────────────────────────────────────
+const avatarCacheMap = new Map<string, string>()
+export const loadedAvatarUrls = new Set<string>()
+export const failedAvatarUrls = new Set<string>()
+
+// Clean up double domain URL corruption if any exists
+function cleanAvatarUrl(url: string): string {
+  if (!url) return ''
+  if (url.includes('/http://') || url.includes('/https://')) {
+    const parts = url.split(/\/https?:\/\//)
+    const lastPart = parts[parts.length - 1]
+    return 'https://' + lastPart
+  }
+  return url
+}
+
+// Perform initial purge of any corrupted double-URL entries in localStorage
+if (typeof window !== 'undefined') {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i)
+      if (key && (key.startsWith('worker_avatar_') || key.startsWith('client_avatar_'))) {
+        const val = localStorage.getItem(key)
+        if (val && (val.includes('/worker-profiles/http') || val.includes('/client-assets/http'))) {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+  } catch {}
+}
+
+export function refreshAvatarCache() {
+  avatarCacheMap.clear()
+  loadedAvatarUrls.clear()
+  failedAvatarUrls.clear()
+  if (typeof window !== 'undefined') {
+    try {
+      const keysToRemove: string[] = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && (key.startsWith('worker_avatar_') || key.startsWith('client_avatar_'))) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k))
+    } catch {}
+  }
+}
+
+export function markAvatarLoaded(url: string, cacheKey?: string) {
+  if (!url) return
+  const cleanUrl = cleanAvatarUrl(url)
+  loadedAvatarUrls.add(cleanUrl)
+  failedAvatarUrls.delete(cleanUrl)
+  if (cacheKey) {
+    avatarCacheMap.set(cacheKey, cleanUrl)
+    if (typeof window !== 'undefined') {
+      const storageKey = cacheKey.startsWith('client_') ? `client_avatar_${cacheKey.replace('client_', '')}` : `worker_avatar_${cacheKey.replace('worker_', '')}`
+      localStorage.setItem(storageKey, cleanUrl)
+    }
+  }
+}
+
+export function markAvatarFailed(url: string, cacheKey?: string) {
+  if (!url) return
+  const cleanUrl = cleanAvatarUrl(url)
+  failedAvatarUrls.add(cleanUrl)
+  loadedAvatarUrls.delete(cleanUrl)
+  if (cacheKey) {
+    avatarCacheMap.delete(cacheKey)
+    if (typeof window !== 'undefined') {
+      const storageKey = cacheKey.startsWith('client_') ? `client_avatar_${cacheKey.replace('client_', '')}` : `worker_avatar_${cacheKey.replace('worker_', '')}`
+      localStorage.removeItem(storageKey)
+    }
+  } else {
+    // Search avatarCacheMap for matching URL
+    for (const [k, v] of avatarCacheMap.entries()) {
+      if (v === cleanUrl || v === url) {
+        avatarCacheMap.delete(k)
+        if (typeof window !== 'undefined') {
+          const storageKey = k.startsWith('client_') ? `client_avatar_${k.replace('client_', '')}` : `worker_avatar_${k.replace('worker_', '')}`
+          localStorage.removeItem(storageKey)
+        }
+      }
+    }
+  }
+}
+
 /**
  * Upload client profile avatar to 'client-assets' bucket under '{client_id}/profile.webp'.
  * Automatically resizes image to 300x300 WebP square and overwrites existing file.
@@ -163,24 +251,67 @@ export async function uploadClientAvatar(clientId: string, rawFile: File): Promi
     return previewUrl
   }
 
-  // Get public URL or signed URL with timestamp cache buster
+  // Get public URL with stable version cache buster
   const { data } = supabase.storage.from(CLIENT_BUCKET).getPublicUrl(path)
-  const finalUrl = data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : previewUrl
+  const newVersion = Date.now()
+  const finalUrl = data?.publicUrl ? `${data.publicUrl}?v=${newVersion}` : previewUrl
+  
+  const cacheKey = `client_${clientId}`
+  // Clear any failed status for this client
+  for (const url of Array.from(failedAvatarUrls)) {
+    if (url.includes(`${clientId}/profile.webp`)) {
+      failedAvatarUrls.delete(url)
+    }
+  }
+
+  markAvatarLoaded(finalUrl, cacheKey)
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(`client_avatar_v_${clientId}`, String(newVersion))
+  }
+
   return finalUrl
 }
 
 /**
  * Get client avatar URL for a given clientId from 'client-assets' bucket.
+ * Returns a stable URL to ensure browser caching across page transitions.
  */
 export function getClientAvatarUrl(clientId: string): string {
   if (!clientId) return ''
+  const cacheKey = `client_${clientId}`
+
+  if (avatarCacheMap.has(cacheKey)) {
+    const cached = avatarCacheMap.get(cacheKey)!
+    if (!failedAvatarUrls.has(cached)) {
+      return cached
+    }
+  }
+
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem(`client_avatar_${clientId}`)
-    if (saved) return saved
+    if (saved) {
+      const cleanSaved = cleanAvatarUrl(saved)
+      if (!failedAvatarUrls.has(cleanSaved)) {
+        avatarCacheMap.set(cacheKey, cleanSaved)
+        return cleanSaved
+      }
+    }
   }
+
   const path = `${clientId}/profile.webp`
   const { data } = supabase.storage.from(CLIENT_BUCKET).getPublicUrl(path)
-  return data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : ''
+
+  let version = '1'
+  if (typeof window !== 'undefined') {
+    version = localStorage.getItem(`client_avatar_v_${clientId}`) || '1'
+  }
+
+  const candidateUrl = data?.publicUrl ? `${data.publicUrl}?v=${version}` : ''
+  const cleanCandidate = cleanAvatarUrl(candidateUrl)
+  if (failedAvatarUrls.has(cleanCandidate)) {
+    return ''
+  }
+  return cleanCandidate
 }
 
 /**
@@ -220,7 +351,22 @@ export async function uploadWorkerProfilePhoto(workerId: string, rawFile: File):
     }
 
     const { data } = supabase.storage.from(WORKER_PROFILES_BUCKET).getPublicUrl(path)
-    return data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : dataUrlFallback
+    const newVersion = Date.now()
+    const finalUrl = data?.publicUrl ? `${data.publicUrl}?v=${newVersion}` : dataUrlFallback
+
+    const cacheKey = `worker_${workerId}`
+    for (const url of Array.from(failedAvatarUrls)) {
+      if (url.includes(`${workerId}/profile.webp`)) {
+        failedAvatarUrls.delete(url)
+      }
+    }
+
+    markAvatarLoaded(finalUrl, cacheKey)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`worker_avatar_v_${workerId}`, String(newVersion))
+    }
+
+    return finalUrl
   } catch (err: any) {
     console.warn('Worker profile photo upload exception, using fallback:', err?.message || err)
     return dataUrlFallback
@@ -229,6 +375,7 @@ export async function uploadWorkerProfilePhoto(workerId: string, rawFile: File):
 
 /**
  * Get worker profile photo URL for a given workerId from 'worker-profiles' bucket.
+ * Returns a stable URL cached in memory and localStorage across page transitions.
  */
 export function getWorkerProfilePhotoUrl(workerId?: string | null, profilePhotoPath?: string | null): string {
   if (!workerId && !profilePhotoPath) return ''
@@ -239,29 +386,58 @@ export function getWorkerProfilePhotoUrl(workerId?: string | null, profilePhotoP
     }
 
     if (profilePhotoPath.startsWith('http://') || profilePhotoPath.startsWith('https://')) {
-      // If it's a worker-profiles storage URL, check if it ends with an image extension or is invalid
-      if (profilePhotoPath.includes('/worker-profiles/')) {
-        const urlWithoutQuery = profilePhotoPath.split('?')[0]
-        if (!/\.(webp|jpg|jpeg|png|gif|svg)$/i.test(urlWithoutQuery)) {
-          if (workerId) {
-            const { data } = supabase.storage.from(WORKER_PROFILES_BUCKET).getPublicUrl(`${workerId}/profile.webp`)
-            return data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : ''
-          }
-        }
+      const cleaned = cleanAvatarUrl(profilePhotoPath)
+      if (failedAvatarUrls.has(cleaned)) {
+        return ''
       }
-      return profilePhotoPath
+      return cleaned
     }
   }
 
-  // Canonical path for worker photo in storage bucket is always `${workerId}/profile.webp`
   if (workerId) {
-    const { data } = supabase.storage.from(WORKER_PROFILES_BUCKET).getPublicUrl(`${workerId}/profile.webp`)
-    return data?.publicUrl ? `${data.publicUrl}?t=${Date.now()}` : ''
+    const cacheKey = `worker_${workerId}`
+    if (avatarCacheMap.has(cacheKey)) {
+      const cached = avatarCacheMap.get(cacheKey)!
+      if (!failedAvatarUrls.has(cached)) {
+        return cached
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`worker_avatar_${workerId}`)
+      if (saved) {
+        const cleanedSaved = cleanAvatarUrl(saved)
+        if (!failedAvatarUrls.has(cleanedSaved)) {
+          avatarCacheMap.set(cacheKey, cleanedSaved)
+          return cleanedSaved
+        }
+      }
+    }
+
+    let relativePath = ''
+    if (profilePhotoPath && !profilePhotoPath.startsWith('http')) {
+      relativePath = profilePhotoPath.includes('/') ? profilePhotoPath : `${workerId}/profile.webp`
+    } else {
+      relativePath = `${workerId}/profile.webp`
+    }
+
+    const { data } = supabase.storage.from(WORKER_PROFILES_BUCKET).getPublicUrl(relativePath)
+    let version = '1'
+    if (typeof window !== 'undefined') {
+      version = localStorage.getItem(`worker_avatar_v_${workerId}`) || '1'
+    }
+
+    const candidateUrl = data?.publicUrl ? `${data.publicUrl}?v=${version}` : ''
+    const cleanedCandidate = cleanAvatarUrl(candidateUrl)
+    if (failedAvatarUrls.has(cleanedCandidate)) {
+      return ''
+    }
+    return cleanedCandidate
   }
 
   if (profilePhotoPath && profilePhotoPath.includes('/')) {
     const { data } = supabase.storage.from(WORKER_PROFILES_BUCKET).getPublicUrl(profilePhotoPath)
-    return data?.publicUrl ?? ''
+    return cleanAvatarUrl(data?.publicUrl ?? '')
   }
 
   return ''
@@ -280,6 +456,12 @@ export async function deleteWorkerProfilePhoto(workerId: string): Promise<void> 
     }
   } catch (err) {
     console.error('Worker profile photo deletion error:', err)
+  }
+  const cacheKey = `worker_${workerId}`
+  avatarCacheMap.delete(cacheKey)
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(`worker_avatar_${workerId}`)
+    localStorage.removeItem(`worker_avatar_v_${workerId}`)
   }
 }
 

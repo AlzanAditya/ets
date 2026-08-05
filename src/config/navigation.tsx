@@ -49,12 +49,6 @@ export const appNavigation = {
       icon: <PackageIcon />,
     },
     {
-      title: "QR Statistics",
-      url: "/qr-statistics",
-      plan: plan.free,
-      icon: <ScanQrCodeIcon />,
-    },
-    {
       title: "Clients",
       url: "/clients",
       plan: plan.free,
@@ -67,10 +61,10 @@ export const appNavigation = {
       icon: <HardHatIcon />,
     },
     {
-      title: "Images",
-      url: "/images",
+      title: "Reports",
+      url: "/reports",
       plan: plan.free,
-      icon: <ImageIcon />,
+      icon: <FileChartColumnIcon />,
     },
   ],
   quickActions: [
@@ -104,11 +98,17 @@ export const appNavigation = {
           icon: <ReceiptIcon />,
         },
         {
-          name: "Reports",
-          url: "/reports",
+          name: "QR Statistics",
+          url: "/qr-statistics",
           plan: plan.pro,
-          icon: <FileChartColumnIcon />,
-        }
+          icon: <ScanQrCodeIcon />,
+        },
+        {
+          name: "Images",
+          url: "/images",
+          plan: plan.pro,
+          icon: <ImageIcon />,
+        },
       ],
     },
     {

@@ -7,11 +7,28 @@ import { toast } from "sonner";
 interface PublicQrCodeCardProps {
   serialNumber: string;
   productName: string;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-export function PublicQrCodeCard({ serialNumber, productName }: PublicQrCodeCardProps) {
+export function PublicQrCodeCard({
+  serialNumber,
+  productName,
+  isExpanded: externalIsExpanded,
+  onToggleExpand,
+}: PublicQrCodeCardProps) {
   const [isDownloading, setIsDownloading] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(true);
+  const [internalIsExpanded, setInternalIsExpanded] = React.useState(true);
+
+  const isExpanded = externalIsExpanded !== undefined ? externalIsExpanded : internalIsExpanded;
+
+  const handleToggle = () => {
+    if (onToggleExpand) {
+      onToggleExpand();
+    } else {
+      setInternalIsExpanded((prev) => !prev);
+    }
+  };
 
   // Full public URL for scanning
   const publicUrl = `${window.location.origin}/p/${serialNumber}`;
@@ -54,14 +71,15 @@ export function PublicQrCodeCard({ serialNumber, productName }: PublicQrCodeCard
 
   return (
     <motion.div
+      id="kode-qr"
       initial={{ opacity: 0, filter: "blur(8px)", y: 12 }}
       animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
-      className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 sm:p-5 shadow-xl space-y-3 text-zinc-100"
+      className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 sm:p-5 shadow-xl space-y-3 text-zinc-100 scroll-mt-16"
     >
       <button
         type="button"
-        onClick={() => setIsExpanded((prev) => !prev)}
+        onClick={handleToggle}
         className="w-full flex items-center justify-between text-left focus:outline-none group cursor-pointer select-none py-1 pl-1"
       >
         <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 group-hover:text-emerald-400 transition-colors">

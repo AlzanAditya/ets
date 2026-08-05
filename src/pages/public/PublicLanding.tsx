@@ -101,7 +101,7 @@ export default function PublicLanding() {
 
             {/* Main Headline */}
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-              Scan QR. Akses Semua Informasi Produk.
+              Sekali scan. Akses Semua Informasi.
             </h1>
 
             {/* Subheadline */}

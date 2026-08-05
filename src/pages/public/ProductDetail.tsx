@@ -39,6 +39,7 @@ import { PublicHeader } from "./components/PublicHeader";
 import { QrScannerModal } from "./components/QrScannerModal";
 import { PublicQrCodeCard } from "./components/PublicQrCodeCard";
 import { PublicEventAccordion } from "./components/PublicEventAccordion";
+import { PublicReportCard } from "./components/PublicReportCard";
 import { productsService, type ProductWithRelations } from "@/services/products.service";
 import { productEventsService, type ProductEventData, STEP_TYPE_TITLES } from "@/services/product-events.service";
 import { getClientAvatarUrl } from "@/lib/image-service";
@@ -99,7 +100,123 @@ export default function PublicProductDetail() {
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
   const [isExportingAll, setIsExportingAll] = React.useState(false);
   const [isSpecExpanded, setIsSpecExpanded] = React.useState(true);
+  const [isReportExpanded, setIsReportExpanded] = React.useState(true);
+  const [isQrExpanded, setIsQrExpanded] = React.useState(true);
   const [clientAvatarError, setClientAvatarError] = React.useState(false);
+  const [activeSection, setActiveSection] = React.useState<string>("identitas");
+  const isManualScrollingRef = React.useRef(false);
+  const manualScrollTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const scrollToSection = (id: string, expandFn?: () => void) => {
+    if (expandFn) {
+      expandFn();
+    }
+    
+    // Lock scroll observer to prevent intermediate state changes during smooth scrolling
+    isManualScrollingRef.current = true;
+    setActiveSection(id);
+
+    if (manualScrollTimerRef.current) {
+      clearTimeout(manualScrollTimerRef.current);
+    }
+
+    manualScrollTimerRef.current = setTimeout(() => {
+      isManualScrollingRef.current = false;
+    }, 900);
+
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 50);
+  };
+
+  const navItems = [
+    {
+      id: "identitas",
+      label: "Identitas",
+      onClick: () => scrollToSection("identitas"),
+    },
+    {
+      id: "spesifikasi",
+      label: "Spesifikasi",
+      onClick: () => scrollToSection("spesifikasi", () => setIsSpecExpanded(true)),
+    },
+    {
+      id: "laporan",
+      label: "Laporan",
+      onClick: () => scrollToSection("laporan", () => setIsReportExpanded(true)),
+    },
+    {
+      id: "dokumentasi",
+      label: "Dokumentasi",
+      onClick: () => scrollToSection("dokumentasi"),
+    },
+    {
+      id: "kode-qr",
+      label: "Kode QR",
+      onClick: () => scrollToSection("kode-qr", () => setIsQrExpanded(true)),
+    },
+  ];
+
+  // Observe active section when scrolling
+  React.useEffect(() => {
+    if (!product) return;
+
+    const sectionIds = ["identitas", "spesifikasi", "laporan", "dokumentasi", "kode-qr"];
+
+    const handleScroll = () => {
+      if (isManualScrollingRef.current) return;
+
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const scrollY = window.scrollY;
+
+      // Bottom of page check
+      if (scrollY + windowHeight >= documentHeight - 60) {
+        setActiveSection("kode-qr");
+        return;
+      }
+
+      // Check offset top of each section
+      const headerOffset = 100; // Trigger point slightly below header
+      let currentSection = "identitas";
+
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          // If section top is above headerOffset or inside upper viewport
+          if (rect.top <= headerOffset) {
+            currentSection = id;
+          }
+        }
+      }
+
+      setActiveSection(currentSection);
+    };
+
+    const handleUserInterrupt = () => {
+      if (isManualScrollingRef.current) {
+        isManualScrollingRef.current = false;
+        if (manualScrollTimerRef.current) {
+          clearTimeout(manualScrollTimerRef.current);
+        }
+      }
+    };
+
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("wheel", handleUserInterrupt, { passive: true });
+    window.addEventListener("touchmove", handleUserInterrupt, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("wheel", handleUserInterrupt);
+      window.removeEventListener("touchmove", handleUserInterrupt);
+    };
+  }, [product]);
 
   // Load product & events from Supabase by serial_number
   React.useEffect(() => {
@@ -417,7 +534,7 @@ export default function PublicProductDetail() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
       {/* Public Header */}
-      <PublicHeader rightAction={headerDownloadDropdown} />
+      <PublicHeader rightAction={headerDownloadDropdown} navItems={navItems} activeId={activeSection} />
 
       {/* Main Container */}
       <motion.main
@@ -441,10 +558,11 @@ export default function PublicProductDetail() {
 
         {/* 1. Header Group: Product Identity (Top) + Client (Bottom) */}
         <motion.div
+          id="identitas"
           initial={{ opacity: 0, filter: "blur(8px)", y: 12 }}
           animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-          className="space-y-1.5"
+          className="space-y-1.5 scroll-mt-16"
         >
           {/* 1A. Product Identity Card (Top Section) */}
           <div className="relative rounded-t-3xl rounded-b-none p-[1px] bg-gradient-to-bl from-emerald-400/60 via-zinc-800/40 to-emerald-400/60 shadow-[0_4px_24px_rgba(16,185,129,0.08)] overflow-hidden">
@@ -603,10 +721,11 @@ export default function PublicProductDetail() {
 
         {/* 2. Spesifikasi Produk Card */}
         <motion.div
+          id="spesifikasi"
           initial={{ opacity: 0, filter: "blur(8px)", y: 12 }}
           animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-          className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 sm:p-5 shadow-xl space-y-4"
+          className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 sm:p-5 shadow-xl space-y-4 scroll-mt-16"
         >
           <button
             type="button"
@@ -649,14 +768,14 @@ export default function PublicProductDetail() {
           </AnimatePresence>
         </motion.div>
 
-        {/* 3. QR Code Section */}
-        <PublicQrCodeCard
-          serialNumber={product.serial_number}
-          productName={product.product_name}
+        {/* 3. Laporan Section */}
+        <PublicReportCard
+          isExpanded={isReportExpanded}
+          onToggleExpand={() => setIsReportExpanded((prev) => !prev)}
         />
 
         {/* 4. Dokumentasi & Event Section */}
-        <div className="space-y-3 pt-2">
+        <div id="dokumentasi" className="space-y-3 pt-2 scroll-mt-16">
           <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300">
             DOKUMENTASI
           </h2>
@@ -666,6 +785,14 @@ export default function PublicProductDetail() {
             serialNumber={product.serial_number}
           />
         </div>
+
+        {/* 5. QR Code Section */}
+        <PublicQrCodeCard
+          serialNumber={product.serial_number}
+          productName={product.product_name}
+          isExpanded={isQrExpanded}
+          onToggleExpand={() => setIsQrExpanded((prev) => !prev)}
+        />
       </motion.main>
 
       {/* Footer */}
