@@ -37,7 +37,6 @@ import AIAgentPage from "@/pages/admin/ai-agent"
 import WorkersPage from "@/pages/admin/workers"
 import ImagesPage from "@/pages/admin/images"
 import QrStatisticsPage from "@/pages/admin/qr-statistics"
-import StickersPage from "@/pages/admin/stickers"
 import PublicLanding from "@/pages/public/PublicLanding"
 import PublicProductDetail from "@/pages/public/ProductDetail"
 import { useRealtimeSync } from "@/hooks/use-realtime-sync"
@@ -280,7 +279,6 @@ export default function App() {
                   <Route path="transaction/add" element={<TransactionPage />} />
                   <Route path="invoice"         element={<InvoicePage />} />
                   <Route path="reports"         element={<ReportsPage />} />
-                  <Route path="stickers"        element={<StickersPage />} />
                   <Route path="settings"        element={<SettingsPage />} />
                   <Route path="admin"           element={<Navigate to="/dashboard" replace />} />
                   <Route path="admin/*"         element={<Navigate to="/dashboard" replace />} />

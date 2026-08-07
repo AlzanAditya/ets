@@ -5,7 +5,6 @@ import {
   LandmarkIcon,
   LayoutGridIcon,
   PackageIcon,
-  QrCodeIcon,
   ReceiptIcon,
   ScanQrCodeIcon,
   SettingsIcon,
@@ -66,12 +65,6 @@ export const appNavigation = {
       url: "/reports",
       plan: plan.free,
       icon: <FileChartColumnIcon />,
-    },
-    {
-      title: "Stickers",
-      url: "/stickers",
-      plan: plan.free,
-      icon: <QrCodeIcon />,
     },
   ],
   quickActions: [
@@ -153,7 +146,6 @@ export const appNavigation = {
     clients: "Clients",
     client: "Clients",
     reports: "Reports",
-    stickers: "Stickers",
     "ai-agent": "AI Agent",
     tax: "Tax",
     workers: "Workers",
