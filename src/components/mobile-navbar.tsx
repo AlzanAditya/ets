@@ -8,6 +8,7 @@ import {
   ImageIcon,
   LayoutGridIcon,
   PackageIcon,
+  QrCodeIcon,
   ReceiptIcon,
   ScanQrCodeIcon,
   SettingsIcon,
@@ -23,6 +24,7 @@ const ROW_H = 48 // px — height of each row
 
 // Top row (collapsible) — 4 items, chevron takes the 5th visual slot
 const TOP_NAV_ITEMS = [
+  { title: "Stickers", url: "/stickers", icon: QrCodeIcon },
   { title: "QR Statistics", url: "/qr-statistics", icon: ScanQrCodeIcon },
   { title: "Images", url: "/images", icon: ImageIcon },
   { title: "Invoice", url: "/invoice", icon: ReceiptIcon },

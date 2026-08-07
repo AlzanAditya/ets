@@ -1,0 +1,6 @@
+{
+  "name": "ETS Sticker Generator",
+  "description": "Generator dan Print Layout Stiker Produk ETS (Electricity Treatment System)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
