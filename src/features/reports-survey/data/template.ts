@@ -12,16 +12,16 @@ export const initialReport: ReportData = {
   coverTitle: 'LAPORAN SURVEI DAN SOLUSI KELISTRIKAN',
   coverSubtitle: 'UNTUK MEMPROTEKSI PERANGKAT DATA CENTER',
   findings: [
-    'Tidak terdapat alat proteksi terhadap Tegangan Ekstrim (Over Voltage) & Tegangan Kejut (Surge).',
-    'Hasil Grounding elektrikal terukur ideal (0,3 Volt).',
-    'Potensi Noise yang tinggi pada jalur kelistrikan perangkat.',
-    'Berada di wilayah yang berpotensi petir tinggi.'
+    'Tidak terdapat alat proteksi terhadap Tegangan Ekstrim (Over Voltage) & Tegangan Kejut (Surge)\nDari hasil survei kondisi existing pada perangkat IT belum memiliki sistem proteksi terhadap Tegangan Ekstrim (Over Voltage) dan Tegangan Kejut (Surge Voltage). Sehingga jika terjadi serangan dari Over Voltage & Surge Voltage berpotensi akan menyebabkan kerusakan pada perangkat server & network switch.',
+    'Hasil Grounding elektrikal terukur ideal (Ideal <1 Volt)\nDari hasil pengukuran Grounding di PT Usaha Adi Sanggoro hasilnya yaitu di bawah 1 Volt. Pada saat musim kemarau nilai Ground berpotensi menjadi lebih tinggi. Hal ini bisa mengganggu kinerja perangkat Server dan juga berpotensi terkena sengatan listrik bagi orang yang menyentuh perangkat server jika tidak menggunakan APD akibat kebocoran listrik yang tidak disalurkan ke Ground dengan baik.',
+    'Potensi Noise\nApabila terdapat perangkat elektronik yang menggunakan dynamo seperti Pompa Air, Motor Produksi, AC maupun perangkat lain yang menggunakan dynamo atau motor. Hal ini berpotensi menghasilkan Noise / Induksi sehingga bisa mengganggu kinerja perangkat IT.',
+    'Berada di wilayah yang berpotensi petir tinggi\nLokasi Gedung berada di wilayah yang intensitas petirnya tinggi. Berpotensi mengenai penangkal petir gedung & penghantar listrik di sekitar gedung sehingga berimbas ke perangkat server terkena dampak petir seperti Over Voltage maupun Surge Voltage yang dapat merusak perangkat Monitoring (Server & Switch).'
   ],
   requiredSolution: [
     'Diperlukan sebuah sistem Proteksi dari Problem Kelistrikan (Over Voltage & Surge Voltage) yang menyeluruh untuk jalur phase - neutral- grounding yang bekerja secara aktif.',
     'Diperlukan solusi antisipasi untuk grounding yang berpotensi berubah-ubah.',
-    'Akibat dari kondisi di atas, perlu disiapkan sistem proteksi terhadap gangguan kelistrikan guna meminimalisir kerusakan perangkat yang terganggu.',
-    'Oleh karena itu kami menawarkan solusi sistem proteksi dan improvement kelistrikan.'
+    'Akibat dari kondisi di atas, perlu disiapkan sistem proteksi terhadap gangguan kelistrikan guna meminimalisir kerusakan terganggunya kinerja perangkat serta usia pakai yang rendah bahkan efek paling parah bisa timbul terjadinya kebakaran.',
+    'Oleh karena itu untuk mengatasi permasalahan di atas, kami menawarkan solusi sistem proteksi dan improvement kelistrikan menggunakan : ETS (Electricity Treatment System).'
   ],
   explanation: 'Secara fungsi, sistem proteksi pada ETS akan terlihat seperti berikut ini.',
   products: [

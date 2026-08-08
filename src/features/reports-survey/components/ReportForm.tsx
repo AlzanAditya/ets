@@ -360,7 +360,7 @@ export default function ReportForm({ data, setData, step, setStep }: ReportFormP
             <div className="border-b border-border pb-3">
               <h2 className="text-base font-bold text-foreground">Kondisi Hasil Survey</h2>
               <p className="text-xs text-muted-foreground">
-                Poin-poin temuan lapangan yang akan ditampilkan pada halaman temuan survey.
+                Poin-poin temuan lapangan. Baris pertama akan menjadi Judul (dicetak tebal & digarisbawahi), dan baris berikutnya adalah penjelasan detail.
               </p>
             </div>
 

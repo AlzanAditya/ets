@@ -1,4 +1,5 @@
-/* Precision report canvas & document output styling (Preserved strictly from reference) */
+/* Precision report canvas & document output styling */
+@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400..900;1,400..900&display=swap');
 
 .preview-wrap {
   margin-top: 1rem;
@@ -175,14 +176,14 @@
 }
 
 .report-page {
-  width: 1600px;
-  height: 900px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
   position: relative;
   overflow: hidden;
   background-color: #fff;
-  transform-origin: top left;
+  color: #111 !important;
   container-type: inline-size;
-  max-width: none !important;
+  box-sizing: border-box;
 }
 
 .report-page-clickable {
@@ -201,10 +202,12 @@
   height: 100%;
   object-fit: fill;
   z-index: 0;
+  pointer-events: none;
 }
 
 .report-box {
   position: absolute;
+  box-sizing: border-box;
 }
 
 .report-text {
@@ -215,6 +218,7 @@
   overflow: hidden;
   font-family: Calibri, Arial, sans-serif;
   line-height: 1.15;
+  box-sizing: border-box;
 }
 
 .report-image {
@@ -240,16 +244,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .client-logo {
-  position: static !important;
   width: 100% !important;
   height: 100% !important;
   object-fit: contain !important;
 }
 
-/* Exact typography & scaling per cqw (container query width) */
+/* Typography scaled proportionally using cqw (1cqw = 1% of page width) */
 .product-heading {
   font-family: Calibri, Arial, sans-serif;
   font-size: 1.75cqw;
@@ -258,54 +262,56 @@
 }
 
 .cover-title {
-  font-family: Raleway, Arial, sans-serif;
-  font-size: 3.1vw;
-  font-weight: 700;
+  font-family: 'Raleway', Arial, sans-serif;
+  font-size: 3.1cqw;
+  font-weight: 800;
   text-align: left;
-  line-height: 1.02;
+  line-height: 1.05;
   letter-spacing: -0.01em;
-}
-
-.cover-subtitle-main,
-.cover-subtitle-client,
-.cover-address {
-  font-family: Calibri, Arial, sans-serif;
-  text-align: left;
-  line-height: 1.12;
+  color: #111;
 }
 
 .cover-subtitle-main,
 .cover-subtitle-client {
-  font-size: 1.62vw;
-  font-weight: 500;
+  font-family: 'Raleway', Arial, sans-serif;
+  font-size: 1.62cqw;
+  font-weight: 700;
+  text-align: left;
+  line-height: 1.12;
+  color: #111;
 }
 
 .cover-address {
-  font-size: 1.34vw;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 1.34cqw;
+  text-align: left;
   line-height: 1.18;
+  color: #111;
 }
 
 .survey-cover-title {
   font-family: Calibri, Arial, sans-serif;
-  font-size: 2.8vw;
+  font-size: 2.8cqw;
   font-weight: 700;
   text-align: center;
-  line-height: 1.02;
+  line-height: 1.05;
   letter-spacing: -0.01em;
+  color: #111;
 }
 
 .survey-cover-title span {
-  font-size: 1.5625cqw;
+  font-size: 1.56cqw;
   font-weight: 700;
 }
 
 .survey-date {
   font-family: Calibri, Arial, sans-serif;
-  font-size: 1.18vw;
+  font-size: 1.18cqw;
   font-weight: 700;
   font-style: italic;
   text-align: center;
   letter-spacing: -0.01em;
+  color: #111;
 }
 
 .phase-reading {
@@ -313,9 +319,16 @@
   font-weight: 700;
   text-align: center;
   line-height: 1;
+  background-color: #f4ee00 !important;
+  color: #111 !important;
+  border: 1px solid #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .photo-label {
+  position: absolute;
   z-index: 7;
   background-color: #f4ee00 !important;
   color: #111 !important;
@@ -327,25 +340,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 8px;
-  white-space: nowrap;
-  overflow: hidden;
+  padding: 0 4px;
   box-sizing: border-box;
-  border: 0;
 }
 
 .survey-table {
   position: absolute;
-  left: 26.7875%;
-  top: 72.111%;
-  width: 50.79375%;
-  height: 22.2889%;
   z-index: 6;
   border: 1px solid #111;
   background-color: #fff;
   font-family: Arial, sans-serif;
-  font-size: 0.6875cqw;
+  font-size: 0.68cqw;
   line-height: 1.08;
+  box-sizing: border-box;
 }
 
 .survey-table-title {
@@ -354,6 +361,9 @@
   height: 13%;
   line-height: 1.2;
   border-bottom: 1px solid #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .survey-row {
@@ -368,8 +378,10 @@
 }
 
 .survey-row > div {
-  padding: 1.2% 1.2%;
+  padding: 2px 4px;
   border-right: 1px solid #111;
+  display: flex;
+  align-items: center;
 }
 
 .survey-row > div:last-child {
@@ -382,7 +394,7 @@
 }
 
 .survey-mid {
-  font-size: 0.625cqw;
+  font-size: 0.62cqw;
 }
 
 .survey-value {
@@ -394,6 +406,7 @@
   font-weight: 700;
   text-align: center;
   line-height: 1;
+  color: #111 !important;
 }
 
 .required-title {
@@ -402,79 +415,89 @@
   font-weight: 700;
   text-align: center;
   line-height: 1;
+  color: #111 !important;
 }
 
 .finding-list {
   position: absolute;
   z-index: 5;
-  left: 2.54%;
-  top: 17%;
-  width: 94.88%;
   font-family: Arial, sans-serif;
-  font-size: 1.166875cqw;
-  line-height: 1.23;
+  font-size: 1.1cqw;
+  line-height: 1.25;
+  color: #111 !important;
+  white-space: pre-wrap;
+  box-sizing: border-box;
 }
 
 .finding-list div {
-  display: grid;
-  grid-template-columns: 2% 98%;
-  margin-bottom: 1.9%;
+  color: #111 !important;
 }
 
 .exact-solutions {
-  top: 21%;
-  left: 9.69%;
-  width: 80.625%;
+  position: absolute;
+  z-index: 5;
   font-family: Arial, sans-serif;
-  font-size: 1.583125cqw;
-  line-height: 1.35;
+  font-size: 1.35cqw;
+  line-height: 1.4;
+  color: #111 !important;
+  white-space: pre-wrap;
+  box-sizing: border-box;
 }
 
 .solution-list div {
-  margin-bottom: 22px;
+  margin-bottom: 1.2cqw;
+  color: #111 !important;
+  font-weight: 700;
 }
 
 .solution-needed-title {
-  font-family: "Franklin Gothic Demi Cond", Arial, sans-serif;
-  font-size: 4.233125cqw;
+  font-family: 'Raleway', Arial, sans-serif;
+  font-size: 4.23cqw;
+  font-weight: 800;
   line-height: 0.98;
   text-align: center;
-  color: #111;
+  color: #111 !important;
 }
 
 .explanation-text {
+  position: absolute;
+  z-index: 5;
   font-family: Calibri, Arial, sans-serif;
-  font-size: 1.333125cqw;
+  font-size: 1.33cqw;
   line-height: 1.4;
+  color: #111 !important;
+  box-sizing: border-box;
 }
 
 .explanation-text strong {
-  font-size: 2.083125cqw;
+  font-size: 2.08cqw;
 }
 
 .benefits-title {
-  font-family: "Franklin Gothic Demi Cond", Arial, sans-serif;
-  font-size: 3.386875cqw;
+  font-family: 'Raleway', Arial, sans-serif;
+  font-size: 3.38cqw;
+  font-weight: 800;
   line-height: 1;
+  color: #111;
 }
 
 .benefit-grid {
   position: absolute;
-  left: 8.75%;
-  top: 25.56%;
-  width: 82.5%;
+  z-index: 5;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   column-gap: 5.31%;
   row-gap: 4.67%;
   font-family: Calibri, Arial, sans-serif;
+  box-sizing: border-box;
 }
 
 .benefit-grid h3 {
-  font-size: 1.375cqw;
+  font-size: 1.37cqw;
   line-height: 1.05;
-  margin: 0 0 7px;
+  margin: 0 0 0.4cqw;
   color: #00b928;
+  font-weight: 700;
 }
 
 .benefit-grid p {
@@ -482,51 +505,64 @@
   line-height: 1.25;
   font-weight: 700;
   margin: 0;
-}
-
-.solution-heading {
-  font-size: 3.386875cqw;
-  font-weight: 700;
-  line-height: 1;
   color: #111;
 }
 
+.solution-heading {
+  font-size: 3.38cqw;
+  font-weight: 800;
+  line-height: 1;
+  color: #111;
+  font-family: 'Raleway', Arial, sans-serif;
+}
+
 .solution-subheading {
-  font-size: 2.116875cqw;
+  font-size: 2.11cqw;
   font-weight: 700;
   line-height: 1.05;
+  color: #111;
 }
 
 .source-box {
+  position: absolute;
+  z-index: 5;
   border: 2px solid #111;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   font-size: 1.25cqw;
+  font-weight: 700;
   line-height: 1.05;
+  background-color: #fff;
+  box-sizing: border-box;
 }
 
 .flow-arrow {
   position: absolute;
   z-index: 7;
-  font-size: 2.625cqw;
-  font-weight: 700;
+  font-size: 2.62cqw;
+  font-weight: 800;
   line-height: 1;
+  color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.arrow-a { left: 19.375%; top: 38.33%; }
-.arrow-b { left: 42.81%; top: 38.33%; }
-.arrow-c { left: 72.5%; top: 38.33%; }
-
 .solution-label {
+  position: absolute;
+  z-index: 5;
   font-size: 1.27cqw;
   font-weight: 700;
   text-align: center;
   line-height: 1.05;
+  color: #111;
 }
 
 .dark-box {
+  position: absolute;
+  z-index: 5;
   background-color: #050505;
   color: #fff;
   display: flex;
@@ -535,26 +571,28 @@
   text-align: center;
   font-size: 1.25cqw;
   line-height: 1.1;
-  padding: 8px;
+  padding: 0.5cqw;
+  box-sizing: border-box;
 }
 
 .summary-title {
+  position: absolute;
+  z-index: 5;
   font-size: 1.25cqw;
   font-weight: 700;
   line-height: 1;
+  color: #111;
 }
 
 .summary-table {
   position: absolute;
-  left: 10.675%;
-  top: 27.78%;
-  width: 78.64%;
+  z-index: 6;
   border-collapse: collapse;
   background-color: #fff;
   font-family: Calibri, Arial, sans-serif;
   font-size: 1cqw;
   line-height: 1.15;
-  z-index: 6;
+  box-sizing: border-box;
 }
 
 .summary-table th,
@@ -617,7 +655,7 @@
   background-color: #fff !important;
 }
 
-/* Fullscreen Page Modal */
+/* Minimalist Fullscreen Page Modal */
 .page-modal {
   position: fixed;
   inset: 0;
@@ -629,69 +667,71 @@
 }
 
 .page-modal-topbar {
-  height: 58px;
+  height: 52px;
   flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 14px;
+  padding: 0 16px;
   border-bottom: 1px solid #293b33;
   background-color: #0d1511;
-  position: relative;
-}
-
-.modal-version {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #5fcfa3;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  font-weight: 800;
-  pointer-events: none;
+  box-sizing: border-box;
 }
 
 .page-modal-tools {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 }
 
-.page-modal-tools button {
+.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border: 1px solid #344940;
   background-color: #13201a;
   color: #e8f4ef;
-  border-radius: 9px;
-  padding: 7px 10px;
-  font-weight: 700;
+  border-radius: 8px;
+  padding: 0;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: all 0.15s ease;
 }
 
-.page-modal-tools button:hover {
+.tool-btn:hover {
   border-color: #18b57b;
-}
-
-.page-modal-tools span {
-  min-width: 54px;
-  text-align: center;
-  font-size: 12px;
-  color: #9fb1aa;
-}
-
-.page-modal-tools .modal-close {
-  background-color: #0d8d61;
-  border-color: #0d8d61;
+  background-color: #1a2e26;
   color: #fff;
+}
+
+.zoom-text {
+  min-width: 48px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #a3b8b0;
+}
+
+.tool-btn.modal-close {
+  background-color: #10a875;
+  border-color: #10a875;
+  color: #fff;
+}
+
+.tool-btn.modal-close:hover {
+  background-color: #14c288;
+  border-color: #14c288;
 }
 
 .page-modal-viewport {
   position: relative;
   flex: 1;
   overflow: hidden;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   touch-action: none;
   user-select: none;
   background: radial-gradient(circle at center, #17271f 0, #050907 70%);
@@ -709,16 +749,15 @@
 .page-modal-host {
   width: 1600px;
   height: 900px;
+  position: relative;
 }
 
 .page-modal-host > .report-page {
   width: 1600px !important;
   height: 900px !important;
   max-width: none !important;
-  box-shadow: none !important;
-}
-
-.page-modal-host .report-page {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7) !important;
+  border-radius: 4px;
   cursor: default !important;
 }
 
@@ -732,7 +771,7 @@
   left: 50%;
   bottom: 14px;
   transform: translateX(-50%);
-  padding: 7px 11px;
+  padding: 6px 12px;
   border: 1px solid #315145;
   border-radius: 999px;
   background-color: rgba(11, 21, 17, 0.93);

@@ -1,15 +1,13 @@
 import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react'
 import { ReportData, ProductData } from '../types'
 import { ASSET } from '../data/template'
 
 const A = ASSET
 const BG1 = `${A}bg-01.png`
 const BG2 = `${A}bg-02.png`
-
-const X = (n: number) => `${(n / 1600) * 100}%`
-const Y = (n: number) => `${(n / 900) * 100}%`
 
 interface PageProps {
   number: number
@@ -19,7 +17,7 @@ interface PageProps {
   className?: string
   locked?: boolean
   onVisible?: (page: number) => void
-  onOpen?: (el: HTMLElement) => void
+  onOpen?: (el: HTMLElement, pageNum: number) => void
 }
 
 function Page({
@@ -51,9 +49,9 @@ function Page({
       ref={ref}
       data-page={number}
       className={`report-page ${className}${onOpen ? ' report-page-clickable' : ''}`}
-      onClick={onOpen && ref.current ? () => onOpen(ref.current!) : undefined}
+      onClick={onOpen ? (e) => onOpen(e.currentTarget as HTMLElement, number) : undefined}
     >
-      <img className="report-bg" src={cover ? BG1 : BG2} alt="" />
+      <img src={cover ? BG1 : BG2} className="report-bg" alt="" />
       {children}
       <span className="page-indicator pdf-ui-only">
         Halaman {number} / {total}
@@ -64,18 +62,18 @@ function Page({
 }
 
 function Text({
-  x,
-  y,
-  w,
-  h,
+  left,
+  top,
+  width,
+  height,
   children,
   className = '',
   style = {},
 }: {
-  x: number
-  y: number
-  w: number
-  h: number
+  left: string
+  top: string
+  width: string
+  height?: string
   children?: React.ReactNode
   className?: string
   style?: React.CSSProperties
@@ -83,85 +81,62 @@ function Text({
   return (
     <div
       className={`report-text ${className}`}
-      style={{ left: X(x), top: Y(y), width: X(w), minHeight: Y(h), ...style }}
+      style={{ left, top, width, height, ...style }}
     >
       {children}
     </div>
   )
 }
 
-function Image({
+function Img({
   src,
-  x,
-  y,
-  w,
-  h,
+  left,
+  top,
+  width,
+  height,
   className = '',
+  style = {},
 }: {
   src?: string
-  x: number
-  y: number
-  w: number
-  h: number
+  left: string
+  top: string
+  width: string
+  height: string
   className?: string
+  style?: React.CSSProperties
 }) {
   if (!src) return null
   const resolved = /^(?:data:|blob:|https?:|\/)/.test(src) ? src : A + src
   return (
     <img
-      className={`report-image ${className}`}
       src={resolved}
       alt=""
-      style={{ left: X(x), top: Y(y), width: X(w), height: Y(h) }}
+      className={`report-image ${className}`}
+      style={{ left, top, width, height, ...style }}
     />
   )
 }
 
-function Box({
-  x,
-  y,
-  w,
-  h,
-  className = '',
-  children,
-}: {
-  x: number
-  y: number
-  w: number
-  h: number
-  className?: string
-  children?: React.ReactNode
-}) {
-  return (
-    <div
-      className={`report-box ${className}`}
-      style={{ left: X(x), top: Y(y), width: X(w), height: Y(h) }}
-    >
-      {children}
-    </div>
-  )
-}
-
 const productPageASlots = [
-  { x: 402.3, y: 107.3, w: 273.5, h: 364.7 },
-  { x: 742.2, y: 107.3, w: 273.5, h: 364.7 },
-  { x: 1065.5, y: 107.3, w: 273.5, h: 364.7 },
-  { x: 740.8, y: 484.2, w: 273.5, h: 364.7 },
-  { x: 402.3, y: 484.2, w: 273.5, h: 364.7 },
-  { x: 1062.6, y: 484.2, w: 273.5, h: 364.7 },
+  { left: '25.14%', top: '11.92%', width: '17.09%', height: '40.52%' },
+  { left: '46.38%', top: '11.92%', width: '17.09%', height: '40.52%' },
+  { left: '66.59%', top: '11.92%', width: '17.09%', height: '40.52%' },
+  { left: '25.14%', top: '53.8%', width: '17.09%', height: '40.52%' },
+  { left: '46.3%', top: '53.8%', width: '17.09%', height: '40.52%' },
+  { left: '66.41%', top: '53.8%', width: '17.09%', height: '40.52%' },
 ]
 
 const productPageBSlots = [
-  { x: 257.6, y: 170.9, w: 331.6, h: 442.1 },
-  { x: 644.1, y: 172.0, w: 331.6, h: 442.1 },
-  { x: 1030.6, y: 171.3, w: 331.6, h: 442.1 },
+  { left: '16.1%', top: '18.98%', width: '20.725%', height: '49.12%' },
+  { left: '40.25%', top: '19.11%', width: '20.725%', height: '49.12%' },
+  { left: '64.41%', top: '19.03%', width: '20.725%', height: '49.12%' },
 ]
 
 const productPageBSlots4 = [
-  { x: 137.5, y: 192.1, w: 317.6, h: 423.5 },
-  { x: 491.2, y: 192.1, w: 317.6, h: 423.5 },
-  { x: 845.0, y: 192.1, w: 317.6, h: 423.5 },
-  { x: 1198.7, y: 192.1, w: 317.6, h: 423.5 },
+  { left: '8.59%', top: '21.34%', width: '19.85%', height: '47.05%' },
+  { left: '30.7%', top: '21.34%', width: '19.85%', height: '47.05%' },
+  { left: '52.81%', top: '21.34%', width: '19.85%', height: '47.05%' },
+  { left: '74.92%', top: '21.34%', width: '19.85%', height: '47.05%' },
 ]
 
 function PhotoGrid({
@@ -170,7 +145,7 @@ function PhotoGrid({
   labels = [],
 }: {
   photos: string[]
-  slots: { x: number; y: number; w: number; h: number }[]
+  slots: { left: string; top: string; width: string; height: string }[]
   labels?: string[]
 }) {
   return (
@@ -180,17 +155,19 @@ function PhotoGrid({
         const label = labels[i]
         return (
           <React.Fragment key={`${src}-${i}`}>
-            <Image src={src} {...slot} className="portrait-photo" />
+            <Img src={src} {...slot} className="portrait-photo" />
             {label && (
-              <Box
-                x={slot.x + slot.w - 164}
-                y={slot.y + slot.h - 38}
-                w={164}
-                h={34}
+              <div
                 className="photo-label"
+                style={{
+                  left: `calc(${slot.left} + ${slot.width} - 10.25%)`,
+                  top: `calc(${slot.top} + ${slot.height} - 3.78%)`,
+                  width: '10.25%',
+                  height: '3.78%',
+                }}
               >
                 {label}
-              </Box>
+              </div>
             )}
           </React.Fragment>
         )
@@ -210,11 +187,11 @@ function ProductPageA({
   number: number
   total: number
   onVisible?: (n: number) => void
-  onOpen?: (el: HTMLElement) => void
+  onOpen?: (el: HTMLElement, pageNum: number) => void
 }) {
   return (
     <Page number={number} total={total} onVisible={onVisible} onOpen={onOpen}>
-      <Text x={8} y={97} w={330} h={48} className="product-heading">
+      <Text left="0.5%" top="10.77%" width="22%" height="5.33%" className="product-heading">
         {p.name}
       </Text>
       <PhotoGrid
@@ -222,17 +199,15 @@ function ProductPageA({
         slots={productPageASlots}
         labels={['', '', '', '', '', '']}
       />
-      <div className="phase-readings">
-        <Text x={513.4} y={812.5} w={162.5} h={36.4} className="phase-reading">
-          PHASE R : {p.phaseR}
-        </Text>
-        <Text x={853.3} y={812.5} w={162.5} h={36.4} className="phase-reading">
-          PHASE S : {p.phaseS}
-        </Text>
-        <Text x={1176.6} y={812.5} w={162.5} h={36.4} className="phase-reading">
-          PHASE T : {p.phaseT}
-        </Text>
-      </div>
+      <Text left="32.08%" top="90.28%" width="10.15%" height="4.04%" className="phase-reading">
+        PHASE R : {p.phaseR}
+      </Text>
+      <Text left="53.33%" top="90.28%" width="10.15%" height="4.04%" className="phase-reading">
+        PHASE S : {p.phaseS}
+      </Text>
+      <Text left="73.53%" top="90.28%" width="10.15%" height="4.04%" className="phase-reading">
+        PHASE T : {p.phaseT}
+      </Text>
     </Page>
   )
 }
@@ -253,7 +228,10 @@ function SurveyTable({ p }: { p: ProductData }) {
     ['8. CATATAN', '', p.note],
   ]
   return (
-    <div className="survey-table">
+    <div
+      className="survey-table"
+      style={{ left: '26.78%', top: '72.11%', width: '50.79%', height: '22.28%' }}
+    >
       <div className="survey-table-title">HASIL SURVEY &amp; PENGUKURAN</div>
       {rows.map(([a, mid, b]) => (
         <div className="survey-row" key={a}>
@@ -277,7 +255,7 @@ function ProductPageB({
   number: number
   total: number
   onVisible?: (n: number) => void
-  onOpen?: (el: HTMLElement) => void
+  onOpen?: (el: HTMLElement, pageNum: number) => void
 }) {
   const four = p.measurementPhotos.length > 3
   const slots = four ? productPageBSlots4 : productPageBSlots
@@ -286,7 +264,7 @@ function ProductPageB({
     : ['PHASE R - N', 'PHASE S - N', 'PHASE T - N']
   return (
     <Page number={number} total={total} onVisible={onVisible} onOpen={onOpen}>
-      <Text x={22} y={97} w={330} h={48} className="product-heading">
+      <Text left="1.375%" top="10.77%" width="22%" height="5.33%" className="product-heading">
         {p.name}
       </Text>
       <PhotoGrid photos={p.measurementPhotos} slots={slots} labels={labels} />
@@ -308,40 +286,40 @@ function LockedPage({
   type: string
   onVisible?: (n: number) => void
   data: ReportData
-  onOpen?: (el: HTMLElement) => void
+  onOpen?: (el: HTMLElement, pageNum: number) => void
 }) {
   if (type === 'solution')
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Text x={452.7} y={82.9} w={648.1} h={150} className="solution-needed-title">
+        <Text left="28.29%" top="9.21%" width="40.5%" height="16.66%" className="solution-needed-title">
           Solusi yang dibutuhkan
         </Text>
-        <Image src="s09-p02.jpg" x={232.4} y={305.5} w={440.6} h={495} className="contain-image" />
-        <Image src="s09-p01.png" x={630.5} y={319} w={759.8} h={481.5} className="contain-image" />
+        <Img src="s09-p02.jpg" left="14.52%" top="33.94%" width="27.538%" height="55.0%" className="contain-image" />
+        <Img src="s09-p01.png" left="39.4%" top="35.44%" width="47.48%" height="53.5%" className="contain-image" />
       </Page>
     )
 
   if (type === 'diagram')
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Image src="s10-p01.png" x={0} y={93.9} w={1600} h={761.7} className="contain-image" />
+        <Img src="s10-p01.png" left="0%" top="10.43%" width="100%" height="84.63%" className="contain-image" />
       </Page>
     )
 
   if (type === 'comparison')
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Image src="s13-p01.png" x={0} y={93.9} w={1600} h={761.7} className="contain-image" />
+        <Img src="s13-p01.png" left="0%" top="10.43%" width="100%" height="84.63%" className="contain-image" />
       </Page>
     )
 
   if (type === 'benefits')
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Text x={-52.6} y={92.4} w={907.3} h={99} className="benefits-title">
+        <Text left="-3.28%" top="10.26%" width="56.7%" height="11.0%" className="benefits-title">
           Manfaat  ETS :
         </Text>
-        <div className="benefit-grid">
+        <div className="benefit-grid" style={{ left: '8.75%', top: '25.56%', width: '82.5%', height: '66.6%' }}>
           {[
             ['Auto Cut-off Protection', 'ETS akan memutus input aliran listrik ketika mendeteksi adanya tegangan extreme/surge'],
             ['Auto Overload Protection', 'Output ETS akan di shutdown ketika ETS mendeteksi adanya beban berlebih'],
@@ -355,7 +333,7 @@ function LockedPage({
           ].map(([h, b]) => (
             <div key={h}>
               <h3>{h}</h3>
-              <p>{b}</p>
+              <p style={{ whiteSpace: 'pre-wrap' }}>{b}</p>
             </div>
           ))}
         </div>
@@ -383,65 +361,75 @@ function LockedPage({
     const heading = type === 'centralised' ? 'DESAIN SOLUSI CENTRALISED' : 'DESAIN SOLUSI PERSONALISED'
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Text x={0} y={-6} w={519.2} h={85.6} className="solution-heading">
+        <Text left="0%" top="-0.66%" width="32.45%" height="9.5%" className="solution-heading">
           {heading}
         </Text>
-        <Text x={93.9} y={140.3} w={500} h={48.5} className="solution-subheading">
+        <Text left="5.86%" top="15.58%" width="31.25%" height="5.38%" className="solution-subheading">
           {title}
         </Text>
-        <Box x={58.6} y={351.9} w={167.3} h={157.4} className="source-box">
+        <div className="source-box" style={{ left: '3.66%', top: '39.1%', width: '10.45%', height: '17.48%' }}>
           Sumber<br />Listrik
-        </Box>
-        <div className="flow-arrow arrow-a">→</div>
+        </div>
+        <div className="flow-arrow" style={{ left: '19.375%', top: '38.33%', width: '3.1%', height: '5.5%' }}>
+          →
+        </div>
         {type !== 'centralised' ? (
           <>
-            <Image
+            <Img
               src={index === 0 ? 's14-p01.png' : 's15-p01.png'}
-              x={400.3}
-              y={249.9}
-              w={235.4}
-              h={375.6}
+              left="25.01%"
+              top="27.76%"
+              width="14.71%"
+              height="41.73%"
               className="contain-image"
             />
-            <Image
+            <Img
               src={index === 0 ? 's14-p02.jpg' : 's15-p02.jpg'}
-              x={813.7}
-              y={259.8}
-              w={273.5}
-              h={364.7}
+              left="50.85%"
+              top="28.86%"
+              width="17.09%"
+              height="40.52%"
               className="contain-image"
             />
-            <div className="flow-arrow arrow-b">→</div>
-            <div className="flow-arrow arrow-c">→</div>
-            <Text x={408.8} y={633} w={218.4} h={60.6} className="solution-label">
+            <div className="flow-arrow" style={{ left: '42.81%', top: '38.33%', width: '3.1%', height: '5.5%' }}>
+              →
+            </div>
+            <div className="flow-arrow" style={{ left: '72.5%', top: '38.33%', width: '3.1%', height: '5.5%' }}>
+              →
+            </div>
+            <Text left="25.55%" top="70.33%" width="13.65%" height="6.73%" className="solution-label">
               {ets}
               <br />
               <i>(Three Phase)</i>
             </Text>
-            <Text x={841.2} y={633.2} w={218.4} h={36.4} className="solution-label">
+            <Text left="52.57%" top="70.35%" width="13.65%" height="4.04%" className="solution-label">
               {ups}
             </Text>
           </>
         ) : (
           <>
-            <Image src="s16-p01.png" x={400.3} y={249.9} w={235.4} h={375.6} className="contain-image" />
-            <Image src="s16-p02.jpg" x={806.7} y={324} w={176.3} h={235.1} className="contain-image" />
-            <Image src="s16-p03.jpg" x={990.7} y={322.3} w={176.3} h={235.1} className="contain-image" />
-            <div className="flow-arrow arrow-b">→</div>
-            <div className="flow-arrow arrow-c">→</div>
-            <Text x={408.8} y={633} w={218.4} h={60.6} className="solution-label">
+            <Img src="s16-p01.png" left="25.01%" top="27.76%" width="14.71%" height="41.73%" className="contain-image" />
+            <Img src="s16-p02.jpg" left="50.42%" top="36.0%" width="11.02%" height="26.12%" className="contain-image" />
+            <Img src="s16-p03.jpg" left="61.92%" top="35.81%" width="11.02%" height="26.12%" className="contain-image" />
+            <div className="flow-arrow" style={{ left: '42.81%', top: '38.33%', width: '3.1%', height: '5.5%' }}>
+              →
+            </div>
+            <div className="flow-arrow" style={{ left: '72.5%', top: '38.33%', width: '3.1%', height: '5.5%' }}>
+              →
+            </div>
+            <Text left="25.55%" top="70.33%" width="13.65%" height="6.73%" className="solution-label">
               {ets}
               <br />
               <i>(Three Phase)</i>
             </Text>
-            <Text x={873.8} y={586} w={218.4} h={36.4} className="solution-label">
+            <Text left="54.61%" top="65.11%" width="13.65%" height="4.04%" className="solution-label">
               {ups}
             </Text>
           </>
         )}
-        <Box x={953.9} y={345.7} w={267.5} h={157.4} className="dark-box">
+        <div className="dark-box" style={{ left: '59.61%', top: '38.41%', width: '16.71%', height: '17.48%' }}>
           {covered}
-        </Box>
+        </div>
       </Page>
     )
   }
@@ -449,10 +437,10 @@ function LockedPage({
   if (type === 'summary')
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Text x={170.8} y={183.3} w={1020.6} h={48.5} className="summary-title">
+        <Text left="10.675%" top="20.36%" width="63.78%" height="5.38%" className="summary-title">
           SUMMARY KEBUTUHAN ETS DI {data.clientName.replace(/^PT\s+/i, 'PT ')}
         </Text>
-        <table className="summary-table">
+        <table className="summary-table" style={{ left: '10.675%', top: '27.78%', width: '78.64%', height: '61.1%' }}>
           <thead>
             <tr>
               <th>No</th>
@@ -491,19 +479,205 @@ function LockedPage({
   return null
 }
 
-function PageModal({
-  source,
+function RenderSinglePage({
   pageNumber,
+  data,
+  total,
+  onVisible,
+  onOpen,
+}: {
+  pageNumber: number
+  data: ReportData
+  total: number
+  onVisible?: (n: number) => void
+  onOpen?: (el: HTMLElement, pageNum: number) => void
+}) {
+  const productCount = data.products.length
+  const firstPostProduct = 3 + productCount * 2
+
+  if (pageNumber === 1) {
+    return (
+      <Page number={1} total={total} cover onVisible={onVisible} onOpen={onOpen}>
+        <div className="client-logo-box" style={{ left: '9.4%', top: '44.05%', width: '14.175%', height: '25.2%' }}>
+          <Img src={data.clientLogo} left="0" top="0" width="100%" height="100%" className="client-logo" />
+        </div>
+        <Text left="25.77%" top="42.0%" width="67.725%" className="cover-title">
+          {data.coverTitle}
+        </Text>
+        <Text left="25.625%" top="50.11%" width="66.25%" className="cover-subtitle-main">
+          UNTUK MEMPROTEKSI PERANGKAT DATA CENTER
+        </Text>
+        <Text left="25.625%" top="55.67%" width="66.25%" className="cover-subtitle-client">
+          DI {data.clientName}
+        </Text>
+        <Text left="25.625%" top="61.22%" width="66.25%" className="cover-address">
+          {data.address}
+        </Text>
+      </Page>
+    )
+  }
+
+  if (pageNumber === 2) {
+    return (
+      <Page number={2} total={total} cover onVisible={onVisible} onOpen={onOpen}>
+        <Text left="0%" top="38.0%" width="100%" className="survey-cover-title">
+          HASIL SURVEI
+          <br />
+          <span>
+            {data.clientName.replace(/\s*\(ASNET\)\s*/i, '').replace(/^PT\s+/i, 'PT ')} -{' '}
+            {data.surveyLocation || 'BOGOR'}
+          </span>
+        </Text>
+        <Text left="0%" top="52.0%" width="100%" className="survey-date">
+          Hari &amp; Tanggal : {data.surveyDate}
+        </Text>
+      </Page>
+    )
+  }
+
+  if (pageNumber >= 3 && pageNumber < firstPostProduct) {
+    const productIndex = Math.floor((pageNumber - 3) / 2)
+    const isProductA = (pageNumber - 3) % 2 === 0
+    const p = data.products[productIndex] || data.products[0]
+    if (isProductA) {
+      return <ProductPageA p={p} number={pageNumber} total={total} onVisible={onVisible} onOpen={onOpen} />
+    } else {
+      return <ProductPageB p={p} number={pageNumber} total={total} onVisible={onVisible} onOpen={onOpen} />
+    }
+  }
+
+  if (pageNumber === firstPostProduct) {
+    return (
+      <Page number={firstPostProduct} total={total} onVisible={onVisible} onOpen={onOpen}>
+        <Text left="24.81%" top="10.87%" width="50.375%" className="section-page-title">
+          KONDISI HASIL SURVEI SECARA UMUM :
+        </Text>
+        <div className="finding-list exact-findings" style={{ left: '2.54%', top: '17%', width: '94.88%', height: '77.7%' }}>
+          {data.findings.map((x, i) => {
+            const lines = x.split('\n')
+            const title = lines[0]
+            const body = lines.slice(1).join('\n')
+            return (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '28px 1fr', gap: '8px', marginBottom: '16px' }}>
+                <b>{String.fromCharCode(65 + i)}.</b>
+                <div>
+                  {body ? (
+                    <>
+                      <div style={{ fontWeight: 700, textDecoration: 'underline', marginBottom: '2px' }}>
+                        {title}
+                      </div>
+                      <div style={{ fontWeight: 400, lineHeight: '1.28' }}>
+                        {body}
+                      </div>
+                    </>
+                  ) : (
+                    <span style={{ fontWeight: 700 }}>{x}</span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </Page>
+    )
+  }
+
+  if (pageNumber === firstPostProduct + 1) {
+    return (
+      <Page number={firstPostProduct + 1} total={total} onVisible={onVisible} onOpen={onOpen}>
+        <Text left="29.1%" top="10.82%" width="41.79%" className="required-title">
+          DESIGN SOLUSI YANG DIBUTUHKAN :
+        </Text>
+        <div className="exact-solutions solution-list" style={{ left: '9.69%', top: '21%', width: '80.625%', height: '73.3%' }}>
+          {data.requiredSolution.map((x, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: '6px', marginBottom: '20px', fontWeight: 700, lineHeight: '1.35' }}>
+              <span>•</span>
+              <span>{x}</span>
+            </div>
+          ))}
+        </div>
+      </Page>
+    )
+  }
+
+  if (pageNumber === firstPostProduct + 2) {
+    return <LockedPage number={firstPostProduct + 2} type="solution" total={total} onVisible={onVisible} data={data} onOpen={onOpen} />
+  }
+
+  if (pageNumber === firstPostProduct + 3) {
+    return <LockedPage number={firstPostProduct + 3} type="diagram" total={total} onVisible={onVisible} data={data} onOpen={onOpen} />
+  }
+
+  if (pageNumber === firstPostProduct + 4) {
+    return (
+      <Page number={firstPostProduct + 4} total={total} onVisible={onVisible} onOpen={onOpen}>
+        <Text left="4.68%" top="15.7%" width="93.9%" className="explanation-text">
+          <strong>Penjelasan Gambar Diatas :</strong>
+          <br />
+          <br />
+          {data.explanation}
+          <br />
+          <br />
+          Bila terjadi power extreme karena efek sambaran petir yang dibuang oleh penangkal petir outdoor kemudian
+          masuk melalui grounding elektronik, maka ETS akan melakukan proteksi dengan cara memutus aliran listrik yang
+          masuk ke dalam jaringan.
+          <br />
+          <br />
+          Bila terjadi power extreme karena efek sambaran petir yang masuk melalui jalur jala-jala listrik (phasa dan
+          netral), maka ETS akan melakukan proteksi juga.
+        </Text>
+      </Page>
+    )
+  }
+
+  if (pageNumber === firstPostProduct + 5) {
+    return <LockedPage number={firstPostProduct + 5} type="benefits" total={total} onVisible={onVisible} data={data} onOpen={onOpen} />
+  }
+
+  if (pageNumber === firstPostProduct + 6) {
+    return <LockedPage number={firstPostProduct + 6} type="comparison" total={total} onVisible={onVisible} data={data} onOpen={onOpen} />
+  }
+
+  if (pageNumber === firstPostProduct + 7) {
+    return <LockedPage number={firstPostProduct + 7} type="personalised" total={total} onVisible={onVisible} data={data} onOpen={onOpen} />
+  }
+
+  if (productCount > 1) {
+    if (pageNumber === firstPostProduct + 8) {
+      return <LockedPage number={firstPostProduct + 8} type="personalised2" total={total} onVisible={onVisible} data={data} onOpen={onOpen} />
+    }
+    if (pageNumber === firstPostProduct + 9) {
+      return <LockedPage number={firstPostProduct + 9} type="centralised" total={total} onVisible={onVisible} data={data} onOpen={onOpen} />
+    }
+    if (pageNumber === firstPostProduct + 10) {
+      return <LockedPage number={firstPostProduct + 10} type="summary" total={total} onVisible={onVisible} data={data} onOpen={onOpen} />
+    }
+  } else {
+    if (pageNumber === firstPostProduct + 8) {
+      return <LockedPage number={firstPostProduct + 8} type="centralised" total={total} onVisible={onVisible} data={data} onOpen={onOpen} />
+    }
+    if (pageNumber === firstPostProduct + 9) {
+      return <LockedPage number={firstPostProduct + 9} type="summary" total={total} onVisible={onVisible} data={data} onOpen={onOpen} />
+    }
+  }
+
+  return null
+}
+
+function PageModal({
+  pageNumber,
+  data,
+  total,
   onClose,
 }: {
-  source: HTMLElement | null
-  pageNumber: string | undefined
+  pageNumber: number
+  data: ReportData
+  total: number
   onClose: () => void
 }) {
-  const hostRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(1)
-  const [baseScale, setBaseScale] = useState(0.7)
+  const [baseScale, setBaseScale] = useState(0.5)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const gesture = useRef<{
     mode: 'pinch' | 'pan' | null
@@ -524,28 +698,11 @@ function PageModal({
   })
 
   useEffect(() => {
-    if (!hostRef.current || !source) return
-    const clone = source.cloneNode(true) as HTMLElement
-    clone.classList.remove('report-page-clickable')
-    clone.removeAttribute('onClick')
-    clone.style.position = 'relative'
-    clone.style.display = 'block'
-    clone.style.width = '1600px'
-    clone.style.height = '900px'
-    clone.style.maxWidth = 'none'
-    clone.style.aspectRatio = 'auto'
-    hostRef.current.replaceChildren(clone)
-    return () => {
-      if (hostRef.current) hostRef.current.replaceChildren()
-    }
-  }, [source])
-
-  useEffect(() => {
     const update = () => {
       const vw = window.innerWidth
       const vh = window.innerHeight
-      const availableW = Math.max(280, vw - 28)
-      const availableH = Math.max(240, vh - 145)
+      const availableW = Math.max(280, vw - 24)
+      const availableH = Math.max(240, vh - 90)
       setBaseScale(Math.min(availableW / 1600, availableH / 900))
       setPan({ x: 0, y: 0 })
     }
@@ -646,22 +803,50 @@ function PageModal({
   const modal = (
     <div className="page-modal" role="dialog" aria-modal="true" aria-label={`Preview halaman ${pageNumber}`}>
       <div className="page-modal-topbar">
-        <span className="modal-version">REPORT VIEWER • v2.7.1</span>
-        <strong>Halaman {pageNumber}</strong>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-emerald-400">Halaman {pageNumber}</span>
+          <span className="text-xs text-slate-400">/ {total}</span>
+        </div>
         <div className="page-modal-tools">
-          <button onClick={() => setZoom((z) => clampZoom(z - 0.25))}>−</button>
-          <span>{Math.round(zoom * 100)}%</span>
-          <button onClick={() => setZoom((z) => clampZoom(z + 0.25))}>+</button>
           <button
+            type="button"
+            className="tool-btn"
+            title="Zoom Out (-)"
+            onClick={() => setZoom((z) => clampZoom(z - 0.25))}
+            aria-label="Zoom Out"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <span className="zoom-text">{Math.round(zoom * 100)}%</span>
+          <button
+            type="button"
+            className="tool-btn"
+            title="Zoom In (+)"
+            onClick={() => setZoom((z) => clampZoom(z + 0.25))}
+            aria-label="Zoom In"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            className="tool-btn"
+            title="Reset Zoom"
             onClick={() => {
               setZoom(1)
               setPan({ x: 0, y: 0 })
             }}
+            aria-label="Reset Zoom"
           >
-            Reset
+            <RotateCcw className="w-4 h-4" />
           </button>
-          <button className="modal-close" onClick={onClose}>
-            Tutup
+          <button
+            type="button"
+            className="tool-btn modal-close"
+            title="Tutup (Esc)"
+            onClick={onClose}
+            aria-label="Tutup"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -678,9 +863,11 @@ function PageModal({
           className="page-modal-stage"
           style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})` }}
         >
-          <div ref={hostRef} className="page-modal-host" />
+          <div className="page-modal-host">
+            <RenderSinglePage pageNumber={pageNumber} data={data} total={total} />
+          </div>
         </div>
-        <div className="page-modal-help">Cubit untuk zoom • Geser untuk pan • Esc untuk tutup</div>
+        <div className="page-modal-help">Cubit / Gulir untuk zoom • Geser untuk pan • Esc untuk tutup</div>
       </div>
     </div>
   )
@@ -690,7 +877,7 @@ function PageModal({
 
 export default function ReportPreview({ data }: { data: ReportData }) {
   const [current, setCurrent] = useState(1)
-  const [selectedPage, setSelectedPage] = useState<HTMLElement | null>(null)
+  const [selectedPageNumber, setSelectedPageNumber] = useState<number | null>(null)
   const pagesRef = useRef<HTMLDivElement>(null)
   const productCount = data.products.length
   const firstPostProduct = 3 + productCount * 2
@@ -737,6 +924,8 @@ export default function ReportPreview({ data }: { data: ReportData }) {
         clone.style.height = '900px'
         clone.style.maxWidth = 'none'
         clone.style.aspectRatio = 'auto'
+        clone.style.backgroundColor = '#ffffff'
+        clone.style.color = '#111111'
         clone
           .querySelectorAll('.page-indicator,.template-badge,.pdf-ui-only')
           .forEach((el) => el.remove())
@@ -853,7 +1042,9 @@ export default function ReportPreview({ data }: { data: ReportData }) {
     }
   }
 
-  const openPage = (el: HTMLElement) => setSelectedPage(el)
+  const handleOpenPage = (_el: HTMLElement, pageNum: number) => {
+    setSelectedPageNumber(pageNum)
+  }
 
   return (
     <section className="preview-wrap" id="report-preview">
@@ -906,161 +1097,26 @@ export default function ReportPreview({ data }: { data: ReportData }) {
         </div>
       </div>
       <div className="pages" ref={pagesRef}>
-        <Page number={1} total={total} cover onVisible={setCurrent} onOpen={openPage}>
-          <Box x={150.4} y={396.5} w={226.8} h={226.8} className="client-logo-box">
-            <Image src={data.clientLogo} x={0} y={0} w={226.8} h={226.8} className="client-logo" />
-          </Box>
-          <Text x={412.4} y={378.0} w={1083.6} h={56} className="cover-title">
-            {data.coverTitle}
-          </Text>
-          <Text x={410} y={451} w={1060} h={34} className="cover-subtitle-main">
-            UNTUK MEMPROTEKSI PERANGKAT DATA CENTER
-          </Text>
-          <Text x={410} y={501} w={1060} h={34} className="cover-subtitle-client">
-            DI {data.clientName}
-          </Text>
-          <Text x={410} y={551} w={1060} h={92} className="cover-address">
-            {data.address}
-          </Text>
-        </Page>
-
-        <Page number={2} total={total} cover onVisible={setCurrent} onOpen={openPage}>
-          <Text x={0} y={342} w={1600} h={132} className="survey-cover-title">
-            HASIL SURVEI
-            <br />
-            <span>
-              {data.clientName.replace(/\s*\(ASNET\)\s*/i, '').replace(/^PT\s+/i, 'PT ')} -{' '}
-              {data.surveyLocation || 'BOGOR'}
-            </span>
-          </Text>
-          <Text x={0} y={468} w={1600} h={50} className="survey-date">
-            Hari &amp; Tanggal : {data.surveyDate}
-          </Text>
-        </Page>
-
-        {data.products.map((p, i) => (
-          <React.Fragment key={i}>
-            <ProductPageA p={p} number={3 + i * 2} total={total} onVisible={setCurrent} onOpen={openPage} />
-            <ProductPageB p={p} number={4 + i * 2} total={total} onVisible={setCurrent} onOpen={openPage} />
-          </React.Fragment>
-        ))}
-
-        <Page number={firstPostProduct} total={total} onVisible={setCurrent} onOpen={openPage}>
-          <Text x={397} y={97.9} w={806} h={60.6} className="section-page-title">
-            KONDISI HASIL SURVEI SECARA UMUM :
-          </Text>
-          <div className="finding-list exact-findings">
-            {data.findings.map((x, i) => (
-              <div key={i}>
-                <b>{String.fromCharCode(65 + i)}.</b>
-                <span>{x}</span>
-              </div>
-            ))}
-          </div>
-        </Page>
-
-        <Page number={firstPostProduct + 1} total={total} onVisible={setCurrent} onOpen={openPage}>
-          <Text x={465.6} y={97.4} w={668.7} h={49.3} className="required-title">
-            DESIGN SOLUSI YANG DIBUTUHKAN :
-          </Text>
-          <div className="solution-list exact-solutions">
-            {data.requiredSolution.map((x, i) => (
-              <div key={i}>• {x}</div>
-            ))}
-          </div>
-        </Page>
-
-        <LockedPage
-          number={firstPostProduct + 2}
-          type="solution"
-          total={total}
-          onVisible={setCurrent}
-          data={data}
-          onOpen={openPage}
-        />
-        <LockedPage
-          number={firstPostProduct + 3}
-          type="diagram"
-          total={total}
-          onVisible={setCurrent}
-          data={data}
-          onOpen={openPage}
-        />
-
-        <Page number={firstPostProduct + 4} total={total} onVisible={setCurrent} onOpen={openPage}>
-          <Text x={75} y={141.3} w={1502.4} h={953.2} className="explanation-text">
-            <strong>Penjelasan Gambar Diatas :</strong>
-            <br />
-            <br />
-            {data.explanation}
-            <br />
-            <br />
-            Bila terjadi power extreme karena efek sambaran petir yang dibuang oleh penangkal petir outdoor kemudian
-            masuk melalui grounding elektronik, maka ETS akan melakukan proteksi dengan cara memutus aliran listrik yang
-            masuk ke dalam jaringan.
-            <br />
-            <br />
-            Bila terjadi power extreme karena efek sambaran petir yang masuk melalui jalur jala-jala listrik (phasa dan
-            netral), maka ETS akan melakukan proteksi juga.
-          </Text>
-        </Page>
-
-        <LockedPage
-          number={firstPostProduct + 5}
-          type="benefits"
-          total={total}
-          onVisible={setCurrent}
-          data={data}
-          onOpen={openPage}
-        />
-        <LockedPage
-          number={firstPostProduct + 6}
-          type="comparison"
-          total={total}
-          onVisible={setCurrent}
-          data={data}
-          onOpen={openPage}
-        />
-        <LockedPage
-          number={firstPostProduct + 7}
-          type="personalised"
-          total={total}
-          onVisible={setCurrent}
-          data={data}
-          onOpen={openPage}
-        />
-        {data.products.length > 1 && (
-          <LockedPage
-            number={firstPostProduct + 8}
-            type="personalised2"
-            total={total}
-            onVisible={setCurrent}
-            data={data}
-            onOpen={openPage}
-          />
-        )}
-        <LockedPage
-          number={firstPostProduct + (data.products.length > 1 ? 9 : 8)}
-          type="centralised"
-          total={total}
-          onVisible={setCurrent}
-          data={data}
-          onOpen={openPage}
-        />
-        <LockedPage
-          number={firstPostProduct + (data.products.length > 1 ? 10 : 9)}
-          type="summary"
-          total={total}
-          onVisible={setCurrent}
-          data={data}
-          onOpen={openPage}
-        />
+        {Array.from({ length: total }, (_, idx) => {
+          const pageNum = idx + 1
+          return (
+            <RenderSinglePage
+              key={pageNum}
+              pageNumber={pageNum}
+              data={data}
+              total={total}
+              onVisible={setCurrent}
+              onOpen={handleOpenPage}
+            />
+          )
+        })}
       </div>
-      {selectedPage && (
+      {selectedPageNumber !== null && (
         <PageModal
-          source={selectedPage}
-          pageNumber={selectedPage.dataset.page}
-          onClose={() => setSelectedPage(null)}
+          pageNumber={selectedPageNumber}
+          data={data}
+          total={total}
+          onClose={() => setSelectedPageNumber(null)}
         />
       )}
     </section>
