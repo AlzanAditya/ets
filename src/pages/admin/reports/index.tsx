@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useNavigate } from "react-router-dom"
 import {
   FileChartColumnIcon,
   Search,
@@ -74,7 +75,17 @@ const chart = {
 } satisfies InteractiveAreaChartConfig
 
 export default function ReportsPage() {
+  const navigate = useNavigate()
+
   const handleCreateDocument = (doc: ReportShortcutItem) => {
+    if (doc.id === "survey") {
+      navigate("/reports/survey")
+      return
+    }
+    if (doc.id === "final_survey") {
+      navigate("/reports/final-survey")
+      return
+    }
     toast.info(`Form pembuatan dokumen '${doc.title}' akan segera tersedia.`, {
       description: `Shortcut untuk modul ${doc.title} siap diintegrasikan dengan sistem backend.`,
     })

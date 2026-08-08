@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { clearStoredReturnUrl, getSafeReturnUrl, getStoredReturnUrl } from "@/lib/auth-utils";
 import {
   AlertCircleIcon,
   EyeIcon,
@@ -33,6 +34,7 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [roleMode, setRoleMode] = React.useState<"admin" | "worker" | "public">("admin");
   const [email, setEmail] = React.useState("admin@ets.co.id");
@@ -80,6 +82,27 @@ export function LoginForm({
           ? "Email atau password salah. Silakan coba lagi."
           : authError.message,
       );
+      return;
+    }
+
+    // Check for safe return URL (location state, search params, or sessionStorage)
+    const stateFrom = location.state?.from;
+    let candidateUrl: string | null = null;
+    if (stateFrom) {
+      candidateUrl = typeof stateFrom === "string" ? stateFrom : (stateFrom.pathname + (stateFrom.search || "") + (stateFrom.hash || ""));
+    }
+    if (!candidateUrl) {
+      const searchParams = new URLSearchParams(location.search);
+      candidateUrl = searchParams.get("redirect") || searchParams.get("returnUrl");
+    }
+    if (!candidateUrl) {
+      candidateUrl = getStoredReturnUrl();
+    }
+
+    const safeUrl = getSafeReturnUrl(candidateUrl);
+    if (safeUrl) {
+      clearStoredReturnUrl();
+      navigate(safeUrl, { replace: true });
       return;
     }
 

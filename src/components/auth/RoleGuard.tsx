@@ -1,7 +1,8 @@
 import * as React from "react"
-import { Navigate } from "react-router-dom"
+import { Navigate, useLocation } from "react-router-dom"
 import { useAuth, type UserRole } from "@/contexts/auth-context"
 import { DashboardSkeleton } from "@/components/dashboard-skeleton"
+import { saveReturnUrl } from "@/lib/auth-utils"
 
 interface RoleGuardProps {
   allow: UserRole[]
@@ -21,6 +22,7 @@ interface RoleGuardProps {
  */
 export function RoleGuard({ allow, redirectTo, children }: RoleGuardProps) {
   const { role, loading, user } = useAuth()
+  const location = useLocation()
 
   React.useEffect(() => {
     if (!loading) {
@@ -39,7 +41,9 @@ export function RoleGuard({ allow, redirectTo, children }: RoleGuardProps) {
   // Unauthenticated or guest role must be redirected to /login, not cross-redirected between routes
   if (!user || role === "guest") {
     console.warn(`[RoleGuard] Access denied for guest/unauthenticated user (${user?.email || 'no-user'}). Redirecting to /login`)
-    return <Navigate to="/login" replace />
+    const fullPath = location.pathname + location.search + location.hash
+    saveReturnUrl(fullPath)
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   if (!allow.includes(role)) {

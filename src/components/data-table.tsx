@@ -1,4 +1,6 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
+import { Printer } from "lucide-react";
 import {
   closestCenter,
   DndContext,
@@ -392,6 +394,7 @@ export function DataTable<TData extends DataTableRow>({
   onRowClick,
   onTabChange,
 }: DataTableProps<TData>) {
+  const navigate = useNavigate();
   const { density } = useTableDensity();
   const densityConfig = DENSITY_CONFIG[density];
   const resolvedKey = persistenceKey || csvFilename || "default";
@@ -1121,9 +1124,38 @@ export function DataTable<TData extends DataTableRow>({
               </DndContext>
             </div>
             <div className="flex items-center justify-between">
-              <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">
-                {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                {table.getFilteredRowModel().rows.length} row(s) selected.
+              <div className="flex flex-1 items-center gap-3 text-sm text-muted-foreground">
+                <span>
+                  {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                  {table.getFilteredRowModel().rows.length} row(s) selected.
+                </span>
+                {table.getFilteredSelectedRowModel().rows.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    type="button"
+                    className="h-8 gap-1.5 text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 border-primary/30"
+                    onClick={() => {
+                      const selectedRows = table.getFilteredSelectedRowModel().rows;
+                      const sns = selectedRows
+                        .map(
+                          (r) =>
+                            (r.original as any).serial_number ||
+                            (r.original as any).nomor_seri ||
+                            (r.original as any).product_id
+                        )
+                        .filter(Boolean);
+                      if (sns.length > 0) {
+                        navigate(`/stickers?sns=${encodeURIComponent(sns.join(','))}`);
+                      } else {
+                        navigate('/stickers');
+                      }
+                    }}
+                  >
+                    <Printer className="size-3.5" />
+                    Cetak Stiker ({table.getFilteredSelectedRowModel().rows.length})
+                  </Button>
+                )}
               </div>
               <div className="flex w-full items-center justify-between gap-3 sm:gap-8 lg:w-fit">
                 <div className="flex items-center gap-1.5">

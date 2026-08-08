@@ -29,7 +29,9 @@ import ClientPage from "@/pages/admin/client"
 import DashboardPage from "@/pages/admin/dashboard"
 import InvoicePage from "@/pages/admin/invoice"
 import ProductsPage from "@/pages/admin/products"
+import StickersPage from "@/pages/admin/stickers"
 import ReportsPage from "@/pages/admin/reports"
+import ReportSurveyPage from "@/pages/admin/reports/ReportSurveyPage"
 import SettingsPage from "@/pages/admin/settings"
 import TransactionPage from "@/pages/admin/transaction"
 import TaxPage from "@/pages/admin/tax"
@@ -255,31 +257,56 @@ export default function App() {
                 >
                   <Route index element={<Navigate to="/dashboard" replace />} />
                   <Route path="dashboard"       element={<DashboardPage />} />
+                  <Route path="admin/dashboard" element={<DashboardPage />} />
                   <Route path="products"        element={<ProductsPage />} />
                   <Route path="products/add"    element={<ProductsPage />} />
                   <Route path="products/:id"    element={<ProductsPage />} />
+                  <Route path="admin/products"     element={<ProductsPage />} />
+                  <Route path="admin/products/add" element={<ProductsPage />} />
+                  <Route path="admin/products/:id" element={<ProductsPage />} />
+                  <Route path="stickers"        element={<StickersPage />} />
+                  <Route path="admin/stickers"  element={<StickersPage />} />
                   <Route path="product"         element={<Navigate to="/products" replace />} />
                   <Route path="product/add"     element={<Navigate to="/products/add" replace />} />
                   <Route path="product/:id"     element={<ProductsPage />} />
+                  <Route path="admin/product/:id" element={<ProductsPage />} />
                   <Route path="clients"         element={<ClientPage />} />
                   <Route path="clients/add"     element={<ClientPage />} />
                   <Route path="clients/:id"     element={<ClientPage />} />
+                  <Route path="admin/clients"     element={<ClientPage />} />
+                  <Route path="admin/clients/add" element={<ClientPage />} />
+                  <Route path="admin/clients/:id" element={<ClientPage />} />
                   <Route path="client"          element={<Navigate to="/clients" replace />} />
                   <Route path="client/add"      element={<Navigate to="/clients/add" replace />} />
                   <Route path="client/:id"      element={<ClientPage />} />
                   <Route path="tax"             element={<TaxPage />} />
+                  <Route path="admin/tax"       element={<TaxPage />} />
                   <Route path="ai-agent"        element={<AIAgentPage />} />
+                  <Route path="admin/ai-agent"   element={<AIAgentPage />} />
                   <Route path="workers"         element={<WorkersPage />} />
                   <Route path="workers/add"     element={<WorkersPage />} />
                   <Route path="workers/:id"     element={<WorkersPage />} />
+                  <Route path="admin/workers"     element={<WorkersPage />} />
+                  <Route path="admin/workers/add" element={<WorkersPage />} />
+                  <Route path="admin/workers/:id" element={<WorkersPage />} />
                   <Route path="branches"        element={<Navigate to="/workers" replace />} />
                   <Route path="images"          element={<ImagesPage />} />
+                  <Route path="admin/images"    element={<ImagesPage />} />
                   <Route path="qr-statistics"   element={<QrStatisticsPage />} />
+                  <Route path="admin/qr-statistics" element={<QrStatisticsPage />} />
                   <Route path="transaction"     element={<TransactionPage />} />
                   <Route path="transaction/add" element={<TransactionPage />} />
+                  <Route path="admin/transaction" element={<TransactionPage />} />
                   <Route path="invoice"         element={<InvoicePage />} />
+                  <Route path="admin/invoice"   element={<InvoicePage />} />
                   <Route path="reports"         element={<ReportsPage />} />
+                  <Route path="admin/reports"   element={<ReportsPage />} />
+                  <Route path="reports/survey"  element={<ReportSurveyPage mode="survey" />} />
+                  <Route path="reports/final-survey" element={<ReportSurveyPage mode="final" />} />
+                  <Route path="admin/reports/survey" element={<ReportSurveyPage mode="survey" />} />
+                  <Route path="admin/reports/final-survey" element={<ReportSurveyPage mode="final" />} />
                   <Route path="settings"        element={<SettingsPage />} />
+                  <Route path="admin/settings"  element={<SettingsPage />} />
                   <Route path="admin"           element={<Navigate to="/dashboard" replace />} />
                   <Route path="admin/*"         element={<Navigate to="/dashboard" replace />} />
                   <Route path="*"               element={<Navigate to="/dashboard" replace />} />

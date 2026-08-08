@@ -8,7 +8,7 @@ import {
   ImageIcon,
   LayoutGridIcon,
   PackageIcon,
-  ReceiptIcon,
+  PrinterIcon,
   ScanQrCodeIcon,
   SettingsIcon,
   UsersIcon,
@@ -18,24 +18,23 @@ import { useNavMode } from "@/contexts/nav-mode-context"
 import { useAuth } from "@/contexts/auth-context"
 
 // ── Constants ────────────────────────────────────────────────────────────────
-
 const ROW_H = 48 // px — height of each row
 
-// Top row (collapsible) — 4 items, chevron takes the 5th visual slot
+// Top row (collapsible) — exactly 4 items, chevron takes the 5th visual slot
 const TOP_NAV_ITEMS = [
-  { title: "QR Statistics", url: "/qr-statistics", icon: ScanQrCodeIcon },
+  { title: "Stickers", url: "/stickers", icon: PrinterIcon },
   { title: "Images", url: "/images", icon: ImageIcon },
-  { title: "Invoice", url: "/invoice", icon: ReceiptIcon },
+  { title: "QR Statistics", url: "/qr-statistics", icon: ScanQrCodeIcon },
+  { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const
 
-// Bottom row (always visible)
+// Bottom row (always visible) — exactly 5 items
 const BOTTOM_NAV_ITEMS = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGridIcon },
   { title: "Products", url: "/products", icon: PackageIcon },
-  { title: "Reports", url: "/reports", icon: FileChartColumnIcon },
   { title: "Clients", url: "/clients", icon: UsersIcon },
+  { title: "Reports", url: "/reports", icon: FileChartColumnIcon },
   { title: "Workers", url: "/workers", icon: HardHatIcon },
-  { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const
 
 // ── Input Focus hook ────────────────────────────────────────────────────────

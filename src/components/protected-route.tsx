@@ -1,22 +1,26 @@
 import * as React from "react"
-import { Navigate } from "react-router-dom"
+import { Navigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/auth-context"
+import { saveReturnUrl } from "@/lib/auth-utils"
 
 /**
  * Purpose: guard protected routes — redirect to /login if unauthenticated.
  * Responsibilities: show full-page skeleton while session loads, then either
- *                   render children or redirect.
+ *                   render children or redirect, preserving intended destination.
  * Usage notes: wrap any <Route> that requires authentication.
  */
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return <AuthLoadingSkeleton />
   }
 
   if (!session) {
-    return <Navigate to="/login" replace />
+    const fullPath = location.pathname + location.search + location.hash
+    saveReturnUrl(fullPath)
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   return <>{children}</>

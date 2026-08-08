@@ -1,13 +1,14 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   EllipsisVertical,
   Copy,
   CheckSquare,
   ExternalLink,
+  Printer,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -32,11 +33,21 @@ export function DataTableRowActions<TData>({
   previewUrl,
 }: DataTableRowActionsProps<TData>) {
   const [isOpen, setIsOpen] = React.useState(false);
+  const navigate = useNavigate();
 
   function handleCopy() {
-    const textToCopy = (row as any).nomor_seri ?? (row as any).id;
+    const textToCopy = (row as any).serial_number ?? (row as any).nomor_seri ?? (row as any).id;
     navigator.clipboard.writeText(String(textToCopy));
     toast.success("Disalin ke clipboard");
+  }
+
+  function handlePrintSticker() {
+    const sn = (row as any).serial_number ?? (row as any).nomor_seri ?? (row as any).product_id ?? (row as any).id;
+    if (sn) {
+      navigate(`/stickers?sn=${encodeURIComponent(sn)}`);
+    } else {
+      navigate('/stickers');
+    }
   }
 
   function handlePreview() {
@@ -79,6 +90,10 @@ export function DataTableRowActions<TData>({
         <DropdownMenuItem onClick={handleCopy}>
           <Copy className="mr-2 h-4 w-4" />
           Salin
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handlePrintSticker}>
+          <Printer className="mr-2 h-4 w-4" />
+          Cetak Stiker
         </DropdownMenuItem>
         <DropdownMenuItem>
           <CheckSquare className="mr-2 h-4 w-4" />

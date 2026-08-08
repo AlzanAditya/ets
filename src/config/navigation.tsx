@@ -5,6 +5,7 @@ import {
   LandmarkIcon,
   LayoutGridIcon,
   PackageIcon,
+  PrinterIcon,
   ReceiptIcon,
   ScanQrCodeIcon,
   SettingsIcon,
@@ -12,7 +13,6 @@ import {
   UsersIcon,
   Wallet2Icon,
 } from "lucide-react"
-
 import type { AppNavigationConfig, Plan } from "@/types/navigation"
 
 const plan = {
@@ -47,6 +47,12 @@ export const appNavigation = {
       url: "/products",
       plan: plan.free,
       icon: <PackageIcon />,
+    },
+    {
+      title: "Stickers",
+      url: "/stickers",
+      plan: plan.free,
+      icon: <PrinterIcon />,
     },
     {
       title: "Clients",
@@ -139,6 +145,7 @@ export const appNavigation = {
   breadcrumbLabels: {
     dashboard: "Dashboard",
     products: "Products",
+    stickers: "Stickers",
     "qr-statistics": "QR Statistics",
     transaction: "Transaction",
     images: "Images",
@@ -146,8 +153,7 @@ export const appNavigation = {
     clients: "Clients",
     client: "Clients",
     reports: "Reports",
-    "ai-agent": "AI Agent",
-    tax: "Tax",
+    "ai-agent": "AI Agent",    tax: "Tax",
     workers: "Workers",
     branches: "Workers",
     settings: "Settings",
