@@ -19,9 +19,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PublicHeader } from "./components/PublicHeader";
-import { QrScannerModal } from "./components/QrScannerModal";
 import { productsService, type ProductWithRelations } from "@/services/products.service";
 import { toast } from "sonner";
+
+const QrScannerModal = React.lazy(() => import("./components/QrScannerModal"));
 
 export default function PublicLanding() {
   const navigate = useNavigate();
@@ -302,11 +303,13 @@ export default function PublicLanding() {
       </footer>
 
       {/* Scanner Modal */}
-      <QrScannerModal
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onScanSuccess={handleScanSuccess}
-      />
+      <React.Suspense fallback={null}>
+        <QrScannerModal
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onScanSuccess={handleScanSuccess}
+        />
+      </React.Suspense>
     </div>
   );
 }

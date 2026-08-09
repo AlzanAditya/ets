@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { ReportData, ProductData } from '../types'
 import CropModal from './CropModal'
 import { Plus, Trash2, Upload, CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react'
+import { SmartImage } from '@/components/ui/smart-image'
 
 interface ReportFormProps {
   data: ReportData
@@ -92,7 +93,7 @@ function PhotoUploader({
           const resolvedSrc = /^(?:data:|blob:|https?:|\/)/.test(src) ? src : `/report-assets/${src}`
           return (
             <div key={n} className="relative w-18 h-24 rounded-lg overflow-hidden border border-border bg-muted group shadow-xs">
-              <img src={resolvedSrc} alt="" className="w-full h-full object-cover" />
+              <SmartImage src={resolvedSrc} alt="" className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => onRemove(n)}
@@ -229,7 +230,7 @@ export default function ReportForm({ data, setData, step, setStep }: ReportFormP
               </div>
               <div className="flex items-center gap-3">
                 {data.clientLogo && (
-                  <img
+                  <SmartImage
                     className="w-16 h-16 object-contain rounded border border-border bg-background p-1"
                     src={data.clientLogo}
                     alt="Logo Client"

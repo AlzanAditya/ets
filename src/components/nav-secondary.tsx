@@ -23,6 +23,7 @@ import {
 import { LanguagesIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react"
 import type { NavigationItem } from "@/types/navigation"
 import { useTheme } from "next-themes"
+import { preloadRoute } from "@/lib/lazy-routes"
 
 const placeholderItems = [
   {
@@ -114,6 +115,8 @@ export function NavSecondary({
                 <SidebarMenuButton asChild tooltip={item.title}>
                   <a
                     href={item.url}
+                    onMouseEnter={() => preloadRoute(item.url)}
+                    onFocus={() => preloadRoute(item.url)}
                     onClick={(event) => {
                       event.preventDefault()
                       onNavigate?.(item.url, item.title)

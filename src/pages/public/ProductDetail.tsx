@@ -36,8 +36,9 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { PublicHeader } from "./components/PublicHeader";
-import { QrScannerModal } from "./components/QrScannerModal";
 import { PublicQrCodeCard } from "./components/PublicQrCodeCard";
+
+const QrScannerModal = React.lazy(() => import("./components/QrScannerModal"));
 import { PublicEventAccordion } from "./components/PublicEventAccordion";
 import { PublicReportCard } from "./components/PublicReportCard";
 import { productsService, type ProductWithRelations } from "@/services/products.service";
@@ -803,11 +804,13 @@ export default function PublicProductDetail() {
       </footer>
 
       {/* Scanner Modal */}
-      <QrScannerModal
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onScanSuccess={handleScanSuccess}
-      />
+      <React.Suspense fallback={null}>
+        <QrScannerModal
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onScanSuccess={handleScanSuccess}
+        />
+      </React.Suspense>
     </div>
   );
 }

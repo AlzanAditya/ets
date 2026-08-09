@@ -341,3 +341,5 @@ export function QrScannerModal({ isOpen, onClose, onScanSuccess }: QrScannerModa
     </Dialog>
   );
 }
+
+export default QrScannerModal;

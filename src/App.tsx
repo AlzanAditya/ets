@@ -2,209 +2,67 @@ import * as React from "react"
 import {
   BrowserRouter,
   Navigate,
-  Outlet,
   Route,
   Routes,
-  useLocation,
-  useNavigate,
 } from "react-router-dom"
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { MobileNavbar } from "@/components/mobile-navbar"
-import { SiteHeader } from "@/components/site-header"
-import { NotificationBell } from "@/components/notification-bell"
 import { ProtectedRoute } from "@/components/protected-route"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { appNavigation } from "@/config/navigation"
 import { AuthProvider } from "@/contexts/auth-context"
 import { AnimationProvider } from "@/contexts/animation-context"
 import { TableDensityProvider } from "@/contexts/table-density-context"
-import { NavModeProvider, useNavMode } from "@/contexts/nav-mode-context"
-import { useIsMobile } from "@/hooks/use-mobile"
-import { useTransactionStats } from "@/hooks/use-transactions"
 import { BreadcrumbProvider } from "@/contexts/breadcrumb-context"
-import { cn } from "@/lib/utils"
-import LoginPage from "@/pages/auth/Login"
-import ClientPage from "@/pages/admin/client"
-import DashboardPage from "@/pages/admin/dashboard"
-import InvoicePage from "@/pages/admin/invoice"
-import ProductsPage from "@/pages/admin/products"
-import StickersPage from "@/pages/admin/stickers"
-import ReportsPage from "@/pages/admin/reports"
-import ReportSurveyPage from "@/pages/admin/reports/ReportSurveyPage"
-import SettingsPage from "@/pages/admin/settings"
-import TransactionPage from "@/pages/admin/transaction"
-import TaxPage from "@/pages/admin/tax"
-import AIAgentPage from "@/pages/admin/ai-agent"
-import WorkersPage from "@/pages/admin/workers"
-import ImagesPage from "@/pages/admin/images"
-import QrStatisticsPage from "@/pages/admin/qr-statistics"
-import PublicLanding from "@/pages/public/PublicLanding"
-import PublicProductDetail from "@/pages/public/ProductDetail"
-import { useRealtimeSync } from "@/hooks/use-realtime-sync"
-
-import { WorkerLayout } from "@/components/worker/layout/WorkerLayout"
-import WorkerHome from "@/pages/worker/Home"
-import WorkerSchedule from "@/pages/worker/Schedule"
-import WorkerTask from "@/pages/worker/Task"
-import WorkerHistory from "@/pages/worker/History"
-import WorkerProfile from "@/pages/worker/Profile"
 
 import { RoleGuard } from "@/components/auth/RoleGuard"
 import { GuestGuard } from "@/components/auth/GuestGuard"
-import { useAuth, type UserRole } from "@/contexts/auth-context"
+import type { UserRole } from "@/contexts/auth-context"
+
+import {
+  LoginPage,
+  PublicLanding,
+  PublicProductDetail,
+  WorkerLayout,
+  WorkerHome,
+  WorkerTask,
+  WorkerSchedule,
+  WorkerHistory,
+  WorkerProfile,
+  AppLayout,
+  DashboardPage,
+  ProductsPage,
+  StickersPage,
+  ClientPage,
+  TaxPage,
+  AIAgentPage,
+  WorkersPage,
+  ImagesPage,
+  QrStatisticsPage,
+  TransactionPage,
+  InvoicePage,
+  ReportsPage,
+  ReportSurveyPage,
+  SettingsPage,
+} from "@/lib/lazy-routes"
 
 const ADMIN_ROLES: UserRole[] = ["admin", "super_admin"]
 const WORKER_ROLES: UserRole[] = ["worker"]
 
-// ─── Inner layout content ──────────────────────────────
+// ─── Fallback Loading Component ──────────────────────────────────────────────
 
-function AppLayoutContent({
-  activeUrl,
-  mainItems,
-  secondaryItems,
-  userNav,
-  handleNavigate,
-}: {
-  activeUrl: string
-  mainItems: typeof appNavigation.mainItems
-  secondaryItems: typeof appNavigation.secondaryItems
-  userNav: { name: string; email: string; fallback: string }
-  handleNavigate: (url: string) => void
-}) {
-  const { sidebarEnabled, sidebarMobileEnabled, navbarEnabled } = useNavMode()
-  const isMobile = useIsMobile()
-  const isSidebarVisible = isMobile ? sidebarMobileEnabled : sidebarEnabled
-
+function RouteLoadingFallback() {
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      {isSidebarVisible && (
-        <AppSidebar
-          activeUrl={activeUrl}
-          brand={appNavigation.brand}
-          mainItems={mainItems}
-          onNavigate={handleNavigate}
-          planSections={appNavigation.planSections}
-          quickActions={appNavigation.quickActions}
-          secondaryItems={secondaryItems}
-          user={userNav}
-          variant="inset"
-        />
-      )}
-      <SidebarInset>
-        <SiteHeader
-          activeUrl={activeUrl}
-          breadcrumbLabels={appNavigation.breadcrumbLabels}
-          onNavigate={handleNavigate}
-          actions={<NotificationBell onNavigate={handleNavigate} />}
-        />
-        {/* Main content area — adds bottom padding on mobile when navbar is active
-            so page content is never obscured by the two-row navbar (~96px)        */}
-        <div className={cn("flex min-w-0 flex-1 flex-col", navbarEnabled && "max-md:pb-24")}>
-          <Outlet />
+    <div className="flex h-screen w-screen items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <div className="size-12 rounded-xl bg-primary/20 animate-pulse" />
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+          <div className="h-3 w-24 rounded bg-muted/60 animate-pulse" />
         </div>
-        {/* Mobile bottom navbar */}
-        <MobileNavbar />
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+    </div>
   )
 }
 
-// ─── Inner layout (rendered only when authenticated) ─────────────────────────
-
-function AppLayout() {
-  useRealtimeSync()
-  const location = useLocation()
-  const navigate = useNavigate()
-  const activeUrl = location.pathname === "/" ? "/dashboard" : location.pathname
-  const { role, profile, user } = useAuth()
-
-  const handleNavigate = React.useCallback(
-    (url: string) => {
-      navigate(url)
-    },
-    [navigate]
-  )
-
-  // Pending-count badge on the Transaction sidebar item
-  const { stats } = useTransactionStats()
-  const pendingCount = stats?.pending_count ?? 0
-
-  const filteredMainItems = React.useMemo(() => {
-    let items = appNavigation.mainItems
-    if (role === "worker") {
-      items = items.filter(
-        (item) =>
-          item.title !== "Workers" &&
-          item.url !== "/workers" &&
-          item.title !== "Settings" &&
-          item.url !== "/settings" &&
-          item.title !== "User Management" &&
-          item.url !== "/users"
-      )
-    }
-    return items.map((item) => {
-      if (item.title === "Transaction" && pendingCount > 0) {
-        return {
-          ...item,
-          badge: pendingCount,
-          badgeVariant: "amber" as const,
-        }
-      }
-      return item
-    })
-  }, [pendingCount, role])
-
-  const filteredSecondaryItems = React.useMemo(() => {
-    let items = appNavigation.secondaryItems
-    if (role === "worker") {
-      items = items.filter(
-        (item) =>
-          item.title !== "Settings" &&
-          item.url !== "/settings" &&
-          item.title !== "Workers" &&
-          item.url !== "/workers" &&
-          item.title !== "User Management" &&
-          item.url !== "/users"
-      )
-    }
-    return items
-  }, [role])
-
-  const userNav = React.useMemo(() => {
-    const name =
-      profile?.full_name ||
-      profile?.name ||
-      user?.user_metadata?.full_name ||
-      user?.user_metadata?.name ||
-      (user?.email ? user.email.split("@")[0] : null) ||
-      "User"
-    const email = profile?.email || user?.email || ""
-    const fallback = name ? name.slice(0, 2).toUpperCase() : "US"
-    return { name, email, fallback }
-  }, [profile, user])
-
-  return (
-    <NavModeProvider>
-      <AppLayoutContent
-        activeUrl={activeUrl}
-        mainItems={filteredMainItems}
-        secondaryItems={filteredSecondaryItems}
-        userNav={userNav}
-        handleNavigate={handleNavigate}
-      />
-    </NavModeProvider>
-  )
-}
-
-// ─── Root ─────────────────────────────────────────────────────────────────────
+// ─── Root Application Component ──────────────────────────────────────────────
 
 export default function App() {
   return (
@@ -213,105 +71,107 @@ export default function App() {
         <AnimationProvider>
           <TableDensityProvider>
             <BreadcrumbProvider>
-              <Routes>
-                {/* Public & Auth routes */}
-                <Route
-                  path="/login"
-                  element={
-                    <GuestGuard>
-                      <LoginPage />
-                    </GuestGuard>
-                  }
-                />
-                <Route path="/p" element={<PublicLanding />} />
-                <Route path="/p/:serial_number" element={<PublicProductDetail />} />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <Routes>
+                  {/* Public & Auth routes */}
+                  <Route
+                    path="/login"
+                    element={
+                      <GuestGuard>
+                        <LoginPage />
+                      </GuestGuard>
+                    }
+                  />
+                  <Route path="/p" element={<PublicLanding />} />
+                  <Route path="/p/:serial_number" element={<PublicProductDetail />} />
 
-                {/* Worker App standalone layout routes (Only for role: worker) */}
-                <Route
-                  path="/worker"
-                  element={
-                    <ProtectedRoute>
-                      <RoleGuard allow={WORKER_ROLES} redirectTo="/dashboard">
-                        <WorkerLayout />
-                      </RoleGuard>
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<Navigate to="/worker/home" replace />} />
-                  <Route path="home" element={<WorkerHome />} />
-                  <Route path="task" element={<WorkerTask />} />
-                  <Route path="schedule" element={<WorkerSchedule />} />
-                  <Route path="history" element={<WorkerHistory />} />
-                  <Route path="profile" element={<WorkerProfile />} />
-                </Route>
+                  {/* Worker App standalone layout routes (Only for role: worker) */}
+                  <Route
+                    path="/worker"
+                    element={
+                      <ProtectedRoute>
+                        <RoleGuard allow={WORKER_ROLES} redirectTo="/dashboard">
+                          <WorkerLayout />
+                        </RoleGuard>
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route index element={<Navigate to="/worker/home" replace />} />
+                    <Route path="home" element={<WorkerHome />} />
+                    <Route path="task" element={<WorkerTask />} />
+                    <Route path="schedule" element={<WorkerSchedule />} />
+                    <Route path="history" element={<WorkerHistory />} />
+                    <Route path="profile" element={<WorkerProfile />} />
+                  </Route>
 
-                {/* Admin protected routes (Only for roles: admin, super_admin) */}
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <RoleGuard allow={ADMIN_ROLES} redirectTo="/worker/home">
-                        <AppLayout />
-                      </RoleGuard>
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<Navigate to="/dashboard" replace />} />
-                  <Route path="dashboard"       element={<DashboardPage />} />
-                  <Route path="admin/dashboard" element={<DashboardPage />} />
-                  <Route path="products"        element={<ProductsPage />} />
-                  <Route path="products/add"    element={<ProductsPage />} />
-                  <Route path="products/:id"    element={<ProductsPage />} />
-                  <Route path="admin/products"     element={<ProductsPage />} />
-                  <Route path="admin/products/add" element={<ProductsPage />} />
-                  <Route path="admin/products/:id" element={<ProductsPage />} />
-                  <Route path="stickers"        element={<StickersPage />} />
-                  <Route path="admin/stickers"  element={<StickersPage />} />
-                  <Route path="product"         element={<Navigate to="/products" replace />} />
-                  <Route path="product/add"     element={<Navigate to="/products/add" replace />} />
-                  <Route path="product/:id"     element={<ProductsPage />} />
-                  <Route path="admin/product/:id" element={<ProductsPage />} />
-                  <Route path="clients"         element={<ClientPage />} />
-                  <Route path="clients/add"     element={<ClientPage />} />
-                  <Route path="clients/:id"     element={<ClientPage />} />
-                  <Route path="admin/clients"     element={<ClientPage />} />
-                  <Route path="admin/clients/add" element={<ClientPage />} />
-                  <Route path="admin/clients/:id" element={<ClientPage />} />
-                  <Route path="client"          element={<Navigate to="/clients" replace />} />
-                  <Route path="client/add"      element={<Navigate to="/clients/add" replace />} />
-                  <Route path="client/:id"      element={<ClientPage />} />
-                  <Route path="tax"             element={<TaxPage />} />
-                  <Route path="admin/tax"       element={<TaxPage />} />
-                  <Route path="ai-agent"        element={<AIAgentPage />} />
-                  <Route path="admin/ai-agent"   element={<AIAgentPage />} />
-                  <Route path="workers"         element={<WorkersPage />} />
-                  <Route path="workers/add"     element={<WorkersPage />} />
-                  <Route path="workers/:id"     element={<WorkersPage />} />
-                  <Route path="admin/workers"     element={<WorkersPage />} />
-                  <Route path="admin/workers/add" element={<WorkersPage />} />
-                  <Route path="admin/workers/:id" element={<WorkersPage />} />
-                  <Route path="branches"        element={<Navigate to="/workers" replace />} />
-                  <Route path="images"          element={<ImagesPage />} />
-                  <Route path="admin/images"    element={<ImagesPage />} />
-                  <Route path="qr-statistics"   element={<QrStatisticsPage />} />
-                  <Route path="admin/qr-statistics" element={<QrStatisticsPage />} />
-                  <Route path="transaction"     element={<TransactionPage />} />
-                  <Route path="transaction/add" element={<TransactionPage />} />
-                  <Route path="admin/transaction" element={<TransactionPage />} />
-                  <Route path="invoice"         element={<InvoicePage />} />
-                  <Route path="admin/invoice"   element={<InvoicePage />} />
-                  <Route path="reports"         element={<ReportsPage />} />
-                  <Route path="admin/reports"   element={<ReportsPage />} />
-                  <Route path="reports/survey"  element={<ReportSurveyPage mode="survey" />} />
-                  <Route path="reports/final-survey" element={<ReportSurveyPage mode="final" />} />
-                  <Route path="admin/reports/survey" element={<ReportSurveyPage mode="survey" />} />
-                  <Route path="admin/reports/final-survey" element={<ReportSurveyPage mode="final" />} />
-                  <Route path="settings"        element={<SettingsPage />} />
-                  <Route path="admin/settings"  element={<SettingsPage />} />
-                  <Route path="admin"           element={<Navigate to="/dashboard" replace />} />
-                  <Route path="admin/*"         element={<Navigate to="/dashboard" replace />} />
-                  <Route path="*"               element={<Navigate to="/dashboard" replace />} />
-                </Route>
-              </Routes>
+                  {/* Admin protected routes (Only for roles: admin, super_admin) */}
+                  <Route
+                    element={
+                      <ProtectedRoute>
+                        <RoleGuard allow={ADMIN_ROLES} redirectTo="/worker/home">
+                          <AppLayout />
+                        </RoleGuard>
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route index element={<Navigate to="/dashboard" replace />} />
+                    <Route path="dashboard"       element={<DashboardPage />} />
+                    <Route path="admin/dashboard" element={<DashboardPage />} />
+                    <Route path="products"        element={<ProductsPage />} />
+                    <Route path="products/add"    element={<ProductsPage />} />
+                    <Route path="products/:id"    element={<ProductsPage />} />
+                    <Route path="admin/products"     element={<ProductsPage />} />
+                    <Route path="admin/products/add" element={<ProductsPage />} />
+                    <Route path="admin/products/:id" element={<ProductsPage />} />
+                    <Route path="stickers"        element={<StickersPage />} />
+                    <Route path="admin/stickers"  element={<StickersPage />} />
+                    <Route path="product"         element={<Navigate to="/products" replace />} />
+                    <Route path="product/add"     element={<Navigate to="/products/add" replace />} />
+                    <Route path="product/:id"     element={<ProductsPage />} />
+                    <Route path="admin/product/:id" element={<ProductsPage />} />
+                    <Route path="clients"         element={<ClientPage />} />
+                    <Route path="clients/add"     element={<ClientPage />} />
+                    <Route path="clients/:id"     element={<ClientPage />} />
+                    <Route path="admin/clients"     element={<ClientPage />} />
+                    <Route path="admin/clients/add" element={<ClientPage />} />
+                    <Route path="admin/clients/:id" element={<ClientPage />} />
+                    <Route path="client"          element={<Navigate to="/clients" replace />} />
+                    <Route path="client/add"      element={<Navigate to="/clients/add" replace />} />
+                    <Route path="client/:id"      element={<ClientPage />} />
+                    <Route path="tax"             element={<TaxPage />} />
+                    <Route path="admin/tax"       element={<TaxPage />} />
+                    <Route path="ai-agent"        element={<AIAgentPage />} />
+                    <Route path="admin/ai-agent"   element={<AIAgentPage />} />
+                    <Route path="workers"         element={<WorkersPage />} />
+                    <Route path="workers/add"     element={<WorkersPage />} />
+                    <Route path="workers/:id"     element={<WorkersPage />} />
+                    <Route path="admin/workers"     element={<WorkersPage />} />
+                    <Route path="admin/workers/add" element={<WorkersPage />} />
+                    <Route path="admin/workers/:id" element={<WorkersPage />} />
+                    <Route path="branches"        element={<Navigate to="/workers" replace />} />
+                    <Route path="images"          element={<ImagesPage />} />
+                    <Route path="admin/images"    element={<ImagesPage />} />
+                    <Route path="qr-statistics"   element={<QrStatisticsPage />} />
+                    <Route path="admin/qr-statistics" element={<QrStatisticsPage />} />
+                    <Route path="transaction"     element={<TransactionPage />} />
+                    <Route path="transaction/add" element={<TransactionPage />} />
+                    <Route path="admin/transaction" element={<TransactionPage />} />
+                    <Route path="invoice"         element={<InvoicePage />} />
+                    <Route path="admin/invoice"   element={<InvoicePage />} />
+                    <Route path="reports"         element={<ReportsPage />} />
+                    <Route path="admin/reports"   element={<ReportsPage />} />
+                    <Route path="reports/survey"  element={<ReportSurveyPage mode="survey" />} />
+                    <Route path="reports/final-survey" element={<ReportSurveyPage mode="final" />} />
+                    <Route path="admin/reports/survey" element={<ReportSurveyPage mode="survey" />} />
+                    <Route path="admin/reports/final-survey" element={<ReportSurveyPage mode="final" />} />
+                    <Route path="settings"        element={<SettingsPage />} />
+                    <Route path="admin/settings"  element={<SettingsPage />} />
+                    <Route path="admin"           element={<Navigate to="/dashboard" replace />} />
+                    <Route path="admin/*"         element={<Navigate to="/dashboard" replace />} />
+                    <Route path="*"               element={<Navigate to="/dashboard" replace />} />
+                  </Route>
+                </Routes>
+              </React.Suspense>
             </BreadcrumbProvider>
           </TableDensityProvider>
         </AnimationProvider>

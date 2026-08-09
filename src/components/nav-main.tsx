@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/sidebar"
 import { PlusIcon } from "lucide-react"
 import type { NavigationItem, Plan, QuickActionItem } from "@/types/navigation"
+import { preloadRoute } from "@/lib/lazy-routes"
 
 const placeholderItems = [
   {
@@ -120,6 +121,8 @@ export function NavMain({
               >
                 <a
                   href={item.url}
+                  onMouseEnter={() => preloadRoute(item.url)}
+                  onFocus={() => preloadRoute(item.url)}
                   onClick={(event) => {
                     event.preventDefault()
                     onNavigate?.(item.url, item.title)

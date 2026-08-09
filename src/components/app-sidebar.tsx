@@ -1,4 +1,5 @@
 import * as React from "react"
+import { SmartImage } from "@/components/ui/smart-image"
 
 import { NavPlanSection } from "@/components/nav-plan-section"
 import { NavMain } from "@/components/nav-main"
@@ -78,7 +79,7 @@ export function AppSidebar({
                 }}
               >
                 {brand.logoSrc ? (
-                  <img
+                  <SmartImage
                     src={brand.logoSrc}
                     alt={brand.logoAlt ?? brand.title}
                     className="h-8 w-8 shrink-0 object-contain brightness-0 invert"

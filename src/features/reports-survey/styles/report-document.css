@@ -168,22 +168,26 @@
   justify-items: stretch;
 }
 
-.pages .report-page {
-  width: 100% !important;
-  height: auto !important;
-  aspect-ratio: 16/9 !important;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
-}
-
-.report-page {
+.report-page-wrapper {
   width: 100%;
   aspect-ratio: 16 / 9;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
+  border-radius: 4px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  background-color: #0b1210;
+}
+
+.report-page {
+  width: 1600px !important;
+  height: 900px !important;
+  position: relative;
+  overflow: hidden;
   background-color: #fff;
   color: #111 !important;
-  container-type: inline-size;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .report-page-clickable {
@@ -253,17 +257,17 @@
   object-fit: contain !important;
 }
 
-/* Typography scaled proportionally using cqw (1cqw = 1% of page width) */
+/* Typography scaled for fixed 1600px page width (1cqw = 16px) */
 .product-heading {
   font-family: Calibri, Arial, sans-serif;
-  font-size: 1.75cqw;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.05;
 }
 
 .cover-title {
   font-family: 'Raleway', Arial, sans-serif;
-  font-size: 3.1cqw;
+  font-size: 49.6px;
   font-weight: 800;
   text-align: left;
   line-height: 1.05;
@@ -274,7 +278,7 @@
 .cover-subtitle-main,
 .cover-subtitle-client {
   font-family: 'Raleway', Arial, sans-serif;
-  font-size: 1.62cqw;
+  font-size: 25.92px;
   font-weight: 700;
   text-align: left;
   line-height: 1.12;
@@ -283,7 +287,7 @@
 
 .cover-address {
   font-family: Calibri, Arial, sans-serif;
-  font-size: 1.34cqw;
+  font-size: 21.44px;
   text-align: left;
   line-height: 1.18;
   color: #111;
@@ -291,7 +295,7 @@
 
 .survey-cover-title {
   font-family: Calibri, Arial, sans-serif;
-  font-size: 2.8cqw;
+  font-size: 44.8px;
   font-weight: 700;
   text-align: center;
   line-height: 1.05;
@@ -300,13 +304,13 @@
 }
 
 .survey-cover-title span {
-  font-size: 1.56cqw;
+  font-size: 24.96px;
   font-weight: 700;
 }
 
 .survey-date {
   font-family: Calibri, Arial, sans-serif;
-  font-size: 1.18cqw;
+  font-size: 18.88px;
   font-weight: 700;
   font-style: italic;
   text-align: center;
@@ -315,7 +319,7 @@
 }
 
 .phase-reading {
-  font-size: 1cqw;
+  font-size: 16px;
   font-weight: 700;
   text-align: center;
   line-height: 1;
@@ -333,7 +337,7 @@
   background-color: #f4ee00 !important;
   color: #111 !important;
   font-family: Arial, sans-serif;
-  font-size: 1cqw;
+  font-size: 16px;
   font-weight: 800;
   text-align: center;
   line-height: 1;
@@ -350,7 +354,7 @@
   border: 1px solid #111;
   background-color: #fff;
   font-family: Arial, sans-serif;
-  font-size: 0.68cqw;
+  font-size: 10.88px;
   line-height: 1.08;
   box-sizing: border-box;
 }
@@ -394,7 +398,7 @@
 }
 
 .survey-mid {
-  font-size: 0.62cqw;
+  font-size: 9.92px;
 }
 
 .survey-value {
@@ -402,7 +406,7 @@
 }
 
 .section-page-title {
-  font-size: 2.54cqw;
+  font-size: 40.64px;
   font-weight: 700;
   text-align: center;
   line-height: 1;
@@ -411,7 +415,7 @@
 
 .required-title {
   font-family: Arial, sans-serif;
-  font-size: 1.5cqw;
+  font-size: 24px;
   font-weight: 700;
   text-align: center;
   line-height: 1;
@@ -422,7 +426,7 @@
   position: absolute;
   z-index: 5;
   font-family: Arial, sans-serif;
-  font-size: 1.1cqw;
+  font-size: 17.6px;
   line-height: 1.25;
   color: #111 !important;
   white-space: pre-wrap;
@@ -437,7 +441,7 @@
   position: absolute;
   z-index: 5;
   font-family: Arial, sans-serif;
-  font-size: 1.35cqw;
+  font-size: 21.6px;
   line-height: 1.4;
   color: #111 !important;
   white-space: pre-wrap;
@@ -445,14 +449,14 @@
 }
 
 .solution-list div {
-  margin-bottom: 1.2cqw;
+  margin-bottom: 19.2px;
   color: #111 !important;
   font-weight: 700;
 }
 
 .solution-needed-title {
   font-family: 'Raleway', Arial, sans-serif;
-  font-size: 4.23cqw;
+  font-size: 67.68px;
   font-weight: 800;
   line-height: 0.98;
   text-align: center;
@@ -463,19 +467,19 @@
   position: absolute;
   z-index: 5;
   font-family: Calibri, Arial, sans-serif;
-  font-size: 1.33cqw;
+  font-size: 21.28px;
   line-height: 1.4;
   color: #111 !important;
   box-sizing: border-box;
 }
 
 .explanation-text strong {
-  font-size: 2.08cqw;
+  font-size: 33.28px;
 }
 
 .benefits-title {
   font-family: 'Raleway', Arial, sans-serif;
-  font-size: 3.38cqw;
+  font-size: 54.08px;
   font-weight: 800;
   line-height: 1;
   color: #111;
@@ -493,15 +497,15 @@
 }
 
 .benefit-grid h3 {
-  font-size: 1.37cqw;
+  font-size: 21.92px;
   line-height: 1.05;
-  margin: 0 0 0.4cqw;
+  margin: 0 0 6.4px;
   color: #00b928;
   font-weight: 700;
 }
 
 .benefit-grid p {
-  font-size: 1cqw;
+  font-size: 16px;
   line-height: 1.25;
   font-weight: 700;
   margin: 0;
@@ -509,31 +513,33 @@
 }
 
 .solution-heading {
-  font-size: 3.38cqw;
-  font-weight: 800;
-  line-height: 1;
-  color: #111;
+  font-size: 22.4px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ffffff !important;
   font-family: 'Raleway', Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .solution-subheading {
-  font-size: 2.11cqw;
+  font-size: 27.2px;
   font-weight: 700;
-  line-height: 1.05;
+  line-height: 1.1;
   color: #111;
 }
 
 .source-box {
   position: absolute;
   z-index: 5;
-  border: 2px solid #111;
+  border: 1.5px solid #111;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 1.25cqw;
+  font-size: 17.6px;
   font-weight: 700;
-  line-height: 1.05;
+  line-height: 1.1;
   background-color: #fff;
   box-sizing: border-box;
 }
@@ -541,7 +547,7 @@
 .flow-arrow {
   position: absolute;
   z-index: 7;
-  font-size: 2.62cqw;
+  font-size: 35.2px;
   font-weight: 800;
   line-height: 1;
   color: #111;
@@ -553,32 +559,33 @@
 .solution-label {
   position: absolute;
   z-index: 5;
-  font-size: 1.27cqw;
+  font-size: 17.6px;
   font-weight: 700;
   text-align: center;
-  line-height: 1.05;
+  line-height: 1.1;
   color: #111;
 }
 
 .dark-box {
   position: absolute;
   z-index: 5;
-  background-color: #050505;
+  background-color: #000;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 1.25cqw;
-  line-height: 1.1;
-  padding: 0.5cqw;
+  font-size: 17.6px;
+  font-weight: 700;
+  line-height: 1.15;
+  padding: 8px;
   box-sizing: border-box;
 }
 
 .summary-title {
   position: absolute;
   z-index: 5;
-  font-size: 1.25cqw;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1;
   color: #111;
@@ -590,7 +597,7 @@
   border-collapse: collapse;
   background-color: #fff;
   font-family: Calibri, Arial, sans-serif;
-  font-size: 1cqw;
+  font-size: 16px;
   line-height: 1.15;
   box-sizing: border-box;
 }

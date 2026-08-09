@@ -2,6 +2,7 @@ import * as React from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { House, ClipboardList, Calendar, RotateCcw, UserRound } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { preloadRoute } from "@/lib/lazy-routes"
 
 function useIsInputFocused(): boolean {
   const [isFocused, setIsFocused] = React.useState(false)
@@ -71,6 +72,8 @@ export function WorkerBottomNavigation() {
             <button
               key={item.url}
               type="button"
+              onMouseEnter={() => preloadRoute(item.url)}
+              onTouchStart={() => preloadRoute(item.url)}
               onClick={() => navigate(item.url)}
               className={cn(
                 "flex flex-1 flex-col items-center justify-center py-1 transition-colors duration-150 active:scale-95",

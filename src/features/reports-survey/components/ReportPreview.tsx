@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom'
 import { ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react'
 import { ReportData, ProductData } from '../types'
 import { ASSET } from '../data/template'
+import { SmartImage } from '@/components/ui/smart-image'
+import { exportDocumentPagesToPdf, renderPageElementToCanvas } from '@/lib/document-pdf-exporter'
 
 const A = ASSET
 const BG1 = `${A}bg-01.png`
@@ -18,6 +20,65 @@ interface PageProps {
   locked?: boolean
   onVisible?: (page: number) => void
   onOpen?: (el: HTMLElement, pageNum: number) => void
+}
+
+function ScaledPageContainer({
+  children,
+  className = '',
+  style = {},
+  onClick,
+}: {
+  children: React.ReactNode
+  className?: string
+  style?: React.CSSProperties
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(0.25)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const update = () => {
+      if (el.clientWidth > 0) {
+        setScale(el.clientWidth / 1600)
+      }
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  return (
+    <div
+      ref={containerRef}
+      className={`report-page-wrapper ${className}`}
+      onClick={onClick}
+      style={{
+        width: '100%',
+        aspectRatio: '16 / 9',
+        position: 'relative',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        ...style,
+      }}
+    >
+      <div
+        style={{
+          width: '1600px',
+          height: '900px',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  )
 }
 
 function Page({
@@ -45,19 +106,21 @@ function Page({
   }, [number, onVisible])
 
   return (
-    <article
-      ref={ref}
-      data-page={number}
-      className={`report-page ${className}${onOpen ? ' report-page-clickable' : ''}`}
-      onClick={onOpen ? (e) => onOpen(e.currentTarget as HTMLElement, number) : undefined}
-    >
-      <img src={cover ? BG1 : BG2} className="report-bg" alt="" />
-      {children}
-      <span className="page-indicator pdf-ui-only">
-        Halaman {number} / {total}
-      </span>
-      {locked && <span className="template-badge pdf-ui-only">TEMPLATE</span>}
-    </article>
+    <ScaledPageContainer>
+      <article
+        ref={ref}
+        data-page={number}
+        className={`report-page ${className}${onOpen ? ' report-page-clickable' : ''}`}
+        onClick={onOpen ? (e) => onOpen(e.currentTarget as HTMLElement, number) : undefined}
+      >
+        <SmartImage src={cover ? BG1 : BG2} className="report-bg" alt="" />
+        {children}
+        <span className="page-indicator pdf-ui-only">
+          Halaman {number} / {total}
+        </span>
+        {locked && <span className="template-badge pdf-ui-only">TEMPLATE</span>}
+      </article>
+    </ScaledPageContainer>
   )
 }
 
@@ -108,7 +171,7 @@ function Img({
   if (!src) return null
   const resolved = /^(?:data:|blob:|https?:|\/)/.test(src) ? src : A + src
   return (
-    <img
+    <SmartImage
       src={resolved}
       alt=""
       className={`report-image ${className}`}
@@ -361,75 +424,86 @@ function LockedPage({
     const heading = type === 'centralised' ? 'DESAIN SOLUSI CENTRALISED' : 'DESAIN SOLUSI PERSONALISED'
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Text left="0%" top="-0.66%" width="32.45%" height="9.5%" className="solution-heading">
+        <Text left="1.2%" top="1.8%" width="40%" height="4.5%" className="solution-heading">
           {heading}
         </Text>
-        <Text left="5.86%" top="15.58%" width="31.25%" height="5.38%" className="solution-subheading">
+        <Text left="5.86%" top="15.58%" width="40%" height="5.38%" className="solution-subheading">
           {title}
         </Text>
-        <div className="source-box" style={{ left: '3.66%', top: '39.1%', width: '10.45%', height: '17.48%' }}>
+        <div className="source-box" style={{ left: '4.8%', top: '38.5%', width: '11.0%', height: '16.5%' }}>
           Sumber<br />Listrik
         </div>
-        <div className="flow-arrow" style={{ left: '19.375%', top: '38.33%', width: '3.1%', height: '5.5%' }}>
+        <div className="flow-arrow" style={{ left: '17.2%', top: '43.5%', width: '5.0%', height: '5.5%' }}>
           →
         </div>
         {type !== 'centralised' ? (
           <>
-            <Img
-              src={index === 0 ? 's14-p01.png' : 's15-p01.png'}
-              left="25.01%"
-              top="27.76%"
-              width="14.71%"
-              height="41.73%"
-              className="contain-image"
-            />
-            <Img
-              src={index === 0 ? 's14-p02.jpg' : 's15-p02.jpg'}
-              left="50.85%"
-              top="28.86%"
-              width="17.09%"
-              height="40.52%"
-              className="contain-image"
-            />
-            <div className="flow-arrow" style={{ left: '42.81%', top: '38.33%', width: '3.1%', height: '5.5%' }}>
+            <div style={{ position: 'absolute', left: '24.5%', top: '23.0%', width: '15.0%', height: '43.0%', border: '1px solid #111', boxSizing: 'border-box' }}>
+              <Img
+                src={index === 0 ? 's14-p01.png' : 's15-p01.png'}
+                left="0%"
+                top="0%"
+                width="100%"
+                height="100%"
+                className="contain-image"
+              />
+            </div>
+            <div style={{ position: 'absolute', left: '48.5%', top: '23.0%', width: '18.0%', height: '43.0%', border: '1px dashed #666', boxSizing: 'border-box' }}>
+              <Img
+                src={index === 0 ? 's14-p02.jpg' : 's15-p02.jpg'}
+                left="0%"
+                top="0%"
+                width="100%"
+                height="100%"
+                className="contain-image"
+              />
+            </div>
+            <div className="flow-arrow" style={{ left: '41.2%', top: '43.5%', width: '5.0%', height: '5.5%' }}>
               →
             </div>
-            <div className="flow-arrow" style={{ left: '72.5%', top: '38.33%', width: '3.1%', height: '5.5%' }}>
+            <div className="flow-arrow" style={{ left: '68.5%', top: '43.5%', width: '5.0%', height: '5.5%' }}>
               →
             </div>
-            <Text left="25.55%" top="70.33%" width="13.65%" height="6.73%" className="solution-label">
+            <Text left="24.5%" top="68.0%" width="15.0%" height="7.0%" className="solution-label">
               {ets}
               <br />
               <i>(Three Phase)</i>
             </Text>
-            <Text left="52.57%" top="70.35%" width="13.65%" height="4.04%" className="solution-label">
+            <Text left="48.5%" top="68.0%" width="18.0%" height="5.0%" className="solution-label">
               {ups}
             </Text>
+            <div className="dark-box" style={{ left: '75.5%', top: '38.5%', width: '18.5%', height: '16.5%' }}>
+              {covered}
+            </div>
           </>
         ) : (
           <>
-            <Img src="s16-p01.png" left="25.01%" top="27.76%" width="14.71%" height="41.73%" className="contain-image" />
-            <Img src="s16-p02.jpg" left="50.42%" top="36.0%" width="11.02%" height="26.12%" className="contain-image" />
-            <Img src="s16-p03.jpg" left="61.92%" top="35.81%" width="11.02%" height="26.12%" className="contain-image" />
-            <div className="flow-arrow" style={{ left: '42.81%', top: '38.33%', width: '3.1%', height: '5.5%' }}>
+            <div style={{ position: 'absolute', left: '24.2%', top: '23.0%', width: '15.0%', height: '43.0%', border: '1px solid #111', boxSizing: 'border-box' }}>
+              <Img src="s16-p01.png" left="0%" top="0%" width="100%" height="100%" className="contain-image" />
+            </div>
+            <div style={{ position: 'absolute', left: '47.5%', top: '23.0%', width: '23.5%', height: '43.0%', border: '1px dashed #666', boxSizing: 'border-box' }}>
+              <Img src="s16-p02.jpg" left="2%" top="2%" width="46%" height="96%" className="contain-image" />
+              <Img src="s16-p03.jpg" left="52%" top="2%" width="46%" height="96%" className="contain-image" />
+            </div>
+            <div className="flow-arrow" style={{ left: '40.8%', top: '43.5%', width: '5.0%', height: '5.5%' }}>
               →
             </div>
-            <div className="flow-arrow" style={{ left: '72.5%', top: '38.33%', width: '3.1%', height: '5.5%' }}>
+            <div className="flow-arrow" style={{ left: '72.2%', top: '43.5%', width: '5.0%', height: '5.5%' }}>
               →
             </div>
-            <Text left="25.55%" top="70.33%" width="13.65%" height="6.73%" className="solution-label">
+            <Text left="24.2%" top="68.0%" width="15.0%" height="7.0%" className="solution-label">
               {ets}
               <br />
               <i>(Three Phase)</i>
             </Text>
-            <Text left="54.61%" top="65.11%" width="13.65%" height="4.04%" className="solution-label">
+            <Text left="47.5%" top="68.0%" width="23.5%" height="5.0%" className="solution-label">
               {ups}
             </Text>
+            <div className="dark-box" style={{ left: '78.5%', top: '38.5%', width: '16.5%', height: '16.5%' }}>
+              {covered}
+            </div>
           </>
         )}
-        <div className="dark-box" style={{ left: '59.61%', top: '38.41%', width: '16.71%', height: '17.48%' }}>
-          {covered}
-        </div>
       </Page>
     )
   }
@@ -896,75 +970,33 @@ export default function ReportPreview({ data }: { data: ReportData }) {
   )
 
   async function renderExportBitmaps() {
-    const html2canvas = (await import('html2canvas')).default
     if (!pagesRef.current) return []
-    const pages = Array.from(pagesRef.current.querySelectorAll('.report-page'))
-    let exportRoot: HTMLDivElement | null = null
+    const pages = Array.from(pagesRef.current.querySelectorAll('.report-page')) as HTMLElement[]
+    if (!pages.length) return []
 
-    try {
-      exportRoot = document.createElement('div')
-      exportRoot.className = 'pdf-export-root'
-      exportRoot.setAttribute('aria-hidden', 'true')
-      exportRoot.style.cssText = [
-        'position:fixed',
-        'left:-20000px',
-        'top:0',
-        'width:1600px',
-        'height:auto',
-        'z-index:0',
-        'pointer-events:none',
-        'background:#fff',
-        'visibility:visible',
-      ].join(';')
+    if (document.fonts?.ready) await document.fonts.ready
 
-      pages.forEach((page) => {
-        const clone = page.cloneNode(true) as HTMLElement
-        clone.classList.add('pdf-export-page')
-        clone.style.width = '1600px'
-        clone.style.height = '900px'
-        clone.style.maxWidth = 'none'
-        clone.style.aspectRatio = 'auto'
-        clone.style.backgroundColor = '#ffffff'
-        clone.style.color = '#111111'
-        clone
-          .querySelectorAll('.page-indicator,.template-badge,.pdf-ui-only')
-          .forEach((el) => el.remove())
-        exportRoot!.appendChild(clone)
+    const bitmaps: string[] = []
+    for (const pageEl of pages) {
+      const canvas = await renderPageElementToCanvas(pageEl, {
+        width: 1600,
+        height: 900,
+        scale: normalizedRenderScale,
+        backgroundColor: '#ffffff',
       })
-
-      document.body.appendChild(exportRoot)
-      if (document.fonts?.ready) await document.fonts.ready
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-
-      const bitmaps: string[] = []
-      for (let i = 0; i < exportRoot.children.length; i++) {
-        const page = exportRoot.children[i] as HTMLElement
-        const canvas = await html2canvas(page, {
-          scale: normalizedRenderScale,
-          useCORS: true,
-          allowTaint: false,
-          backgroundColor: '#fff',
-          logging: false,
-          imageTimeout: 15000,
-          width: 1600,
-          height: 900,
-          windowWidth: 1600,
-          windowHeight: 900,
-          removeContainer: true,
-        })
-
-        bitmaps.push(canvas.toDataURL('image/jpeg', JPEG_QUALITY))
-        canvas.width = 1
-        canvas.height = 1
-      }
-
-      return bitmaps
-    } finally {
-      exportRoot?.remove()
+      bitmaps.push(canvas.toDataURL('image/jpeg', JPEG_QUALITY))
+      canvas.width = 1
+      canvas.height = 1
     }
+
+    return bitmaps
   }
 
   async function downloadPdf() {
+    if (!pagesRef.current) return
+    const pages = Array.from(pagesRef.current.querySelectorAll('.report-page')) as HTMLElement[]
+    if (!pages.length) return
+
     const button = document.querySelector('.download-pdf') as HTMLButtonElement | null
     const pptxButton = document.querySelector('.download-pptx') as HTMLButtonElement | null
     setIsExporting(true)
@@ -973,21 +1005,14 @@ export default function ReportPreview({ data }: { data: ReportData }) {
     if (button) button.textContent = 'Membuat PDF…'
 
     try {
-      const [{ jsPDF }, bitmaps] = await Promise.all([import('jspdf'), renderExportBitmaps()])
-
-      const pdf = new jsPDF({
+      const filename = `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pdf`
+      await exportDocumentPagesToPdf(pages, {
         orientation: 'landscape',
-        unit: 'px',
-        format: [1600, 900],
-        compress: true,
+        widthPx: 1600,
+        heightPx: 900,
+        scale: normalizedRenderScale,
+        filename,
       })
-
-      bitmaps.forEach((image, i) => {
-        if (i > 0) pdf.addPage([1600, 900], 'landscape')
-        pdf.addImage(image, 'JPEG', 0, 0, 1600, 900, undefined, 'FAST')
-      })
-
-      pdf.save(`${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pdf`)
     } catch (error) {
       console.error('PDF export failed:', error)
       window.alert('PDF gagal dibuat. Silakan coba lagi.')

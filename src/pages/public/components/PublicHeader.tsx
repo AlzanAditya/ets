@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { SmartImage } from "@/components/ui/smart-image";
 
 export interface NavItem {
   id: string;
@@ -20,14 +21,10 @@ export function PublicHeader({ rightAction, navItems, activeId }: PublicHeaderPr
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between gap-4">
         {/* Brand Logo & Name */}
         <Link to="/p" className="flex items-center space-x-2.5 group shrink-0">
-          <img
+          <SmartImage
             src="/ets-logo.png"
             alt="ETS Logo"
             className="h-6 w-auto object-contain transition-transform group-hover:scale-105"
-            onError={(e) => {
-              // Fallback if image fails
-              (e.currentTarget as HTMLElement).style.display = "none";
-            }}
           />
           <div>
             <h1 className="font-normal text-[10px] sm:text-[11px] tracking-wider uppercase leading-tight text-zinc-400 group-hover:text-zinc-200 transition-colors">

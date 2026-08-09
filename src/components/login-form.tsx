@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { SmartImage } from "@/components/ui/smart-image";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Field,
@@ -276,13 +277,10 @@ export function LoginForm({
             {/* Subtle gradient overlay */}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-transparent" />
             <div className="relative z-10 flex flex-col items-center gap-5 text-center">
-              <img
+              <SmartImage
                 src="/ets-logo.png"
                 alt="ETS Logo"
                 className="h-16 w-16 object-contain brightness-0 invert"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
               />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40 mb-1">
