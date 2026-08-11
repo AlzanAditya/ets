@@ -5,7 +5,7 @@ import { ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react'
 import { ReportData, ProductData } from '../types'
 import { ASSET } from '../data/template'
 import { SmartImage } from '@/components/ui/smart-image'
-import { exportDocumentPagesToPdf, renderPageElementToCanvas } from '@/lib/document-pdf-exporter'
+import { exportDocumentPagesToPdf, exportDocumentPagesToPptx, exportDocumentPagesToNativePrint } from '@/lib/document-exporter'
 
 const A = ASSET
 const BG1 = `${A}bg-01.png`
@@ -144,7 +144,17 @@ function Text({
   return (
     <div
       className={`report-text ${className}`}
-      style={{ left, top, width, height, ...style }}
+      style={{
+        left,
+        top,
+        width,
+        minHeight: height || 'auto',
+        height: 'auto',
+        overflow: 'visible',
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
+        ...style,
+      }}
     >
       {children}
     </div>
@@ -275,32 +285,91 @@ function ProductPageA({
   )
 }
 
+function renderRedText(text: string) {
+  if (!text) return '-'
+  const regex = /(Tidak\s*Ada|Tidak\s*ada|tidak\s*ada)/gi
+  const parts = text.split(regex)
+  if (parts.length === 1) return text
+  return parts.map((part, i) => {
+    if (/^Tidak\s*ada$/i.test(part)) {
+      return (
+        <span key={i} style={{ color: '#ff0000', fontWeight: 'bold' }}>
+          {part}
+        </span>
+      )
+    }
+    return part
+  })
+}
+
 function SurveyTable({ p }: { p: ProductData }) {
-  const rows = [
-    ['1. TEGANGAN', '( Ideal  220 V ± 3 % )', p.voltage],
-    ['2. GROUNDING', '( ideal  <  1 Volt  )', p.grounding],
-    ['3. UPS', '', p.ups],
-    ['4. STABILIZER', '', p.stabilizer],
-    [
-      '5. PROTEKSI EXISTING',
-      'Power  :  ' + p.powerProtection + '  ,  Line Komunikasi  :  ' + p.communicationProtection,
-      '',
-    ],
-    ['6. LINE KOMUNIKASI/DATA', '', '-'],
-    ['7. BEBAN', '', p.load],
-    ['8. CATATAN', '', p.note],
+  const powerProt = p.powerProtection || 'Tidak Ada'
+  const commProt = p.communicationProtection || 'Tidak ada'
+
+  const rows: Array<{
+    label: string
+    sub?: string
+    value: React.ReactNode
+  }> = [
+    {
+      label: '1. TEGANGAN',
+      sub: '( Ideal  220 V ± 3 % )',
+      value: renderRedText(p.voltage || '228–229 V'),
+    },
+    {
+      label: '2. GROUNDING',
+      sub: '( ideal < 1 Volt )',
+      value: renderRedText(p.grounding || '0,3 V'),
+    },
+    {
+      label: '3. UPS',
+      value: renderRedText(p.ups || '-'),
+    },
+    {
+      label: '4. STABILIZER',
+      value: renderRedText(p.stabilizer || '-'),
+    },
+    {
+      label: '5. PROTEKSI EXISTING',
+      value: (
+        <span>
+          Power : {renderRedText(powerProt)} , Line Komunikasi : {renderRedText(commProt)}
+        </span>
+      ),
+    },
+    {
+      label: '6. LINE KOMUNIKASI/DATA',
+      value: renderRedText('-'),
+    },
+    {
+      label: '7. BEBAN',
+      value: renderRedText(p.load || '-'),
+    },
+    {
+      label: '8. CATATAN',
+      value: renderRedText(
+        p.note
+          ? p.note.startsWith('•')
+            ? p.note
+            : `•   ${p.note}`
+          : '•   Tidak ada proteksi terhadap over voltage & surge voltage.'
+      ),
+    },
   ]
+
   return (
     <div
       className="survey-table"
-      style={{ left: '26.78%', top: '72.11%', width: '50.79%', height: '22.28%' }}
+      style={{ left: '22.9%', top: '70.5%', width: '54.2%' }}
     >
       <div className="survey-table-title">HASIL SURVEY &amp; PENGUKURAN</div>
-      {rows.map(([a, mid, b]) => (
-        <div className="survey-row" key={a}>
-          <div className="survey-label">{a}</div>
-          <div className="survey-mid">{mid}</div>
-          <div className="survey-value">{b}</div>
+      {rows.map((row) => (
+        <div className="survey-row" key={row.label}>
+          <div className="survey-label">
+            <span>{row.label}</span>
+            {row.sub && <span className="survey-sub">{row.sub}</span>}
+          </div>
+          <div className="survey-value">{row.value}</div>
         </div>
       ))}
     </div>
@@ -354,7 +423,7 @@ function LockedPage({
   if (type === 'solution')
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Text left="28.29%" top="9.21%" width="40.5%" height="16.66%" className="solution-needed-title">
+        <Text left="0%" top="19.21%" width="100%" height="16.66%" className="solution-needed-title">
           Solusi yang dibutuhkan
         </Text>
         <Img src="s09-p02.jpg" left="14.52%" top="33.94%" width="27.538%" height="55.0%" className="contain-image" />
@@ -424,7 +493,7 @@ function LockedPage({
     const heading = type === 'centralised' ? 'DESAIN SOLUSI CENTRALISED' : 'DESAIN SOLUSI PERSONALISED'
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Text left="1.2%" top="1.8%" width="40%" height="4.5%" className="solution-heading">
+        <Text left="1.2%" top="3.3%" width="85%" height="4.5%" className="solution-heading">
           {heading}
         </Text>
         <Text left="5.86%" top="15.58%" width="40%" height="5.38%" className="solution-subheading">
@@ -511,37 +580,55 @@ function LockedPage({
   if (type === 'summary')
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Text left="10.675%" top="20.36%" width="63.78%" height="5.38%" className="summary-title">
+        <Text left="10.675%" top="20.36%" width="78.64%" className="summary-title">
           SUMMARY KEBUTUHAN ETS DI {data.clientName.replace(/^PT\s+/i, 'PT ')}
         </Text>
-        <table className="summary-table" style={{ left: '10.675%', top: '27.78%', width: '78.64%', height: '61.1%' }}>
+        <table className="summary-table" style={{ left: '10.675%', top: '25.5%', width: '78.64%' }}>
           <thead>
             <tr>
-              <th>No</th>
-              <th>AREA</th>
-              <th>QTY<br />(unit)</th>
-              <th>KETERANGAN</th>
+              <th style={{ width: '6%' }}>No</th>
+              <th style={{ width: '54%' }}>AREA</th>
+              <th style={{ width: '15%' }}>
+                QTY
+                <br />
+                (unit)
+              </th>
+              <th style={{ width: '25%' }}>KETERANGAN</th>
             </tr>
           </thead>
           <tbody>
             {data.products.map((p, i) => (
-              <tr key={i}>
-                <td>{i + 1}.</td>
-                <td>
-                  {p.name}
-                  <br />
-                  ETS {p.capacity} (Three Phase)
-                </td>
-                <td>1</td>
-                <td>Personalised</td>
-              </tr>
+              <React.Fragment key={i}>
+                <tr className="item-header-row">
+                  <td>{i + 1}.</td>
+                  <td className="area-cell">
+                    <strong>{p.name}</strong>
+                  </td>
+                  <td></td>
+                  <td></td>
+                </tr>
+                <tr className="item-detail-row">
+                  <td></td>
+                  <td className="area-cell">
+                    <span>ETS {p.capacity} (Three Phase)</span>
+                  </td>
+                  <td>1</td>
+                  <td>Personalised</td>
+                </tr>
+              </React.Fragment>
             ))}
-            <tr>
+            <tr className="item-header-row">
               <td>{data.products.length + 1}.</td>
-              <td>
-                UPS {data.products.map((p) => p.capacity).join(' & ')}
-                <br />
-                ETS 200 KVA (Three Phase)
+              <td className="area-cell">
+                <strong>UPS {data.products.map((p) => p.capacity).join(' & ')}</strong>
+              </td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr className="item-detail-row">
+              <td></td>
+              <td className="area-cell">
+                <span>ETS 200 KVA (Three Phase)</span>
               </td>
               <td>1</td>
               <td>Centralised</td>
@@ -575,18 +662,23 @@ function RenderSinglePage({
         <div className="client-logo-box" style={{ left: '9.4%', top: '44.05%', width: '14.175%', height: '25.2%' }}>
           <Img src={data.clientLogo} left="0" top="0" width="100%" height="100%" className="client-logo" />
         </div>
-        <Text left="25.77%" top="42.0%" width="67.725%" className="cover-title">
-          {data.coverTitle}
-        </Text>
-        <Text left="25.625%" top="50.11%" width="66.25%" className="cover-subtitle-main">
-          UNTUK MEMPROTEKSI PERANGKAT DATA CENTER
-        </Text>
-        <Text left="25.625%" top="55.67%" width="66.25%" className="cover-subtitle-client">
-          DI {data.clientName}
-        </Text>
-        <Text left="25.625%" top="61.22%" width="66.25%" className="cover-address">
-          {data.address}
-        </Text>
+        <div
+          style={{
+            position: 'absolute',
+            left: '25.625%',
+            top: '41.5%',
+            width: '67.5%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            zIndex: 5,
+          }}
+        >
+          <div className="cover-title">{data.coverTitle}</div>
+          <div className="cover-subtitle-main">UNTUK MEMPROTEKSI PERANGKAT DATA CENTER</div>
+          <div className="cover-subtitle-client">DI {data.clientName}</div>
+          <div className="cover-address">{data.address}</div>
+        </div>
       </Page>
     )
   }
@@ -594,17 +686,31 @@ function RenderSinglePage({
   if (pageNumber === 2) {
     return (
       <Page number={2} total={total} cover onVisible={onVisible} onOpen={onOpen}>
-        <Text left="0%" top="38.0%" width="100%" className="survey-cover-title">
-          HASIL SURVEI
-          <br />
-          <span>
-            {data.clientName.replace(/\s*\(ASNET\)\s*/i, '').replace(/^PT\s+/i, 'PT ')} -{' '}
-            {data.surveyLocation || 'BOGOR'}
-          </span>
-        </Text>
-        <Text left="0%" top="52.0%" width="100%" className="survey-date">
-          Hari &amp; Tanggal : {data.surveyDate}
-        </Text>
+        <div
+          style={{
+            position: 'absolute',
+            left: '5%',
+            top: '35.0%',
+            width: '90%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '24px',
+            zIndex: 5,
+          }}
+        >
+          <div className="survey-cover-title">
+            HASIL SURVEI
+            <br />
+            <span>
+              {data.clientName.replace(/\s*\(ASNET\)\s*/i, '').replace(/^PT\s+/i, 'PT ')} -{' '}
+              {data.surveyLocation || 'BOGOR'}
+            </span>
+          </div>
+          <div className="survey-date">
+            Hari &amp; Tanggal : {data.surveyDate}
+          </div>
+        </div>
       </Page>
     )
   }
@@ -623,10 +729,10 @@ function RenderSinglePage({
   if (pageNumber === firstPostProduct) {
     return (
       <Page number={firstPostProduct} total={total} onVisible={onVisible} onOpen={onOpen}>
-        <Text left="24.81%" top="10.87%" width="50.375%" className="section-page-title">
+        <Text left="0%" top="20.87%" width="100%" className="section-page-title">
           KONDISI HASIL SURVEI SECARA UMUM :
         </Text>
-        <div className="finding-list exact-findings" style={{ left: '2.54%', top: '17%', width: '94.88%', height: '77.7%' }}>
+        <div className="finding-list exact-findings" style={{ left: '2.54%', top: '27%', width: '94.88%', height: '67.7%' }}>
           {data.findings.map((x, i) => {
             const lines = x.split('\n')
             const title = lines[0]
@@ -659,10 +765,10 @@ function RenderSinglePage({
   if (pageNumber === firstPostProduct + 1) {
     return (
       <Page number={firstPostProduct + 1} total={total} onVisible={onVisible} onOpen={onOpen}>
-        <Text left="29.1%" top="10.82%" width="41.79%" className="required-title">
+        <Text left="0%" top="20.82%" width="100%" className="required-title">
           DESIGN SOLUSI YANG DIBUTUHKAN :
         </Text>
-        <div className="exact-solutions solution-list" style={{ left: '9.69%', top: '21%', width: '80.625%', height: '73.3%' }}>
+        <div className="exact-solutions solution-list" style={{ left: '9.69%', top: '31%', width: '80.625%', height: '63.3%' }}>
           {data.requiredSolution.map((x, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: '6px', marginBottom: '20px', fontWeight: 700, lineHeight: '1.35' }}>
               <span>•</span>
@@ -961,36 +1067,12 @@ export default function ReportPreview({ data }: { data: ReportData }) {
   const [isExporting, setIsExporting] = useState(false)
   const MIN_RENDER_SCALE = 0.5
   const MAX_RENDER_SCALE = 5
-  const JPEG_QUALITY = 0.9
 
   const numScale = typeof renderScale === 'number' ? renderScale : 2.5
   const normalizedRenderScale = Math.min(
     MAX_RENDER_SCALE,
     Math.max(MIN_RENDER_SCALE, Number.isFinite(numScale) ? numScale : 2.5)
   )
-
-  async function renderExportBitmaps() {
-    if (!pagesRef.current) return []
-    const pages = Array.from(pagesRef.current.querySelectorAll('.report-page')) as HTMLElement[]
-    if (!pages.length) return []
-
-    if (document.fonts?.ready) await document.fonts.ready
-
-    const bitmaps: string[] = []
-    for (const pageEl of pages) {
-      const canvas = await renderPageElementToCanvas(pageEl, {
-        width: 1600,
-        height: 900,
-        scale: normalizedRenderScale,
-        backgroundColor: '#ffffff',
-      })
-      bitmaps.push(canvas.toDataURL('image/jpeg', JPEG_QUALITY))
-      canvas.width = 1
-      canvas.height = 1
-    }
-
-    return bitmaps
-  }
 
   async function downloadPdf() {
     if (!pagesRef.current) return
@@ -1019,14 +1101,39 @@ export default function ReportPreview({ data }: { data: ReportData }) {
     } finally {
       if (button) {
         button.disabled = false
-        button.textContent = 'Unduh PDF'
       }
       if (pptxButton) pptxButton.disabled = false
       setIsExporting(false)
     }
   }
 
+  async function downloadPdfNative() {
+    if (!pagesRef.current) return
+    const pages = Array.from(pagesRef.current.querySelectorAll('.report-page')) as HTMLElement[]
+    if (!pages.length) return
+
+    setIsExporting(true)
+    try {
+      const filename = `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pdf`
+      await exportDocumentPagesToNativePrint(pages, {
+        orientation: 'landscape',
+        widthPx: 1600,
+        heightPx: 900,
+        filename,
+      })
+    } catch (error) {
+      console.error('Native PDF print export failed:', error)
+      window.alert('Gagal membuka dialog cetak PDF. Silakan coba lagi.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   async function downloadPptx() {
+    if (!pagesRef.current) return
+    const pages = Array.from(pagesRef.current.querySelectorAll('.report-page')) as HTMLElement[]
+    if (!pages.length) return
+
     const button = document.querySelector('.download-pdf') as HTMLButtonElement | null
     const pptxButton = document.querySelector('.download-pptx') as HTMLButtonElement | null
     setIsExporting(true)
@@ -1035,24 +1142,17 @@ export default function ReportPreview({ data }: { data: ReportData }) {
     if (pptxButton) pptxButton.textContent = 'Membuat PPTX…'
 
     try {
-      const PptxGenJS = (await import('pptxgenjs')).default
-      const bitmaps = await renderExportBitmaps()
-
-      const pptx = new PptxGenJS()
-      pptx.layout = 'LAYOUT_WIDE'
-      pptx.author = 'ETS Report Builder'
-      pptx.subject = data.reportType === 'final' ? 'Final Survey' : 'Survey'
-      pptx.title = `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}`
-      pptx.company = 'ETS'
-
-      bitmaps.forEach((image) => {
-        const slide = pptx.addSlide()
-        slide.addImage({ data: image, x: 0, y: 0, w: 13.333333, h: 7.5 })
-      })
-
-      await pptx.writeFile({
-        fileName: `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pptx`,
-        compression: true,
+      const filename = `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pptx`
+      await exportDocumentPagesToPptx(pages, {
+        orientation: 'landscape',
+        widthPx: 1600,
+        heightPx: 900,
+        scale: normalizedRenderScale,
+        filename,
+        author: 'ETS Report Builder',
+        subject: data.reportType === 'final' ? 'Final Survey' : 'Survey',
+        title: `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}`,
+        company: 'ETS',
       })
     } catch (error) {
       console.error('PPTX export failed:', error)
@@ -1113,11 +1213,25 @@ export default function ReportPreview({ data }: { data: ReportData }) {
           <div className="page-counter">
             Halaman <b>{current}</b> / {total}
           </div>
-          <button className="download-pptx" onClick={downloadPptx}>
+          <button className="download-pptx" onClick={downloadPptx} disabled={isExporting}>
             Unduh PPTX
           </button>
-          <button className="download-pdf" onClick={downloadPdf}>
-            Unduh PDF
+          <button
+            className="download-pdf"
+            onClick={downloadPdf}
+            disabled={isExporting}
+            title="Export cepat format bitmap image"
+          >
+            Unduh PDF (Cepat - bitmap)
+          </button>
+          <button
+            className="download-pdf download-pdf-native"
+            onClick={downloadPdfNative}
+            disabled={isExporting}
+            title="Teks bisa diseleksi & dicari. Pilih 'Save as PDF' di dialog cetak browser."
+            style={{ backgroundColor: '#0284c7', borderColor: '#0369a1' }}
+          >
+            Unduh PDF (Presisi - bisa diseleksi)
           </button>
         </div>
       </div>

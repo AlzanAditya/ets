@@ -11,6 +11,7 @@ interface StickerPreviewToolbarProps {
   onZoomReset: () => void;
   onZoomFit: () => void;
   onDownloadPdf: () => void;
+  onDownloadPdfNative?: () => void;
   onPrint: () => void;
   isGeneratingPdf: boolean;
   pdfScale: number;
@@ -25,6 +26,7 @@ export const StickerPreviewToolbar: React.FC<StickerPreviewToolbarProps> = ({
   onZoomReset,
   onZoomFit,
   onDownloadPdf,
+  onDownloadPdfNative,
   onPrint,
   isGeneratingPdf,
   pdfScale,
@@ -58,16 +60,29 @@ export const StickerPreviewToolbar: React.FC<StickerPreviewToolbarProps> = ({
       </div>
 
       {/* Action Buttons: Download PDF & Print */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={onDownloadPdf}
           disabled={isGeneratingPdf}
+          title="Export cepat format bitmap image"
           className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-2 shadow-sm transition-all border border-emerald-500/30 cursor-pointer"
         >
           <Download className={`size-4 ${isGeneratingPdf ? 'animate-spin' : ''}`} />
-          {isGeneratingPdf ? `Menyiapkan PDF (${pdfScale}x)...` : 'Download PDF A4'}
+          {isGeneratingPdf ? `Menyiapkan PDF (${pdfScale}x)...` : 'Unduh PDF (Cepat - bitmap)'}
         </button>
+        {onDownloadPdfNative && (
+          <button
+            type="button"
+            onClick={onDownloadPdfNative}
+            disabled={isGeneratingPdf}
+            title="Teks bisa diseleksi & dicari. Pilih 'Save as PDF' di dialog cetak browser."
+            className="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-2 shadow-sm transition-all border border-sky-500/30 cursor-pointer"
+          >
+            <Printer className="size-4" />
+            Unduh PDF (Presisi - bisa diseleksi)
+          </button>
+        )}
         <button
           type="button"
           onClick={onPrint}

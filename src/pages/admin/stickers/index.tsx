@@ -4,7 +4,7 @@ import '@/features/stickers/stickers.css';
 import { StickerData, StickerConfig, PreviewTab } from '@/features/stickers/types';
 import { calculateLayoutStats } from '@/features/stickers/utils/layout-calculator';
 import { generateRandomStickerData } from '@/features/stickers/utils/randomizer';
-import { exportA4PagesToPDF } from '@/features/stickers/utils/pdf-exporter';
+import { exportA4PagesToPDF, exportA4PagesToNativePrint } from '@/features/stickers/utils/pdf-exporter';
 import { StickerConfigurationPanel } from '@/features/stickers/components/StickerConfigurationPanel';
 import { StickerPreviewToolbar } from '@/features/stickers/components/StickerPreviewToolbar';
 import { SingleStickerStage } from '@/features/stickers/components/SingleStickerStage';
@@ -323,16 +323,40 @@ export default function StickersPage() {
     }
   };
 
-  const handlePrint = () => {
+  const handleDownloadPdfNative = async () => {
     if (isRandomizing) {
       setIsRandomizing(false);
     }
+
     if (activeTab !== 'a4') {
       setActiveTab('a4');
     }
-    setTimeout(() => {
-      window.print();
-    }, 150);
+
+    setIsGeneratingPdf(true);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const container = a4ContainerRef.current;
+      if (!container) {
+        throw new Error('Container A4 tidak ditemukan.');
+      }
+
+      await exportA4PagesToNativePrint(
+        container,
+        currentSticker.productName,
+        config.copies
+      );
+    } catch (err: any) {
+      console.error('Failed to export PDF:', err);
+      toast.error(err.message || 'Gagal mengunduh PDF.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handlePrint = () => {
+    handleDownloadPdfNative();
   };
 
   return (
@@ -373,6 +397,7 @@ export default function StickersPage() {
             onZoomReset={() => setZoomLevel(100)}
             onZoomFit={autoFitZoom}
             onDownloadPdf={handleDownloadPdf}
+            onDownloadPdfNative={handleDownloadPdfNative}
             onPrint={handlePrint}
             isGeneratingPdf={isGeneratingPdf}
             pdfScale={config.pdfScale}

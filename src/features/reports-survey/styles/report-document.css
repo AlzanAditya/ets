@@ -219,9 +219,12 @@
   color: #111;
   z-index: 5;
   white-space: pre-wrap;
-  overflow: hidden;
-  font-family: Calibri, Arial, sans-serif;
-  line-height: 1.15;
+  overflow: visible;
+  height: auto;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  font-family: 'Raleway', Arial, Helvetica, sans-serif;
+  line-height: 1.25;
   box-sizing: border-box;
 }
 
@@ -259,10 +262,10 @@
 
 /* Typography scaled for fixed 1600px page width (1cqw = 16px) */
 .product-heading {
-  font-family: Calibri, Arial, sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 28px;
   font-weight: 700;
-  line-height: 1.05;
+  line-height: 1.25;
 }
 
 .cover-title {
@@ -270,9 +273,13 @@
   font-size: 49.6px;
   font-weight: 800;
   text-align: left;
-  line-height: 1.05;
+  line-height: 1.2;
   letter-spacing: -0.01em;
   color: #111;
+  height: auto;
+  overflow: visible;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .cover-subtitle-main,
@@ -281,41 +288,57 @@
   font-size: 25.92px;
   font-weight: 700;
   text-align: left;
-  line-height: 1.12;
+  line-height: 1.25;
   color: #111;
+  height: auto;
+  overflow: visible;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .cover-address {
-  font-family: Calibri, Arial, sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 21.44px;
   text-align: left;
-  line-height: 1.18;
+  line-height: 1.25;
   color: #111;
+  height: auto;
+  overflow: visible;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .survey-cover-title {
-  font-family: Calibri, Arial, sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 44.8px;
   font-weight: 700;
   text-align: center;
-  line-height: 1.05;
+  line-height: 1.2;
   letter-spacing: -0.01em;
   color: #111;
+  height: auto;
+  overflow: visible;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .survey-cover-title span {
-  font-size: 24.96px;
+  font-size: 44.8px;
   font-weight: 700;
 }
 
 .survey-date {
-  font-family: Calibri, Arial, sans-serif;
-  font-size: 18.88px;
+  font-family: Arial, sans-serif;
+  font-size: 32.1px;
   font-weight: 700;
   font-style: italic;
   text-align: center;
   letter-spacing: -0.01em;
   color: #111;
+  height: auto;
+  overflow: visible;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .phase-reading {
@@ -351,30 +374,32 @@
 .survey-table {
   position: absolute;
   z-index: 6;
-  border: 1px solid #111;
+  border: 1.5px solid #000;
   background-color: #fff;
   font-family: Arial, sans-serif;
-  font-size: 10.88px;
-  line-height: 1.08;
+  font-size: 16px;
+  line-height: 1.3;
   box-sizing: border-box;
 }
 
 .survey-table-title {
   text-align: center;
   font-weight: 700;
-  height: 13%;
-  line-height: 1.2;
-  border-bottom: 1px solid #111;
+  font-size: 16px;
+  padding: 3px 8px;
+  border-bottom: 1.5px solid #000;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-transform: uppercase;
+  color: #000;
+  background-color: #fff;
 }
 
 .survey-row {
   display: grid;
-  grid-template-columns: 23.4% 41.9% 34.7%;
-  min-height: 10.86%;
-  border-bottom: 1px solid #111;
+  grid-template-columns: 46% 54%;
+  border-bottom: 1px solid #000;
 }
 
 .survey-row:last-child {
@@ -382,10 +407,11 @@
 }
 
 .survey-row > div {
-  padding: 2px 4px;
-  border-right: 1px solid #111;
+  padding: 2.5px 8px;
+  border-right: 1px solid #000;
   display: flex;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .survey-row > div:last-child {
@@ -394,32 +420,45 @@
 
 .survey-label {
   font-weight: 700;
-  background-color: #eee;
+  font-size: 15px;
+  color: #000;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.survey-mid {
-  font-size: 9.92px;
+.survey-sub {
+  font-weight: 400;
+  font-size: 14px;
+  color: #000;
 }
 
 .survey-value {
   font-weight: 500;
+  font-size: 15px;
+  color: #000;
 }
 
 .section-page-title {
   font-size: 40.64px;
   font-weight: 700;
   text-align: center;
-  line-height: 1;
+  line-height: 1.2;
   color: #111 !important;
+  white-space: nowrap;
+  width: 100%;
 }
 
 .required-title {
   font-family: Arial, sans-serif;
-  font-size: 24px;
+  font-size: 40.64px;
   font-weight: 700;
   text-align: center;
-  line-height: 1;
+  line-height: 1.2;
   color: #111 !important;
+  white-space: nowrap;
+  width: 100%;
 }
 
 .finding-list {
@@ -458,9 +497,12 @@
   font-family: 'Raleway', Arial, sans-serif;
   font-size: 67.68px;
   font-weight: 800;
-  line-height: 0.98;
+  line-height: 1.25;
   text-align: center;
   color: #111 !important;
+  white-space: nowrap;
+  width: 100%;
+  overflow: visible;
 }
 
 .explanation-text {
@@ -513,13 +555,14 @@
 }
 
 .solution-heading {
-  font-size: 22.4px;
+  font-size: 32.25px;
   font-weight: 700;
   line-height: 1.2;
   color: #ffffff !important;
   font-family: 'Raleway', Arial, sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .solution-subheading {
@@ -585,10 +628,13 @@
 .summary-title {
   position: absolute;
   z-index: 5;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
-  line-height: 1;
-  color: #111;
+  line-height: 1.3;
+  color: #000 !important;
+  font-family: Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
 }
 
 .summary-table {
@@ -596,32 +642,75 @@
   z-index: 6;
   border-collapse: collapse;
   background-color: #fff;
-  font-family: Calibri, Arial, sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 16px;
-  line-height: 1.15;
+  line-height: 1.35;
   box-sizing: border-box;
+  border: 2px solid #000;
 }
 
 .summary-table th,
 .summary-table td {
-  border: 1px solid #111;
-  padding: 0.7% 0.8%;
+  border: 1px solid #000;
+  padding: 8px 12px;
+  vertical-align: middle;
 }
 
 .summary-table th {
   font-weight: 700;
   text-align: center;
-  background-color: #f0f0f0;
+  background-color: #000 !important;
+  color: #fff !important;
+  font-size: 16px;
+  text-transform: uppercase;
+  border: 1px solid #000;
 }
 
-.summary-table td:nth-child(1),
-.summary-table td:nth-child(3),
-.summary-table td:nth-child(4) {
+.summary-table td {
+  color: #000 !important;
+}
+
+.summary-table tr.item-header-row td {
+  background-color: #D9E1F2 !important;
+  font-weight: 700;
+}
+
+.summary-table tr.item-detail-row td {
+  background-color: #ffffff !important;
+}
+
+.summary-table td:nth-child(1) {
   text-align: center;
+  font-weight: 700;
+  width: 6%;
 }
 
 .summary-table td:nth-child(2) {
   text-align: left;
+  width: 54%;
+  padding-left: 12px;
+}
+
+.summary-table td:nth-child(3) {
+  text-align: center;
+  width: 15%;
+}
+
+.summary-table td:nth-child(4) {
+  text-align: left;
+  padding-left: 12px;
+  width: 25%;
+}
+
+.summary-table td.area-cell strong {
+  font-weight: 700;
+  color: #000 !important;
+  text-transform: uppercase;
+}
+
+.summary-table td.area-cell span {
+  font-weight: 400;
+  color: #000 !important;
 }
 
 .template-badge,
@@ -821,3 +910,50 @@
     flex: 1;
   }
 }
+
+/* Print-only native print export styles */
+.print-only-root {
+  display: none !important;
+}
+
+@media print {
+  body > *:not(.print-only-root) {
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .print-only-root {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+  }
+
+  .print-only-root * {
+    visibility: visible !important;
+  }
+
+  .print-only-root .report-page,
+  .print-only-root .a4-page,
+  .print-only-root .ets-sticker-page {
+    page-break-after: always !important;
+    break-after: page !important;
+    box-shadow: none !important;
+    transform: none !important;
+    margin: 0 !important;
+  }
+
+  .print-only-root .report-page:last-child,
+  .print-only-root .a4-page:last-child,
+  .print-only-root .ets-sticker-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+}
+
