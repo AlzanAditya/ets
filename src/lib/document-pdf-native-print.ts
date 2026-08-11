@@ -75,17 +75,6 @@ export async function exportDocumentPagesToNativePrint(
     title: options.filename || 'ETS Document',
   })
 
-  let cleaned = false
-  const cleanup = () => {
-    if (cleaned) return
-    cleaned = true
-    try {
-      printWindow.close()
-    } catch {
-      // Ignore close errors.
-    }
-  }
-
   try {
     printWindow.document.open()
     printWindow.document.write(html)
@@ -98,35 +87,25 @@ export async function exportDocumentPagesToNativePrint(
     await nextAnimationFrame(printWindow)
     await nextAnimationFrame(printWindow)
 
-    return await new Promise<void>((resolve, reject) => {
-      let settled = false
-
-      const finish = () => {
-        if (settled) return
-        settled = true
-        printWindow.removeEventListener('afterprint', finish)
-        window.clearTimeout(fallbackTimer)
-        cleanup()
-        resolve()
-      }
-
-      const fallbackTimer = window.setTimeout(finish, 60000)
-      printWindow.addEventListener('afterprint', finish, { once: true })
-
-      try {
-        printWindow.focus()
-        printWindow.print()
-      } catch (error) {
-        if (settled) return
-        settled = true
-        printWindow.removeEventListener('afterprint', finish)
-        window.clearTimeout(fallbackTimer)
-        cleanup()
-        reject(error)
-      }
-    })
+    // IMPORTANT: do not close the print window after `print()`.
+    // On Chromium/Android, `afterprint` can fire as soon as the system print
+    // flow takes over, while the print preview/dialog is still being shown.
+    // Closing the window here makes the successfully-rendered print document
+    // disappear and returns the user to the ETS page.
+    //
+    // Keep the print window alive. This also matches the safer browser lifecycle
+    // used by the proven standalone-document print flow.
+    printWindow.focus()
+    printWindow.print()
   } catch (error) {
-    cleanup()
+    // If the print document failed before print() could be invoked, close the
+    // orphaned popup. Once print() succeeds, intentionally leave the window
+    // open because its lifecycle is controlled by the browser/OS print flow.
+    try {
+      printWindow.close()
+    } catch {
+      // Ignore close errors.
+    }
     throw error
   }
 }
