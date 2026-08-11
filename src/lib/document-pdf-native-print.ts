@@ -33,7 +33,10 @@ export async function exportDocumentPagesToNativePrint(
 
   // Open the print window synchronously before any await so browser popup
   // blockers still consider this a user-initiated action.
-  const printWindow = window.open('', '_blank', 'noopener,noreferrer')
+  // Do NOT pass `noopener,noreferrer` here: on some mobile Chromium versions
+  // that combination can open the tab but return a null WindowProxy, which
+  // makes a successfully opened print tab look like a blocked popup.
+  const printWindow = window.open('', '_blank')
   if (!printWindow) {
     throw new Error('Jendela print diblokir oleh browser. Izinkan pop-up untuk melanjutkan.')
   }
