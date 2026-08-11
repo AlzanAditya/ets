@@ -6,11 +6,13 @@ export interface ExportNativePrintOptions {
 }
 
 /**
- * Universal isolated iframe native print exporter.
- * Clones target pages into an isolated hidden <iframe>, copies document stylesheets,
+ * Universal isolated native print exporter.
+ * Clones target pages into an offscreen .native-print-container on document.body,
+ * dynamically injects a temporary @media print stylesheet that hides all web app UI
+ * (#root, navbars, forms, toolbars, sidebars) and renders ONLY the cloned document pages,
  * sets explicit @page sizing (16:9 Landscape for Reports, A4 Portrait for Stickers),
  * awaits web fonts, image loading & decoding, and DOM layout reflow (with 4s max timeout),
- * then calls iframe.contentWindow.print() for 100% vector, searchable PDF generation.
+ * then calls window.print() for 100% vector, searchable PDF generation.
  */
 export async function exportDocumentPagesToNativePrint(
   pageElements: HTMLElement[],
@@ -36,99 +38,20 @@ export async function exportDocumentPagesToNativePrint(
     pageCssSize = `${widthIn}in ${heightIn}in`
   }
 
-  // 1. Create hidden isolated <iframe> element attached to document.body
-  const iframe = document.createElement('iframe')
-  iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
-  iframe.style.border = '0'
-  iframe.style.visibility = 'hidden'
-  iframe.style.pointerEvents = 'none'
-  document.body.appendChild(iframe)
+  // 1. Create native print container directly on document.body
+  const printContainer = document.createElement('div')
+  printContainer.className = 'native-print-container'
 
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
-  if (!iframeDoc || !iframe.contentWindow) {
-    if (iframe.parentNode) iframe.parentNode.removeChild(iframe)
-    throw new Error('Gagal menginisialisasi dokumen cetak terisolasi.')
-  }
-
-  // 2. Collect stylesheets & style tags from main document
-  const headStyles = Array.from(
-    document.querySelectorAll('head style, head link[rel="stylesheet"]')
-  )
-    .map((el) => el.outerHTML)
-    .join('\n')
-
-  // 3. Populate iframe document structure with isolated @page print styles
-  iframeDoc.open()
-  iframeDoc.write(`
-    <!DOCTYPE html>
-    <html lang="id">
-    <head>
-      <meta charset="utf-8">
-      <title>${options.filename || 'Print'}</title>
-      ${headStyles}
-      <style>
-        @page {
-          size: ${pageCssSize};
-          margin: 0;
-        }
-        html, body {
-          margin: 0 !important;
-          padding: 0 !important;
-          background-color: #ffffff !important;
-          color: #000000 !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-          width: ${widthPx}px !important;
-        }
-        body {
-          box-sizing: border-box;
-        }
-        .print-isolated-page {
-          width: ${widthPx}px !important;
-          height: ${heightPx}px !important;
-          max-width: none !important;
-          max-height: none !important;
-          transform: none !important;
-          margin: 0 !important;
-          box-shadow: none !important;
-          box-sizing: border-box !important;
-          position: relative !important;
-          background-color: #ffffff !important;
-          page-break-after: always !important;
-          break-after: page !important;
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-          overflow: hidden !important;
-        }
-        .print-isolated-page:last-child {
-          page-break-after: auto !important;
-          break-after: auto !important;
-        }
-      </style>
-    </head>
-    <body>
-      <div id="print-mount"></div>
-    </body>
-    </html>
-  `)
-  iframeDoc.close()
-
-  const mountEl = iframeDoc.getElementById('print-mount')
-
-  // 4. Clone each page element into the iframe container
+  // 2. Clone each page element into the container
   pageElements.forEach((pageEl, idx) => {
     const clonedPage = pageEl.cloneNode(true) as HTMLElement
 
-    // Remove UI badges, indicators, and non-printable controls
+    // Remove UI badges, indicators, scale controls, and non-printable elements
     clonedPage
       .querySelectorAll('.page-indicator, .template-badge, .pdf-ui-only, .a4-page-badge, .render-scale-control, .no-print')
       .forEach((el) => el.remove())
 
-    clonedPage.classList.add('print-isolated-page')
+    clonedPage.classList.add('native-print-page')
     clonedPage.style.width = `${widthPx}px`
     clonedPage.style.height = `${heightPx}px`
     clonedPage.style.maxWidth = 'none'
@@ -145,21 +68,107 @@ export async function exportDocumentPagesToNativePrint(
     clonedPage.style.breakInside = 'avoid'
     clonedPage.style.overflow = 'hidden'
 
-    mountEl?.appendChild(clonedPage)
+    printContainer.appendChild(clonedPage)
   })
 
-  // 5. Await web fonts readiness, image loading/decoding & layout reflow with 4-second timeout guard
+  // 3. Inject dynamic temporary @media print stylesheet into document head
+  const dynamicStyleId = 'dynamic-native-print-style'
+  const existingStyle = document.getElementById(dynamicStyleId)
+  if (existingStyle) {
+    existingStyle.remove()
+  }
+
+  const styleEl = document.createElement('style')
+  styleEl.id = dynamicStyleId
+  styleEl.textContent = `
+    @media screen {
+      .native-print-container {
+        display: none !important;
+      }
+    }
+
+    @media print {
+      @page {
+        size: ${pageCssSize};
+        margin: 0;
+      }
+
+      /* Hide ALL web app UI (navbar, forms, sidebars, toolbars, controls) */
+      body > *:not(.native-print-container) {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        overflow: hidden !important;
+      }
+
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        width: 100% !important;
+      }
+
+      .native-print-container {
+        display: block !important;
+        visibility: visible !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: #ffffff !important;
+      }
+
+      .native-print-container * {
+        visibility: visible !important;
+      }
+
+      .native-print-page {
+        width: ${widthPx}px !important;
+        height: ${heightPx}px !important;
+        max-width: none !important;
+        max-height: none !important;
+        transform: none !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+        background-color: #ffffff !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        overflow: hidden !important;
+      }
+
+      .native-print-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+    }
+  `
+
+  document.head.appendChild(styleEl)
+  document.body.appendChild(printContainer)
+  document.body.classList.add('is-native-printing')
+
+  // 4. Await web fonts readiness, image loading/decoding & layout reflow with 4-second timeout guard
   const prepareAssetsPromise = async () => {
     // Fonts readiness
     if (document.fonts?.ready) {
-      try { await document.fonts.ready } catch (e) {}
-    }
-    if (iframeDoc.fonts?.ready) {
-      try { await iframeDoc.fonts.ready } catch (e) {}
+      try {
+        await document.fonts.ready
+      } catch (e) {
+        // Ignore font loading timeout/errors
+      }
     }
 
-    // Images loading & decoding inside iframe
-    const images = Array.from(iframeDoc.querySelectorAll('img'))
+    // Images loading & decoding inside print container
+    const images = Array.from(printContainer.querySelectorAll('img'))
     await Promise.all(
       images.map((img) => {
         if (img.complete && img.naturalWidth > 0) {
@@ -193,47 +202,47 @@ export async function exportDocumentPagesToNativePrint(
     }, 4000)
   })
 
+  // Cleanup helper
+  const performCleanup = () => {
+    document.body.classList.remove('is-native-printing')
+    if (styleEl.parentNode) {
+      styleEl.parentNode.removeChild(styleEl)
+    }
+    if (printContainer.parentNode) {
+      printContainer.parentNode.removeChild(printContainer)
+    }
+  }
+
   try {
     await Promise.race([prepareAssetsPromise(), timeoutGuardPromise])
   } catch (err) {
-    if (iframe.parentNode) {
-      iframe.parentNode.removeChild(iframe)
-    }
+    performCleanup()
     throw err
   }
 
-  // 6. Trigger iframe native print dialog & clean up after printing
+  // 5. Trigger native browser print dialog & clean up after printing
   return new Promise<void>((resolve) => {
     let cleanedUp = false
 
     const cleanup = () => {
       if (cleanedUp) return
       cleanedUp = true
-
-      if (iframe.parentNode) {
-        iframe.parentNode.removeChild(iframe)
-      }
+      window.removeEventListener('afterprint', cleanup)
+      performCleanup()
       resolve()
     }
 
-    const win = iframe.contentWindow
-    if (!win) {
-      cleanup()
-      return
-    }
+    window.addEventListener('afterprint', cleanup, { once: true })
 
-    win.addEventListener('afterprint', cleanup, { once: true })
-
-    // Fallback cleanup timer
+    // Fallback cleanup timer in case afterprint doesn't fire immediately
     setTimeout(() => {
       cleanup()
     }, 60000)
 
     try {
-      win.focus()
-      win.print()
+      window.print()
     } catch (err) {
-      console.error('Iframe print error:', err)
+      console.error('Window print error:', err)
       cleanup()
     }
   })
