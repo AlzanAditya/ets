@@ -374,55 +374,5 @@
   font-weight: 600;
 }
 
-/* Print Stylesheet */
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 0;
-  }
+/* Isolated iframe print pipeline handles sticker printing independently without global @media print overrides */
 
-  html, body {
-    background: #ffffff !important;
-    color: #000000 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 210mm !important;
-    height: auto !important;
-    overflow: visible !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .no-print,
-  .app-header,
-  .sidebar,
-  .preview-toolbar,
-  .single-sticker-stage,
-  .stage-label,
-  .a4-page-badge {
-    display: none !important;
-  }
-
-  .print-only-a4 {
-    display: block !important;
-  }
-
-  .a4-container {
-    transform: none !important;
-    gap: 0 !important;
-  }
-
-  .a4-page {
-    box-shadow: none !important;
-    margin: 0 !important;
-    width: 210mm !important;
-    height: 297mm !important;
-    page-break-after: always !important;
-    break-after: page !important;
-    overflow: hidden !important;
-  }
-
-  .ets-sticker {
-    box-shadow: none !important;
-  }
-}

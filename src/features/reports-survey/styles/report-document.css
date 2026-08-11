@@ -911,49 +911,6 @@
   }
 }
 
-/* Print-only native print export styles */
-.print-only-root {
-  display: none !important;
-}
+/* Isolated iframe print pipeline handles document printing independently without global @media print overrides */
 
-@media print {
-  body > *:not(.print-only-root) {
-    visibility: hidden !important;
-    height: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .print-only-root {
-    display: block !important;
-    visibility: visible !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background-color: #ffffff !important;
-  }
-
-  .print-only-root * {
-    visibility: visible !important;
-  }
-
-  .print-only-root .report-page,
-  .print-only-root .a4-page,
-  .print-only-root .ets-sticker-page {
-    page-break-after: always !important;
-    break-after: page !important;
-    box-shadow: none !important;
-    transform: none !important;
-    margin: 0 !important;
-  }
-
-  .print-only-root .report-page:last-child,
-  .print-only-root .a4-page:last-child,
-  .print-only-root .ets-sticker-page:last-child {
-    page-break-after: auto !important;
-    break-after: auto !important;
-  }
-}
 
