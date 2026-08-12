@@ -104,13 +104,61 @@ export async function renderPageElementToCanvas(
   clonedPage.style.backgroundColor = bg
   clonedPage.style.overflow = 'hidden'
 
-  // Reports bitmap can use a small export-only vertical compensation for HTML
-  // text because html2canvas may rasterize font metrics a few pixels lower than
-  // the live browser preview. This never touches the real preview DOM.
+  // Reports bitmap only: apply an export-only vertical compensation to the
+  // actual text nodes instead of targeting one particular CSS class. Reports
+  // contains headings, paragraphs, table labels/values, captions, etc. and
+  // they do not all share the same class. Wrapping the text node in an inline
+  // relative span moves only the glyphs, not the table cell, border, image, or
+  // other layout container. The live preview DOM is never modified.
   const textOffsetY = options.textOffsetY ?? 0
   if (isReportsBitmap && textOffsetY !== 0) {
-    clonedPage.querySelectorAll<HTMLElement>('.report-text').forEach((el) => {
-      el.style.transform = `translateY(${textOffsetY}px)`
+    const textNodes: Text[] = []
+    const walker = document.createTreeWalker(clonedPage, NodeFilter.SHOW_TEXT)
+    let current = walker.nextNode()
+
+    while (current) {
+      const textNode = current as Text
+      const parent = textNode.parentElement
+      const value = textNode.textContent ?? ''
+
+      if (
+        parent &&
+        value.trim() &&
+        !['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(parent.tagName) &&
+        !parent.closest('svg') &&
+        !parent.closest('[data-pdf-no-text-offset="true"]')
+      ) {
+        textNodes.push(textNode)
+      }
+
+      current = walker.nextNode()
+    }
+
+    textNodes.forEach((textNode) => {
+      const span = document.createElement('span')
+      span.setAttribute('data-pdf-text-offset', 'true')
+      span.style.position = 'relative'
+      span.style.top = `${textOffsetY}px`
+      span.style.display = 'inline'
+
+      const parent = textNode.parentNode
+      if (parent) {
+        parent.insertBefore(span, textNode)
+        span.appendChild(textNode)
+      }
+    })
+
+    // Reports may also contain inline SVG text. Handle those separately because
+    // HTML spans cannot be inserted into an SVG tree.
+    clonedPage.querySelectorAll<SVGTextElement>('svg text').forEach((textEl) => {
+      if (!textEl.textContent?.trim()) return
+      if (textEl.closest('[data-pdf-no-text-offset="true"]')) return
+
+      const baseDy = Number.parseFloat(
+        textEl.getAttribute('data-pdf-base-dy') || textEl.getAttribute('dy') || '0'
+      )
+      textEl.setAttribute('data-pdf-base-dy', String(baseDy))
+      textEl.setAttribute('dy', `${baseDy + textOffsetY}px`)
     })
   }
 
