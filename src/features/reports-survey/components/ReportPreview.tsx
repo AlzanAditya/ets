@@ -1064,14 +1064,10 @@ export default function ReportPreview({ data }: { data: ReportData }) {
   const total = firstPostProduct + 9 + (productCount > 1 ? 1 : 0)
 
   const [renderScale, setRenderScale] = useState<number | ''>(2.5)
+  const [textOffsetY, setTextOffsetY] = useState<number | ''>(-2)
   const [isExporting, setIsExporting] = useState(false)
   const MIN_RENDER_SCALE = 0.5
   const MAX_RENDER_SCALE = 5
-
-  // Export-only vertical compensation for report bitmap text.
-  // Negative values move text upward; 0 disables the compensation.
-  // Adjust this single value before deployment to compare PDF output.
-  const REPORT_BITMAP_TEXT_OFFSET_Y = -2
 
   const numScale = typeof renderScale === 'number' ? renderScale : 2.5
   const normalizedRenderScale = Math.min(
@@ -1099,7 +1095,7 @@ export default function ReportPreview({ data }: { data: ReportData }) {
         heightPx: 900,
         scale: normalizedRenderScale,
         renderProfile: 'reports-bitmap',
-        textOffsetY: REPORT_BITMAP_TEXT_OFFSET_Y,
+        textOffsetY: typeof textOffsetY === 'number' ? textOffsetY : 0,
         filename,
       })
     } catch (error) {
@@ -1188,6 +1184,32 @@ export default function ReportPreview({ data }: { data: ReportData }) {
         </div>
         <div className="preview-actions">
           <span className="preview-layout-badge">2 KOLOM • BITMAP • VIEWER v2.7.1</span>
+          <label className="render-scale-control" title="Offset vertikal teks hanya untuk PDF bitmap. Nilai negatif menggeser teks ke atas.">
+            <span>Offset teks Y</span>
+            <input
+              type="number"
+              min={-20}
+              max={20}
+              step="0.1"
+              inputMode="decimal"
+              value={textOffsetY}
+              disabled={isExporting}
+              onChange={(e) => {
+                const value = e.target.value
+                if (value === '') {
+                  setTextOffsetY('')
+                  return
+                }
+                const parsed = Number.parseFloat(value)
+                if (Number.isFinite(parsed)) setTextOffsetY(Math.min(20, Math.max(-20, parsed)))
+              }}
+              onBlur={() => {
+                if (!Number.isFinite(Number(textOffsetY))) setTextOffsetY(0)
+              }}
+              aria-label="Offset vertikal teks PDF bitmap"
+            />
+            <small>− naik • + turun • 0 normal</small>
+          </label>
           <label className="render-scale-control" title="Skala render bitmap saat export">
             <span>Skala render</span>
             <input
