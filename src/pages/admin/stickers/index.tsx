@@ -383,7 +383,7 @@ export default function StickersPage() {
         />
 
         {/* Right Main Preview Area */}
-        <section className="preview-area flex flex-col items-center gap-5 p-4 sm:p-6 bg-[#090d16] overflow-y-auto">
+        <section className="preview-area flex flex-col items-center gap-5 p-4 sm:p-6 bg-background/95 overflow-y-auto">
           {/* Toolbar */}
           <StickerPreviewToolbar
             activeTab={activeTab}

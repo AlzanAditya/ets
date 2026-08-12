@@ -29,7 +29,6 @@ import { TableSkeleton } from "@/components/table-skeleton";
 import { ErrorState } from "@/components/error-state";
 import { EmptyState } from "@/components/empty-state";
 import { DataTable, type DataTableRow } from "@/components/data-table";
-import { DataTableRowActions } from "@/components/data-table-actions";
 import { type DrawerImage } from "@/components/table-drawer";
 import { MetricCards } from "@/components/metric-cards";
 import { PageContent } from "@/components/page-content";
@@ -356,31 +355,6 @@ const PINNED_COLUMNS: ColumnDef<ProductRowWithId>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => <InlineStatusCell row={row} />,
-  },
-  {
-    id: "actions",
-    enableHiding: true,
-    cell: ({ row }) => {
-      // We need refetch from page scope — captured via closure inside ProductsPage.
-      // This column is declared outside the component so we use a ref trick via
-      // a module-level callback holder updated on each render.
-      return (
-        <DataTableRowActions
-          row={row.original}
-          showPreview
-          previewUrl={`${window.location.origin}/p/${row.original.serial_number}`}
-          onDelete={async (r) => {
-            const {
-              data: { user },
-            } = await supabase.auth.getUser();
-            if (!user) throw new Error("Tidak terautentikasi");
-            await productsService.retireProduct((r as any).product_id);
-            // refetch is called from the page via the onDelete callback chain;
-            // the DataTableRowActions component handles toast + re-fetch signal.
-          }}
-        />
-      );
-    },
   },
 ];
 
@@ -993,6 +967,15 @@ export default function ProductsPage() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onAddClick={() => navigate("/products/add")}
+          onDeleteRow={async (row) => {
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            if (!user) throw new Error("Tidak terautentikasi");
+            await productsService.retireProduct((row as any).product_id || row.id);
+            toast.success("Aset berhasil diarsipkan/dihapus");
+            refetch();
+          }}
           onRowClick={(row) => {
             if (activeTab === "draft") {
               const target = row.serial_number || row.product_name || row.id;

@@ -180,7 +180,7 @@ export function MobileNavbar() {
             "absolute left-0 right-0 z-10",
             "flex items-stretch",
             "bg-background/95 backdrop-blur-md border-t border-border/40",
-            topRowVisible && "shadow-[0_-16px_32px_-4px_rgba(0,0,0,0.5)] dark:shadow-[0_-20px_40px_-4px_rgba(0,0,0,0.9)]",
+            topRowVisible && "shadow-[0_-8px_16px_-2px_rgba(0,0,0,0.25)] dark:shadow-[0_-10px_20px_-2px_rgba(0,0,0,0.45)]",
             "transition-all duration-300",
           )}
           style={{
@@ -237,7 +237,7 @@ export function MobileNavbar() {
             "relative z-20",
             "flex items-stretch",
             "bg-background/95 backdrop-blur-md border-t border-border/40 transition-all duration-300",
-            !topRowVisible && "shadow-[0_-16px_32px_-4px_rgba(0,0,0,0.5)] dark:shadow-[0_-20px_40px_-4px_rgba(0,0,0,0.9)]",
+            !topRowVisible && "shadow-[0_-8px_16px_-2px_rgba(0,0,0,0.25)] dark:shadow-[0_-10px_20px_-2px_rgba(0,0,0,0.45)]",
           )}
           style={{ height: ROW_H }}
         >

@@ -7,8 +7,8 @@ export default function WorkerSchedule() {
   if (loading) {
     return (
       <div className="space-y-4 animate-pulse pt-2">
-        <div className="h-32 rounded-2xl bg-slate-900/60 border border-slate-800" />
-        <div className="h-32 rounded-2xl bg-slate-900/60 border border-slate-800" />
+        <div className="h-32 rounded-2xl bg-card/60 border border-border" />
+        <div className="h-32 rounded-2xl bg-card/60 border border-border" />
       </div>
     )
   }

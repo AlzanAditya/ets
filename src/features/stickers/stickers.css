@@ -232,8 +232,8 @@
 
 /* Toolbar & Tabs */
 .preview-toolbar {
-  background-color: #0f172a;
-  border: 1px solid #1e293b;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
 }
@@ -241,7 +241,7 @@
 .tab-group {
   display: flex;
   gap: 0.25rem;
-  background-color: #1e293b;
+  background-color: hsl(var(--muted));
   padding: 0.25rem;
   border-radius: 0.375rem;
 }
@@ -251,7 +251,7 @@
   font-size: 0.8125rem;
   font-weight: 600;
   border-radius: 0.25rem;
-  color: #94a3b8;
+  color: hsl(var(--muted-foreground));
   border: none;
   background: transparent;
   cursor: pointer;
@@ -259,12 +259,12 @@
 }
 
 .tab-btn:hover {
-  color: #f8fafc;
+  color: hsl(var(--foreground));
 }
 
 .tab-btn.active {
-  background-color: #10b981;
-  color: #ffffff;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .zoom-controls {
@@ -278,27 +278,27 @@
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 0.25rem;
-  border: 1px solid #334155;
-  background-color: #1e293b;
-  color: #f1f5f9;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .zoom-btn:hover {
-  background-color: #334155;
-  border-color: #475569;
+  background-color: hsl(var(--muted));
+  border-color: hsl(var(--border));
 }
 
 .btn-fit {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-  color: #ffffff;
+  background-color: hsl(var(--secondary));
+  border-color: hsl(var(--border));
+  color: hsl(var(--secondary-foreground));
 }
 
 .btn-fit:hover {
-  background-color: #2563eb;
-  border-color: #2563eb;
+  background-color: hsl(var(--muted));
+  border-color: hsl(var(--border));
 }
 
 /* Single Sticker & Canvas Stage */

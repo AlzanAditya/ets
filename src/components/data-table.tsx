@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { Printer } from "lucide-react";
+import { Printer, Copy, CheckSquare, Trash2 } from "lucide-react";
 import {
   closestCenter,
   DndContext,
@@ -50,11 +50,18 @@ import {
   EyeIcon,
   CheckIcon,
 } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -119,6 +126,10 @@ export interface DataTableProps<TData extends DataTableRow> {
   onRefresh?: () => void;
   /** Called when a data row is clicked (excluding checkboxes, drag handles, buttons, links) */
   onRowClick?: (row: TData) => void;
+  /** Called when delete action is triggered for a row */
+  onDeleteRow?: (row: TData) => Promise<void> | void;
+  /** Custom row actions renderer for the row menu */
+  getRowActions?: (row: TData) => React.ReactNode;
   onTabChange?: (tab: string) => void;
 }
 
@@ -185,10 +196,15 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
 function DraggableRow<TData extends DataTableRow>({
   row,
   onRowClick,
+  onDeleteRow,
+  getRowActions,
 }: {
   row: Row<TData>;
   onRowClick?: (row: TData) => void;
+  onDeleteRow?: (row: TData) => Promise<void> | void;
+  getRowActions?: (row: TData) => React.ReactNode;
 }) {
+  const navigate = useNavigate();
   const { density } = useTableDensity();
   const densityConfig = DENSITY_CONFIG[density];
   const { transform, transition, setNodeRef, isDragging } = useSortable({
@@ -196,77 +212,139 @@ function DraggableRow<TData extends DataTableRow>({
     disabled: true,
   });
 
-  const isSwipingRef = React.useRef(false);
-  const touchPosRef = React.useRef({ x: 0, y: 0 });
+  const rowRef = React.useRef<HTMLTableRowElement | null>(null);
+
+  const setRowRef = React.useCallback(
+    (node: HTMLTableRowElement | null) => {
+      setNodeRef(node);
+      rowRef.current = node;
+    },
+    [setNodeRef]
+  );
 
   function handleClick(e: React.MouseEvent<HTMLTableRowElement>) {
-    if (isSwipingRef.current) {
-      isSwipingRef.current = false;
-      return;
-    }
     if (isInteractiveTarget(e.target)) return;
     onRowClick?.(row.original);
-  }
-
-  function handleTouchStart(e: React.TouchEvent<HTMLTableRowElement>) {
-    isSwipingRef.current = false;
-    if (e.touches[0]) {
-      touchPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }
-  }
-
-  function handleTouchMove(e: React.TouchEvent<HTMLTableRowElement>) {
-    if (e.touches[0]) {
-      const dx = Math.abs(e.touches[0].clientX - touchPosRef.current.x);
-      const dy = Math.abs(e.touches[0].clientY - touchPosRef.current.y);
-      if (dx > 6 || dy > 6) {
-        isSwipingRef.current = true;
-      }
-    }
-  }
-
-  function handleTouchEnd() {
-    setTimeout(() => {
-      isSwipingRef.current = false;
-    }, 150);
   }
 
   const isEven = row.index % 2 === 0;
   const zebraClass = isEven ? "bg-background" : "bg-muted/25 dark:bg-muted/15";
 
+  // Helper to extract serial or code identifier
+  const rObj = row.original as any;
+  const serialNo =
+    rObj.serial_number ||
+    rObj.nomor_seri ||
+    rObj.product_id ||
+    rObj.worker_code ||
+    rObj.worker_id ||
+    rObj.invoice_number ||
+    rObj.code ||
+    rObj.id;
+
   return (
-    <TableRow
-      id={row.id}
-      data-state={row.getIsSelected() && "selected"}
-      data-dragging={isDragging}
-      ref={setNodeRef}
-      className={cn(
-        "relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 transition-colors hover:bg-muted/50",
-        zebraClass,
-        onRowClick && "cursor-pointer",
-      )}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
-      onClick={handleClick}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {row.getVisibleCells().map((cell) => (
-        <TableCell
-          key={cell.id}
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <TableRow
+          id={row.id}
+          data-state={row.getIsSelected() && "selected"}
+          data-dragging={isDragging}
+          ref={setRowRef}
           className={cn(
-            densityConfig.cellPaddingX,
-            densityConfig.cellPaddingY,
-            (cell.column.id === "select" || cell.column.id === "drag") && "w-10 min-w-10 max-w-10 p-0 text-center"
+            "relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 transition-colors hover:bg-muted/50 cursor-pointer select-none",
+            zebraClass,
           )}
+          style={{
+            transform: CSS.Transform.toString(transform),
+            transition,
+          }}
+          onClick={handleClick}
         >
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </TableCell>
-      ))}
-    </TableRow>
+          {row.getVisibleCells().map((cell) => (
+            <TableCell
+              key={cell.id}
+              data-column-id={cell.column.id}
+              className={cn(
+                densityConfig.cellPaddingX,
+                densityConfig.cellPaddingY,
+                (cell.column.id === "select" || cell.column.id === "drag") &&
+                  "w-10 min-w-10 max-w-10 p-0 text-center"
+              )}
+            >
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </TableCell>
+          ))}
+        </TableRow>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-56 rounded-xl shadow-lg border border-border bg-popover text-popover-foreground z-50">
+        <ContextMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
+          Aksi Baris #{row.index + 1}
+        </ContextMenuLabel>
+        <ContextMenuSeparator />
+        {onRowClick && (
+          <ContextMenuItem
+            onSelect={() => onRowClick(row.original)}
+            className="text-xs font-medium cursor-pointer"
+          >
+            <EyeIcon className="mr-2 size-4 text-emerald-500" />
+            <span>Lihat Detail</span>
+          </ContextMenuItem>
+        )}
+        {serialNo && (
+          <ContextMenuItem
+            onSelect={() => {
+              navigator.clipboard.writeText(String(serialNo));
+              toast.success(`Disalin: ${serialNo}`);
+            }}
+            className="text-xs font-medium cursor-pointer"
+          >
+            <Copy className="mr-2 size-4 text-muted-foreground" />
+            <span>Salin Kode / Seri</span>
+          </ContextMenuItem>
+        )}
+        {serialNo && (
+          <ContextMenuItem
+            onSelect={() => {
+              navigate(`/stickers?sn=${encodeURIComponent(String(serialNo))}`);
+            }}
+            className="text-xs font-medium cursor-pointer"
+          >
+            <Printer className="mr-2 size-4 text-sky-500" />
+            <span>Cetak Stiker</span>
+          </ContextMenuItem>
+        )}
+        <ContextMenuItem
+          onSelect={() => {
+            row.toggleSelected();
+          }}
+          className="text-xs font-medium cursor-pointer"
+        >
+          <CheckSquare className="mr-2 size-4 text-blue-500" />
+          <span>{row.getIsSelected() ? "Batal Pilih Baris" : "Pilih Baris Ini"}</span>
+        </ContextMenuItem>
+        {getRowActions && (
+          <>
+            <ContextMenuSeparator />
+            {getRowActions(row.original)}
+          </>
+        )}
+        {onDeleteRow && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onSelect={async () => {
+                await onDeleteRow(row.original);
+              }}
+              variant="destructive"
+              className="text-xs font-medium cursor-pointer"
+            >
+              <Trash2 className="mr-2 size-4" />
+              <span>Hapus Baris</span>
+            </ContextMenuItem>
+          </>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -334,7 +412,7 @@ function createBaseColumns<TData extends DataTableRow>(): ColumnDef<TData>[] {
               table.getIsAllPageRowsSelected() ||
               (table.getIsSomePageRowsSelected() && "indeterminate")
             }
-            onCheckedChange={(value) =>
+            onCheckedChange={(value: boolean | "indeterminate") =>
               table.toggleAllPageRowsSelected(!!value)
             }
             aria-label="Select all"
@@ -345,7 +423,7 @@ function createBaseColumns<TData extends DataTableRow>(): ColumnDef<TData>[] {
         <div className="flex items-center justify-center">
           <Checkbox
             checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            onCheckedChange={(value: boolean | "indeterminate") => row.toggleSelected(!!value)}
             aria-label="Select row"
           />
         </div>
@@ -392,6 +470,8 @@ export function DataTable<TData extends DataTableRow>({
   onAddClick,
   onRefresh,
   onRowClick,
+  onDeleteRow,
+  getRowActions,
   onTabChange,
 }: DataTableProps<TData>) {
   const navigate = useNavigate();
@@ -423,13 +503,13 @@ export function DataTable<TData extends DataTableRow>({
     }
   }, [storageKey]);
 
-  const resolvedColumns = React.useMemo<ColumnDef<TData>[]>(
-    () => [
-      ...createBaseColumns<TData>(),
-      ...((columns ?? placeholderColumns) as ColumnDef<TData>[]),
-    ],
-    [columns],
-  );
+  const resolvedColumns = React.useMemo<ColumnDef<TData>[]>(() => {
+    const baseCols = createBaseColumns<TData>();
+    const userCols = (((columns ?? placeholderColumns) as ColumnDef<TData>[]) || []).filter(
+      (c) => c.id !== "actions" && c.id !== "action" && (c as any).accessorKey !== "actions" && (c as any).accessorKey !== "action"
+    );
+    return [...baseCols, ...userCols];
+  }, [columns]);
   const resolvedData = (initialData ?? placeholderData) as TData[];
   const resolvedDefaultTab = defaultTab ?? tabs[0]?.value ?? "table";
   const [internalActiveTab, setInternalActiveTab] =
@@ -1106,6 +1186,8 @@ export function DataTable<TData extends DataTableRow>({
                             key={row.id}
                             row={row}
                             onRowClick={onRowClick}
+                            onDeleteRow={onDeleteRow}
+                            getRowActions={getRowActions}
                           />
                         ))}
                       </SortableContext>

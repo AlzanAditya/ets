@@ -8,9 +8,9 @@ import { preloadAllWorkerRoutes } from "@/lib/lazy-routes"
 function WorkerPageSkeleton() {
   return (
     <div className="space-y-4 animate-pulse">
-      <div className="h-28 rounded-2xl bg-slate-800/50 border border-slate-800" />
-      <div className="h-44 rounded-2xl bg-slate-800/50 border border-slate-800" />
-      <div className="h-32 rounded-2xl bg-slate-800/50 border border-slate-800" />
+      <div className="h-28 rounded-2xl bg-muted/50 border border-border" />
+      <div className="h-44 rounded-2xl bg-muted/50 border border-border" />
+      <div className="h-32 rounded-2xl bg-muted/50 border border-border" />
     </div>
   )
 }
@@ -22,7 +22,7 @@ export function WorkerLayout() {
 
   return (
     <WorkerDataProvider>
-      <div className="dark min-h-screen bg-[#0a1316] text-slate-100 antialiased selection:bg-emerald-500 selection:text-white">
+      <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
         {/* Global Header for Worker */}
         <WorkerHeader />
 

@@ -22,24 +22,24 @@ export function WorkerProfileCard({ profile, className }: WorkerProfileCardProps
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-800 bg-[#162028] text-slate-100 p-6 shadow-xs flex flex-col items-center text-center space-y-3",
+        "rounded-2xl border border-border bg-card text-card-foreground p-6 shadow-xs flex flex-col items-center text-center space-y-3",
         className
       )}
     >
       <div className="relative">
-        <Avatar className="size-24 border-2 border-emerald-500/30 shadow-md ring-2 ring-emerald-500/20">
+        <Avatar className="size-24 border-2 border-primary/30 shadow-md ring-2 ring-primary/20">
           <AvatarImage src={avatarUrl} alt={name} className="object-cover" />
-          <AvatarFallback className="font-extrabold text-2xl bg-emerald-500/10 text-emerald-400">
+          <AvatarFallback className="font-extrabold text-2xl bg-primary/10 text-accent-foreground">
             {initials}
           </AvatarFallback>
         </Avatar>
       </div>
 
       <div className="space-y-1">
-        <h2 className="font-extrabold text-lg text-white tracking-tight">
+        <h2 className="font-extrabold text-lg text-foreground tracking-tight">
           {name}
         </h2>
-        <p className="text-xs text-slate-400 font-medium">
+        <p className="text-xs text-muted-foreground font-medium">
           {position}
         </p>
       </div>

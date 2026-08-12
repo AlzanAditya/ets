@@ -60,7 +60,7 @@ export function WorkerBottomNavigation() {
     <div
       aria-label="Worker bottom navigation"
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-40 select-none border-t border-[#182830] bg-[#0d171a] transition-all duration-200",
+        "fixed bottom-0 left-0 right-0 z-40 select-none border-t border-border bg-card/95 backdrop-blur-md transition-all duration-200",
         isInputFocused && "translate-y-full opacity-0 pointer-events-none"
       )}
     >
@@ -78,8 +78,8 @@ export function WorkerBottomNavigation() {
               className={cn(
                 "flex flex-1 flex-col items-center justify-center py-1 transition-colors duration-150 active:scale-95",
                 active
-                  ? "text-emerald-400 font-medium"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "text-accent-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               <Icon
@@ -94,7 +94,7 @@ export function WorkerBottomNavigation() {
               <span
                 className={cn(
                   "text-[10px] mt-1 leading-none select-none",
-                  active ? "font-semibold text-emerald-400" : "text-slate-400"
+                  active ? "font-semibold text-accent-foreground" : "text-muted-foreground"
                 )}
               >
                 {item.title}

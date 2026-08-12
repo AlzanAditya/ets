@@ -49,7 +49,7 @@ export function HistoryTimeline({ items, className }: HistoryTimelineProps) {
         {Object.entries(groupedItems).map(([groupTitle, groupItems]) => (
           <div key={groupTitle} className="space-y-3">
             {/* Date Group Header */}
-            <div className="text-xs font-bold text-slate-400">
+            <div className="text-xs font-bold text-muted-foreground">
               {groupTitle}
             </div>
 
@@ -65,45 +65,45 @@ export function HistoryTimeline({ items, className }: HistoryTimelineProps) {
                   <div
                     key={item.id}
                     onClick={() => setSelectedItem(item)}
-                    className="rounded-xl border border-slate-800 bg-[#162028] p-3.5 shadow-xs space-y-2 hover:border-slate-700 transition-all cursor-pointer"
+                    className="rounded-xl border border-border bg-card p-3.5 shadow-xs space-y-2 hover:border-primary/50 transition-all cursor-pointer text-card-foreground"
                   >
                     {/* Event Breadcrumb & Time */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                         {/* Status Icon Indicator */}
                         {isCompleted ? (
-                          <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                          <CheckCircle2 className="size-4 text-accent-foreground shrink-0" />
                         ) : (
                           <CircleDot className="size-4 text-amber-500 shrink-0" />
                         )}
 
-                        <span className="font-bold text-xs text-white">
+                        <span className="font-bold text-xs text-foreground">
                           {item.mainEvent}
                         </span>
-                        <ChevronRight className="size-3 text-slate-400 shrink-0" />
-                        <span className="font-bold text-xs text-emerald-400 truncate">
+                        <ChevronRight className="size-3 text-muted-foreground shrink-0" />
+                        <span className="font-bold text-xs text-accent-foreground truncate">
                           {item.stepEvent}
                         </span>
                       </div>
 
-                      <span className="text-[11px] font-mono text-slate-400 shrink-0 flex items-center gap-1">
-                        <Clock className="size-3 text-slate-400" />
+                      <span className="text-[11px] font-mono text-muted-foreground shrink-0 flex items-center gap-1">
+                        <Clock className="size-3 text-muted-foreground" />
                         <span>{timeText}</span>
                       </span>
                     </div>
 
                     {/* Client & Serial Number */}
                     <div className="flex items-center justify-between gap-2 text-xs">
-                      <span className="font-semibold text-slate-200 truncate">
+                      <span className="font-semibold text-foreground truncate">
                         {item.clientName}
                       </span>
-                      <span className="font-mono text-[11px] text-slate-400 shrink-0">
+                      <span className="font-mono text-[11px] text-muted-foreground shrink-0">
                         {item.serialNumber}
                       </span>
                     </div>
 
                     {/* Address Location */}
-                    <div className="flex items-start gap-1 text-[11px] text-slate-400 pt-0.5 border-t border-slate-800/80">
+                    <div className="flex items-start gap-1 text-[11px] text-muted-foreground pt-0.5 border-t border-border/80">
                       <MapPin className="size-3 text-rose-400 shrink-0 mt-0.5" />
                       <span className="line-clamp-1">{item.address}</span>
                     </div>
@@ -118,50 +118,50 @@ export function HistoryTimeline({ items, className }: HistoryTimelineProps) {
       {/* Detail Dialog on click */}
       <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
         {selectedItem && (
-          <DialogContent className="max-w-md rounded-2xl bg-slate-900 border-slate-800 text-slate-100">
+          <DialogContent className="max-w-md rounded-2xl bg-card border-border text-card-foreground">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-base text-white">
+              <DialogTitle className="flex items-center gap-2 text-base text-foreground">
                 <span>{selectedItem.clientName}</span>
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-400">
+              <DialogDescription className="text-xs text-muted-foreground">
                 Detail riwayat pekerjaan teknis ETS.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 text-xs py-2">
-              <div className="rounded-xl bg-slate-800/80 p-3 space-y-2 border border-slate-700/60">
+              <div className="rounded-xl bg-muted/80 p-3 space-y-2 border border-border">
                 <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Main Event:</span>
-                  <span className="font-bold text-white">{selectedItem.mainEvent}</span>
+                  <span className="text-muted-foreground font-medium">Main Event:</span>
+                  <span className="font-bold text-foreground">{selectedItem.mainEvent}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Step Event:</span>
-                  <span className="font-bold text-emerald-400">{selectedItem.stepEvent}</span>
+                  <span className="text-muted-foreground font-medium">Step Event:</span>
+                  <span className="font-bold text-accent-foreground">{selectedItem.stepEvent}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Serial Number:</span>
-                  <span className="font-mono font-bold text-white">{selectedItem.serialNumber}</span>
+                  <span className="text-muted-foreground font-medium">Serial Number:</span>
+                  <span className="font-mono font-bold text-foreground">{selectedItem.serialNumber}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Status:</span>
-                  <span className={selectedItem.status === "completed" ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
+                  <span className="text-muted-foreground font-medium">Status:</span>
+                  <span className={selectedItem.status === "completed" ? "text-accent-foreground font-bold" : "text-amber-400 font-bold"}>
                     {selectedItem.status === "completed" ? "Selesai" : "Sedang Berlangsung"}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Waktu:</span>
-                  <span className="font-mono text-slate-300">{selectedItem.time}</span>
+                  <span className="text-muted-foreground font-medium">Waktu:</span>
+                  <span className="font-mono text-muted-foreground">{selectedItem.time}</span>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-800 p-3 space-y-1 bg-slate-950/40">
-                <div className="font-semibold text-white">Alamat Klien:</div>
-                <div className="text-slate-400 text-[11px]">{selectedItem.address}</div>
+              <div className="rounded-xl border border-border p-3 space-y-1 bg-background/40">
+                <div className="font-semibold text-foreground">Alamat Klien:</div>
+                <div className="text-muted-foreground text-[11px]">{selectedItem.address}</div>
               </div>
             </div>
 
             <DialogFooter>
-              <Button size="sm" variant="outline" onClick={() => setSelectedItem(null)} className="w-full rounded-xl border-slate-700 text-slate-200 hover:bg-slate-800">
+              <Button size="sm" variant="outline" onClick={() => setSelectedItem(null)} className="w-full rounded-xl border-border text-foreground hover:bg-muted">
                 Tutup
               </Button>
             </DialogFooter>

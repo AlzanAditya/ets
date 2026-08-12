@@ -97,7 +97,7 @@ export function WorkerHeader({
     >
       <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold tracking-tight text-white truncate">
+          <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
             {pageTitle}
           </h1>
         </div>

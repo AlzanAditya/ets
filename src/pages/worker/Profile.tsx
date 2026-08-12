@@ -30,35 +30,35 @@ export default function WorkerProfile() {
     <div className="space-y-6 animate-fade-in pt-2">
       {/* Top Header Avatar & Name (No card container, blends with page) */}
       <div className="flex flex-col items-center text-center space-y-3 py-2">
-        <Avatar className="size-24 border-2 border-emerald-500/40 shadow-lg ring-2 ring-emerald-500/20">
+        <Avatar className="size-24 border-2 border-primary/40 shadow-lg ring-2 ring-primary/20">
           <AvatarImage src={workerProfile.avatarUrl} alt={name} className="object-cover" />
-          <AvatarFallback className="font-extrabold text-2xl bg-emerald-500/10 text-emerald-400">
+          <AvatarFallback className="font-extrabold text-2xl bg-primary/10 text-accent-foreground">
             {initials}
           </AvatarFallback>
         </Avatar>
 
         <div className="space-y-0.5">
-          <h2 className="font-bold text-xl text-white tracking-tight">
+          <h2 className="font-bold text-xl text-foreground tracking-tight">
             {name}
           </h2>
-          <p className="text-xs text-slate-400 font-medium">
+          <p className="text-xs text-muted-foreground font-medium">
             {position}
           </p>
         </div>
       </div>
 
       {/* Info List (No card wrapper, plain list with subtle border lines) */}
-      <div className="divide-y divide-slate-800/60 border-y border-slate-800/60 my-2">
+      <div className="divide-y divide-border/60 border-y border-border/60 my-2">
         {infoItems.map((item, idx) => (
           <div
             key={item.label || idx}
             className="py-3 px-1 flex items-center justify-between gap-3 text-xs"
           >
-            <span className="text-slate-400 font-medium shrink-0">
+            <span className="text-muted-foreground font-medium shrink-0">
               {item.label}
             </span>
             <span
-              className={`font-semibold text-slate-200 tracking-tight text-right truncate ${
+              className={`font-semibold text-foreground tracking-tight text-right truncate ${
                 item.isMono ? "font-mono" : ""
               }`}
             >

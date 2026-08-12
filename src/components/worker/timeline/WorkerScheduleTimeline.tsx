@@ -63,12 +63,12 @@ export function WorkerScheduleTimeline({ schedules: providedSchedules, className
       {groups.map((group) => (
         <div key={group.dateLabel} className="space-y-3">
           {/* Date Label Header */}
-          <div className="text-xs font-bold text-slate-400">
+          <div className="text-xs font-bold text-muted-foreground">
             {group.dateLabel}
           </div>
 
           {/* Vertical Timeline Items */}
-          <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-800">
+          <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[2px] before:bg-border">
             {group.items.map((item) => {
               const isOnProgress = item.status === "On Progress"
               const isScheduled = item.status === "Scheduled"
@@ -79,27 +79,27 @@ export function WorkerScheduleTimeline({ schedules: providedSchedules, className
                   {/* Circle indicator on vertical line */}
                   <div
                     className={cn(
-                      "absolute -left-6 top-1 size-4 rounded-full border-2 border-slate-950 flex items-center justify-center transition-all",
+                      "absolute -left-6 top-1 size-4 rounded-full border-2 border-background flex items-center justify-center transition-all",
                       isOnProgress
-                        ? "bg-emerald-500 ring-4 ring-emerald-500/20"
+                        ? "bg-primary ring-4 ring-primary/20"
                         : isCompleted
-                        ? "bg-emerald-500"
-                        : "bg-slate-950 border-amber-500 border-2"
+                        ? "bg-primary"
+                        : "bg-background border-amber-500 border-2"
                     )}
                   >
-                    {isOnProgress && <div className="size-1.5 rounded-full bg-slate-950" />}
+                    {isOnProgress && <div className="size-1.5 rounded-full bg-background" />}
                     {isScheduled && <div className="size-1.5 rounded-full bg-amber-500" />}
                   </div>
 
                   {/* Content card */}
-                  <div className="rounded-xl border border-slate-800 bg-[#162028] p-3.5 shadow-xs space-y-2">
+                  <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs space-y-2 text-card-foreground">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold font-mono text-slate-300 flex items-center gap-1">
-                          <Clock className="size-3 text-slate-400" />
+                        <span className="text-xs font-bold font-mono text-muted-foreground flex items-center gap-1">
+                          <Clock className="size-3 text-muted-foreground" />
                           <span>{item.time}</span>
                         </span>
-                        <span className="text-xs font-bold text-white">
+                        <span className="text-xs font-bold text-foreground">
                           {item.mainEvent}
                         </span>
                       </div>
@@ -108,20 +108,20 @@ export function WorkerScheduleTimeline({ schedules: providedSchedules, className
                         variant="outline"
                         className={cn(
                           "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                          isOnProgress && "bg-blue-500/10 text-blue-400 border-blue-500/30",
+                          isOnProgress && "bg-primary/10 text-accent-foreground border-primary/30",
                           isScheduled && "bg-amber-500/10 text-amber-400 border-amber-500/30",
-                          isCompleted && "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                          isCompleted && "bg-primary/10 text-accent-foreground border-primary/30"
                         )}
                       >
                         {item.status}
                       </Badge>
                     </div>
 
-                    <div className="text-xs text-slate-300 font-medium">
+                    <div className="text-xs text-foreground font-medium">
                       {item.clientName}
                     </div>
 
-                    <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <MapPin className="size-3 text-rose-400 shrink-0" />
                       <span className="truncate">{item.location}</span>
                     </div>

@@ -9,16 +9,13 @@ import {
   UsersIcon,
   HardHatIcon,
   BriefcaseIcon,
-  EyeIcon,
   PencilIcon,
-  Trash2Icon,
   WrenchIcon,
 } from "lucide-react";
 
 import { MetricCards } from "@/components/metric-cards";
 import { PageContent } from "@/components/page-content";
 import { DataTable, type DataTableTab } from "@/components/data-table";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -36,6 +33,9 @@ import type { WorkerWithDetails } from "@/services/workers.service";
 import type { MetricCardItem } from "@/types/metrics";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  ContextMenuItem,
+} from "@/components/ui/context-menu";
 
 const EXCLUDED_WORKER_COLUMNS = [
   "worker_id",
@@ -218,50 +218,8 @@ export default function WorkersPage() {
           </span>
         ),
       },
-      {
-        id: "actions",
-        enableHiding: true,
-        cell: ({ row }) => {
-          const worker = row.original;
-          const targetCode = worker.worker_code || worker.worker_id || worker.id || "";
-          return (
-            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate(`/workers/${encodeURIComponent(targetCode)}`)}
-                className="size-8 text-muted-foreground hover:text-foreground"
-                title="Lihat Detail & History"
-              >
-                <EyeIcon className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate(`/workers/${encodeURIComponent(targetCode)}?edit=true`)}
-                className="size-8 text-muted-foreground hover:text-foreground"
-                title="Edit Worker"
-              >
-                <PencilIcon className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setWorkerToDelete(worker);
-                  setIsDeleteOpen(true);
-                }}
-                className="size-8 text-muted-foreground hover:text-destructive"
-                title="Hapus Worker"
-              >
-                <Trash2Icon className="size-4" />
-              </Button>
-            </div>
-          );
-        },
-      },
     ],
-    [navigate]
+    []
   );
 
   const columns = React.useMemo(() => {
@@ -681,6 +639,22 @@ export default function WorkersPage() {
         onTabChange={setSelectedPosition}
         tabs={tabs}
         onAddClick={() => navigate("/workers/add")}
+        getRowActions={(worker) => (
+          <ContextMenuItem
+            onSelect={() => {
+              const targetCode = worker.worker_code || worker.worker_id || worker.id || "";
+              navigate(`/workers/${encodeURIComponent(targetCode)}?edit=true`);
+            }}
+            className="text-xs font-medium cursor-pointer"
+          >
+            <PencilIcon className="mr-2 size-4 text-blue-500" />
+            <span>Edit Worker</span>
+          </ContextMenuItem>
+        )}
+        onDeleteRow={(worker) => {
+          setWorkerToDelete(worker);
+          setIsDeleteOpen(true);
+        }}
         onRowClick={(row) => {
           const targetCode = row.worker_code || row.worker_id || row.id || "";
           navigate(`/workers/${encodeURIComponent(targetCode)}`);

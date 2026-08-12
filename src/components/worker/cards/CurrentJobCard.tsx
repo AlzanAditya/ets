@@ -236,16 +236,16 @@ export function CurrentJobCard({
     <>
       <div
         className={cn(
-          "rounded-2xl border border-slate-800 bg-[#162028] text-slate-100 p-4 shadow-md space-y-4 relative overflow-hidden transition-all",
+          "rounded-2xl border border-border bg-card text-card-foreground p-4 shadow-md space-y-4 relative overflow-hidden transition-all",
           className
         )}
       >
         {/* Header: Title & Main Event pill */}
-        <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-          <span className="text-xs font-bold text-slate-300">Pekerjaan Aktif</span>
+        <div className="flex items-center justify-between gap-2 border-b border-border/80 pb-3">
+          <span className="text-xs font-bold text-muted-foreground">Pekerjaan Aktif</span>
           <Badge
             variant="outline"
-            className="font-bold text-[11px] px-2.5 py-0.5 rounded-full border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
+            className="font-bold text-[11px] px-2.5 py-0.5 rounded-full border-primary/40 text-accent-foreground bg-primary/10"
           >
             {job.mainEvent}
           </Badge>
@@ -253,19 +253,19 @@ export function CurrentJobCard({
 
         {/* Product & Client Info */}
         <div className="flex items-start gap-3">
-          <div className="size-14 rounded-xl border border-slate-700 bg-slate-800 overflow-hidden shrink-0">
+          <div className="size-14 rounded-xl border border-border bg-muted overflow-hidden shrink-0">
             <img src={productImage} alt={job.productName} className="w-full h-full object-cover" />
           </div>
 
           <div className="flex-1 min-w-0 space-y-1">
-            <h3 className="font-extrabold text-sm text-white truncate">
+            <h3 className="font-extrabold text-sm text-foreground truncate">
               {job.clientName}
             </h3>
-            <div className="flex items-center gap-1.5 text-xs font-mono text-slate-400">
-              <QrCode className="size-3 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+              <QrCode className="size-3 text-muted-foreground shrink-0" />
               <span className="truncate">{job.serialNumber}</span>
             </div>
-            <div className="flex items-start gap-1 text-[11px] text-slate-400">
+            <div className="flex items-start gap-1 text-[11px] text-muted-foreground">
               <MapPin className="size-3 text-rose-400 shrink-0 mt-0.5" />
               <span className="line-clamp-1">{job.clientAddress}</span>
             </div>
@@ -274,9 +274,9 @@ export function CurrentJobCard({
 
         {/* Stepper Progress Section with Accordion matching product-event-accordion.tsx */}
         <div className="space-y-2.5 pt-1">
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
             <span>Progress {job.mainEvent}</span>
-            <span className="text-emerald-400 font-mono">
+            <span className="text-accent-foreground font-mono">
               {job.steps.filter((s) => s.status === "completed").length}/{job.steps.length} Selesai
             </span>
           </div>
@@ -295,26 +295,26 @@ export function CurrentJobCard({
                   className={cn(
                     "rounded-xl border transition-all overflow-hidden",
                     isCompleted
-                      ? "bg-emerald-500/5 border-emerald-500/20"
+                      ? "bg-primary/5 border-primary/20"
                       : isActive
                       ? "bg-amber-500/5 border-amber-500/30 shadow-2xs"
-                      : "bg-slate-900/40 border-slate-800/80 opacity-80"
+                      : "bg-muted/40 border-border opacity-80"
                   )}
                 >
                   {/* Step Header */}
                   <div
                     onClick={() => toggleStepExpand(step.id)}
-                    className="flex items-center justify-between p-3 cursor-pointer select-none hover:bg-slate-800/50 transition-colors"
+                    className="flex items-center justify-between p-3 cursor-pointer select-none hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
                       <div
                         className={cn(
                           "size-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
                           isCompleted
-                            ? "bg-emerald-500 text-slate-950"
+                            ? "bg-primary text-primary-foreground"
                             : isActive
                             ? "bg-amber-500 text-slate-950 font-extrabold"
-                            : "bg-slate-800 border border-slate-700 text-slate-500"
+                            : "bg-muted border border-border text-muted-foreground"
                         )}
                       >
                         {isCompleted ? (
@@ -330,10 +330,10 @@ export function CurrentJobCard({
                         className={cn(
                           "text-xs font-medium",
                           isCompleted
-                            ? "text-emerald-400 font-semibold"
+                            ? "text-accent-foreground font-semibold"
                             : isActive
                             ? "text-amber-400 font-bold"
-                            : "text-slate-400"
+                            : "text-muted-foreground"
                         )}
                       >
                         {step.name}
@@ -342,8 +342,8 @@ export function CurrentJobCard({
 
                     <div className="flex items-center gap-2">
                       {step.photos && step.photos.length > 0 && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 bg-slate-800 text-slate-300 border border-slate-700">
-                          <ImageIcon className="size-3 mr-1 text-emerald-400" />
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 bg-muted text-muted-foreground border border-border">
+                          <ImageIcon className="size-3 mr-1 text-accent-foreground" />
                           {step.photos.length}
                         </Badge>
                       )}
@@ -352,10 +352,10 @@ export function CurrentJobCard({
                         className={cn(
                           "text-[10px] font-mono",
                           isCompleted
-                            ? "text-emerald-400"
+                            ? "text-accent-foreground"
                             : isActive
                             ? "text-amber-400 font-semibold"
-                            : "text-slate-500"
+                            : "text-muted-foreground"
                         )}
                       >
                         {isCompleted
@@ -367,7 +367,7 @@ export function CurrentJobCard({
 
                       <ChevronDown
                         className={cn(
-                          "size-4 text-slate-400 transition-transform duration-200",
+                          "size-4 text-muted-foreground transition-transform duration-200",
                           isExpanded && "rotate-180"
                         )}
                       />
@@ -376,14 +376,14 @@ export function CurrentJobCard({
 
                   {/* Step Expandable Content: Photo Gallery & Actions */}
                   {isExpanded && (
-                    <div className="p-3 pt-0 border-t border-slate-800/60 space-y-3 mt-1">
+                    <div className="p-3 pt-0 border-t border-border/60 space-y-3 mt-1">
                       {/* Photos grid */}
                       <div className="grid grid-cols-4 gap-2 pt-2">
                         {step.photos?.map((photo, pIdx) => (
                           <div
                             key={photo.id || pIdx}
                             onClick={() => openLightbox(step.photos || [], pIdx, step.name)}
-                            className="aspect-square rounded-xl border border-slate-700 bg-slate-900 overflow-hidden relative group cursor-pointer shadow-2xs hover:border-slate-500 transition-all"
+                            className="aspect-square rounded-xl border border-border bg-muted overflow-hidden relative group cursor-pointer shadow-2xs hover:border-primary/50 transition-all"
                           >
                             <img
                               src={photo.url}
@@ -409,13 +409,13 @@ export function CurrentJobCard({
 
                         {/* Upload Photo Button */}
                         {!isCompleted && (
-                          <label className="aspect-square rounded-xl border-2 border-dashed border-slate-700 hover:border-emerald-500/50 flex flex-col items-center justify-center cursor-pointer transition-all bg-slate-900/40 hover:bg-slate-900/80">
+                          <label className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-all bg-muted/40 hover:bg-muted/80">
                             {isUploadingThis ? (
-                              <Loader2 className="size-4 animate-spin text-emerald-400" />
+                              <Loader2 className="size-4 animate-spin text-accent-foreground" />
                             ) : (
                               <>
-                                <Plus className="size-4 text-slate-400 group-hover:text-emerald-400 transition-colors" />
-                                <span className="text-[9px] font-semibold text-slate-400 mt-0.5">Upload</span>
+                                <Plus className="size-4 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
+                                <span className="text-[9px] font-semibold text-muted-foreground mt-0.5">Upload</span>
                               </>
                             )}
                             <input
@@ -457,7 +457,7 @@ export function CurrentJobCard({
         </div>
 
         {/* Action Buttons (Right Bottom) */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/80">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/80">
           <Button
             type="button"
             variant="outline"
@@ -466,7 +466,7 @@ export function CurrentJobCard({
               setDetailOpen(true)
               if (onViewDetail) onViewDetail(job.id)
             }}
-            className="text-xs font-semibold gap-1.5 rounded-xl h-9 px-3 border-slate-700 text-slate-200 hover:bg-slate-800"
+            className="text-xs font-semibold gap-1.5 rounded-xl h-9 px-3 border-border text-foreground hover:bg-muted"
           >
             <Eye className="size-3.5" />
             <span>Lihat Detail</span>
@@ -476,7 +476,7 @@ export function CurrentJobCard({
             type="button"
             size="sm"
             onClick={() => setUploadOpen(true)}
-            className="text-xs font-bold gap-1.5 rounded-xl h-9 px-3.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+            className="text-xs font-bold gap-1.5 rounded-xl h-9 px-3.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
           >
             <Upload className="size-3.5" />
             <span>Upload Foto</span>
@@ -494,54 +494,54 @@ export function CurrentJobCard({
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-md rounded-2xl bg-slate-900 border-slate-800 text-slate-100">
+        <DialogContent className="max-w-md rounded-2xl bg-card border-border text-card-foreground">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base text-white">
-              <Building2 className="size-4 text-emerald-400" />
+            <DialogTitle className="flex items-center gap-2 text-base text-foreground">
+              <Building2 className="size-4 text-accent-foreground" />
               <span>Detail Pekerjaan - {job.clientName}</span>
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogDescription className="text-xs text-muted-foreground">
               Informasi teknis dan lokasi pengerjaan ETS.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 text-xs py-2">
-            <div className="rounded-xl bg-slate-800/80 p-3 space-y-2 border border-slate-700/60">
+            <div className="rounded-xl bg-muted/80 p-3 space-y-2 border border-border">
               <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-medium">Main Event:</span>
-                <Badge variant="outline" className="font-bold text-[11px] px-2 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+                <span className="text-muted-foreground font-medium">Main Event:</span>
+                <Badge variant="outline" className="font-bold text-[11px] px-2 border-primary/30 text-accent-foreground bg-primary/10">
                   {job.mainEvent}
                 </Badge>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-medium">Serial Number:</span>
-                <span className="font-mono font-bold text-white">{job.serialNumber}</span>
+                <span className="text-muted-foreground font-medium">Serial Number:</span>
+                <span className="font-mono font-bold text-foreground">{job.serialNumber}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-medium">Produk:</span>
-                <span className="font-semibold text-white">{job.productName}</span>
+                <span className="text-muted-foreground font-medium">Produk:</span>
+                <span className="font-semibold text-foreground">{job.productName}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-medium">Kategori:</span>
-                <span className="text-slate-200">{job.productCategory}</span>
+                <span className="text-muted-foreground font-medium">Kategori:</span>
+                <span className="text-foreground/90">{job.productCategory}</span>
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-800 p-3 space-y-2 bg-slate-950/40">
+            <div className="rounded-xl border border-border p-3 space-y-2 bg-background/40">
               <div className="flex items-start gap-2">
                 <MapPin className="size-4 text-rose-400 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-semibold text-white">Lokasi Pengerjaan:</div>
-                  <div className="text-slate-300">{job.location}</div>
-                  <div className="text-slate-400 text-[11px] mt-0.5">{job.clientAddress}</div>
+                  <div className="font-semibold text-foreground">Lokasi Pengerjaan:</div>
+                  <div className="text-foreground/90">{job.location}</div>
+                  <div className="text-muted-foreground text-[11px] mt-0.5">{job.clientAddress}</div>
                 </div>
               </div>
 
               {job.clientPhone && (
-                <div className="flex items-center gap-2 pt-1 border-t border-slate-800">
-                  <Phone className="size-3.5 text-emerald-400 shrink-0" />
-                  <span className="text-slate-400">Kontak Klien:</span>
-                  <a href={`tel:${job.clientPhone}`} className="text-emerald-400 font-bold hover:underline">
+                <div className="flex items-center gap-2 pt-1 border-t border-border">
+                  <Phone className="size-3.5 text-accent-foreground shrink-0" />
+                  <span className="text-muted-foreground">Kontak Klien:</span>
+                  <a href={`tel:${job.clientPhone}`} className="text-accent-foreground font-bold hover:underline">
                     {job.clientPhone}
                   </a>
                 </div>
@@ -560,7 +560,7 @@ export function CurrentJobCard({
           </div>
 
           <DialogFooter>
-            <Button size="sm" variant="outline" onClick={() => setDetailOpen(false)} className="w-full rounded-xl border-slate-700 text-slate-200 hover:bg-slate-800">
+            <Button size="sm" variant="outline" onClick={() => setDetailOpen(false)} className="w-full rounded-xl border-border text-foreground hover:bg-muted">
               Tutup
             </Button>
           </DialogFooter>
@@ -569,25 +569,25 @@ export function CurrentJobCard({
 
       {/* Upload Dialog */}
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-        <DialogContent className="max-w-md rounded-2xl bg-slate-900 border-slate-800 text-slate-100">
+        <DialogContent className="max-w-md rounded-2xl bg-card border-border text-card-foreground">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base text-white">
-              <Upload className="size-4 text-emerald-400" />
+            <DialogTitle className="flex items-center gap-2 text-base text-foreground">
+              <Upload className="size-4 text-accent-foreground" />
               <span>Upload Foto Dokumentasi</span>
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              Unggah foto hasil pengerjaan untuk unit <span className="font-bold text-white">{job.productName}</span> ({job.serialNumber}).
+            <DialogDescription className="text-xs text-muted-foreground">
+              Unggah foto hasil pengerjaan untuk unit <span className="font-bold text-foreground">{job.productName}</span> ({job.serialNumber}).
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2">
             {/* Step Selector */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-300">Pilih Tahap Pekerjaan:</label>
+              <label className="text-xs font-semibold text-muted-foreground">Pilih Tahap Pekerjaan:</label>
               <select
                 value={selectedStepId}
                 onChange={(e) => setSelectedStepId(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full h-10 px-3 rounded-xl bg-muted border border-border text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {job.steps.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -597,10 +597,10 @@ export function CurrentJobCard({
               </select>
             </div>
 
-            <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-800/60 transition-colors">
-              <Plus className="size-8 text-slate-400 mb-1" />
-              <span className="text-xs font-semibold text-white">Pilih atau Ambil Foto</span>
-              <span className="text-[11px] text-slate-400 mt-0.5">Format JPG, PNG, WEBP</span>
+            <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-muted/60 transition-colors">
+              <Plus className="size-8 text-muted-foreground mb-1" />
+              <span className="text-xs font-semibold text-foreground">Pilih atau Ambil Foto</span>
+              <span className="text-[11px] text-muted-foreground mt-0.5">Format JPG, PNG, WEBP</span>
               <input
                 type="file"
                 accept="image/*"
@@ -612,12 +612,12 @@ export function CurrentJobCard({
 
             {uploadedPhotos.length > 0 && (
               <div className="space-y-1.5">
-                <span className="text-xs font-semibold text-white">
+                <span className="text-xs font-semibold text-foreground">
                   Foto Terpilih ({uploadedPhotos.length})
                 </span>
                 <div className="grid grid-cols-3 gap-2">
                   {uploadedPhotos.map((photo) => (
-                    <div key={photo.id} className="relative aspect-square rounded-lg border border-slate-700 overflow-hidden group">
+                    <div key={photo.id} className="relative aspect-square rounded-lg border border-border overflow-hidden group">
                       <img src={photo.url} alt="Preview" className="w-full h-full object-cover" />
                       <button
                         type="button"
@@ -641,7 +641,7 @@ export function CurrentJobCard({
               variant="outline"
               disabled={isUploading}
               onClick={() => setUploadOpen(false)}
-              className="rounded-xl border-slate-700 text-slate-200 hover:bg-slate-800"
+              className="rounded-xl border-border text-foreground hover:bg-muted"
             >
               Batal
             </Button>
@@ -649,7 +649,7 @@ export function CurrentJobCard({
               size="sm"
               disabled={isUploading || selectedFiles.length === 0}
               onClick={handleSaveUpload}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold gap-1.5"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold gap-1.5"
             >
               {isUploading && <Loader2 className="size-3.5 animate-spin" />}
               <span>Simpan &amp; Unggah Foto</span>

@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Printer,
   Trash2,
+  EyeIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export interface DataTableRowActionsProps<TData> {
   onDelete?: (row: TData) => Promise<void>;
   showPreview?: boolean;
   previewUrl?: string;
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTableRowActions<TData>({
@@ -31,22 +33,32 @@ export function DataTableRowActions<TData>({
   onDelete,
   showPreview,
   previewUrl,
+  onRowClick,
 }: DataTableRowActionsProps<TData>) {
   const [isOpen, setIsOpen] = React.useState(false);
   const navigate = useNavigate();
 
   function handleCopy() {
-    const textToCopy = (row as any).serial_number ?? (row as any).nomor_seri ?? (row as any).id;
+    const textToCopy =
+      (row as any).serial_number ??
+      (row as any).nomor_seri ??
+      (row as any).product_id ??
+      (row as any).worker_code ??
+      (row as any).id;
     navigator.clipboard.writeText(String(textToCopy));
     toast.success("Disalin ke clipboard");
   }
 
   function handlePrintSticker() {
-    const sn = (row as any).serial_number ?? (row as any).nomor_seri ?? (row as any).product_id ?? (row as any).id;
+    const sn =
+      (row as any).serial_number ??
+      (row as any).nomor_seri ??
+      (row as any).product_id ??
+      (row as any).id;
     if (sn) {
-      navigate(`/stickers?sn=${encodeURIComponent(sn)}`);
+      navigate(`/stickers?sn=${encodeURIComponent(String(sn))}`);
     } else {
-      navigate('/stickers');
+      navigate("/stickers");
     }
   }
 
@@ -76,6 +88,7 @@ export function DataTableRowActions<TData>({
         <Button
           variant="ghost"
           className="h-8 w-8 p-0"
+          data-row-action-trigger="true"
           onContextMenu={(e) => {
             e.preventDefault();
             setIsOpen(true);
@@ -87,6 +100,12 @@ export function DataTableRowActions<TData>({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Aksi</DropdownMenuLabel>
+        {onRowClick && (
+          <DropdownMenuItem onClick={() => onRowClick(row)}>
+            <EyeIcon className="mr-2 h-4 w-4 text-emerald-500" />
+            Detail
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={handleCopy}>
           <Copy className="mr-2 h-4 w-4" />
           Salin

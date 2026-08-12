@@ -143,7 +143,7 @@ export function TaskCard({ job: initialJobProp, task: initialTaskProp, className
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-800 bg-[#162028] text-slate-100 p-4 shadow-xs space-y-4 transition-all hover:shadow-md",
+        "rounded-2xl border border-border bg-card text-card-foreground p-4 shadow-xs space-y-4 transition-all hover:shadow-md",
         className
       )}
     >
@@ -286,7 +286,7 @@ export function TaskCard({ job: initialJobProp, task: initialTaskProp, className
                         <div
                           key={photo.id || pIdx}
                           onClick={() => openLightbox(step.photos || [], pIdx, step.name)}
-                          className="aspect-square rounded-xl border border-slate-700/80 bg-slate-900 overflow-hidden relative group cursor-pointer shadow-2xs hover:border-slate-500 transition-all"
+                          className="aspect-square rounded-xl border border-border bg-muted overflow-hidden relative group cursor-pointer shadow-2xs hover:border-primary/50 transition-all"
                         >
                           <img
                             src={photo.url}
@@ -312,13 +312,13 @@ export function TaskCard({ job: initialJobProp, task: initialTaskProp, className
 
                       {/* Upload Photo Button */}
                       {!isCompleted && (
-                        <label className="aspect-square rounded-xl border-2 border-dashed border-slate-700 hover:border-amber-500/50 flex flex-col items-center justify-center cursor-pointer transition-all bg-slate-900/40 hover:bg-slate-900/80">
+                        <label className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-all bg-muted/40 hover:bg-muted/80">
                           {isUploadingThis ? (
-                            <Loader2 className="size-4 animate-spin text-amber-400" />
+                            <Loader2 className="size-4 animate-spin text-accent-foreground" />
                           ) : (
                             <>
-                              <Plus className="size-4 text-slate-400 group-hover:text-amber-400 transition-colors" />
-                              <span className="text-[9px] font-semibold text-slate-400 mt-0.5">Upload</span>
+                              <Plus className="size-4 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
+                              <span className="text-[9px] font-semibold text-muted-foreground mt-0.5">Upload</span>
                             </>
                           )}
                           <input

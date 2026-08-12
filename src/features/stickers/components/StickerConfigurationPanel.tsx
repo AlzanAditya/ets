@@ -22,7 +22,7 @@ const DeferredNumberInput: React.FC<DeferredNumberInputProps> = ({
   max,
   isInteger = false,
   onCommit,
-  className = "w-full bg-slate-900/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono",
+  className = "w-full bg-background border border-input rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono",
 }) => {
   const [localVal, setLocalVal] = useState<string>(String(value));
 
@@ -133,18 +133,18 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
   onReset,
 }) => {
   return (
-    <aside className="w-full flex flex-col gap-5 p-4 bg-slate-900 border-r border-slate-800/80 text-slate-100 overflow-y-auto">
+    <aside className="w-full flex flex-col gap-5 p-4 bg-transparent border-r border-border text-card-foreground overflow-y-auto">
       {/* 1. PRODUCT DATA SECTION */}
-      <section className="bg-slate-950/80 border border-slate-800/90 rounded-xl p-4 shadow-sm flex flex-col gap-3.5">
-        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
-          <h2 className="text-xs font-bold tracking-wider uppercase flex items-center gap-2 text-emerald-400">
-            <Sliders className="size-4 text-emerald-400" />
+      <section className="bg-muted/40 border border-border rounded-xl p-4 shadow-xs flex flex-col gap-3.5">
+        <div className="flex items-center justify-between border-b border-border pb-2.5">
+          <h2 className="text-xs font-bold tracking-wider uppercase flex items-center gap-2 text-accent-foreground">
+            <Sliders className="size-4 text-accent-foreground" />
             Data Produk ETS
           </h2>
           <button
             type="button"
             onClick={onOpenProductModal}
-            className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5"
+            className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-accent-foreground border border-primary/20 hover:bg-primary/20 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Package className="size-3.5" />
             {selectedProducts.length > 0 ? `Pilih (${selectedProducts.length})` : 'Import dari Products'}
@@ -153,8 +153,8 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
 
         {/* Selected Products Chips/List if Multi-Product */}
         {selectedProducts.length > 1 && (
-          <div className="flex flex-col gap-1.5 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
-            <span className="text-[11px] font-semibold text-slate-400">
+          <div className="flex flex-col gap-1.5 bg-background p-2.5 rounded-lg border border-border">
+            <span className="text-[11px] font-semibold text-muted-foreground">
               Produk Terpilih ({selectedProducts.length} Pcs):
             </span>
             <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
@@ -164,8 +164,8 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
                   onClick={() => setActiveProductIndex(idx)}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs cursor-pointer border transition-all ${
                     idx === activeProductIndex
-                      ? 'bg-emerald-500 text-slate-950 font-bold border-emerald-400 shadow-sm'
-                      : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'
+                      ? 'bg-primary text-primary-foreground font-bold border-primary shadow-xs'
+                      : 'bg-muted text-muted-foreground border-border hover:border-primary/50'
                   }`}
                 >
                   <span className="truncate max-w-[110px]">{p.productName}</span>
@@ -175,7 +175,7 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
                       e.stopPropagation();
                       onRemoveProduct(idx);
                     }}
-                    className="opacity-70 hover:opacity-100 hover:text-rose-400 transition-colors"
+                    className="opacity-70 hover:opacity-100 hover:text-destructive transition-colors cursor-pointer"
                   >
                     <Trash2 className="size-3" />
                   </button>
@@ -187,7 +187,7 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
 
         {/* Form Fields */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="input-product-name" className="text-xs font-medium text-slate-300">
+          <label htmlFor="input-product-name" className="text-xs font-medium text-muted-foreground">
             Product Name
           </label>
           <input
@@ -196,16 +196,16 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
             value={currentSticker.productName}
             onChange={(e) => onUpdateCurrentSticker('productName', e.target.value)}
             placeholder="contoh: ETS-5.000.AIZ"
-            className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+            className="w-full bg-background border border-input rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono"
           />
         </div>
 
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-center">
-            <label htmlFor="input-serial-no" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-serial-no" className="text-xs font-medium text-muted-foreground">
               Serial No.
             </label>
-            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
+            <span className="text-[10px] font-bold text-accent-foreground bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-md">
               Anti-Spasi
             </span>
           </div>
@@ -220,13 +220,13 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
               if (e.key === ' ' || e.code === 'Space') e.preventDefault();
             }}
             placeholder="contoh: XSI-II512-B-5000-1-0004"
-            className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+            className="w-full bg-background border border-input rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
-            <label htmlFor="input-capacity" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-capacity" className="text-xs font-medium text-muted-foreground">
               Capacity
             </label>
             <input
@@ -235,11 +235,11 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
               value={currentSticker.capacity}
               onChange={(e) => onUpdateCurrentSticker('capacity', e.target.value)}
               placeholder="contoh: 5000 VA / 5 KVA"
-              className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="input-prod-no" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-prod-no" className="text-xs font-medium text-muted-foreground">
               Prod. No
             </label>
             <input
@@ -248,14 +248,14 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
               value={currentSticker.prodNo}
               onChange={(e) => onUpdateCurrentSticker('prodNo', e.target.value)}
               placeholder="contoh: B312D-00004"
-              className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
-            <label htmlFor="input-voltage" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-voltage" className="text-xs font-medium text-muted-foreground">
               Voltage
             </label>
             <input
@@ -264,11 +264,11 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
               value={currentSticker.voltage}
               onChange={(e) => onUpdateCurrentSticker('voltage', e.target.value)}
               placeholder="contoh: AC 220V"
-              className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="input-frequency" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-frequency" className="text-xs font-medium text-muted-foreground">
               Frequency
             </label>
             <input
@@ -277,13 +277,13 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
               value={currentSticker.frequency}
               onChange={(e) => onUpdateCurrentSticker('frequency', e.target.value)}
               placeholder="contoh: 50 Hz"
-              className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono"
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="input-model" className="text-xs font-medium text-slate-300">
+          <label htmlFor="input-model" className="text-xs font-medium text-muted-foreground">
             Model
           </label>
           <input
@@ -292,20 +292,20 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
             value={currentSticker.model}
             onChange={(e) => onUpdateCurrentSticker('model', e.target.value)}
             placeholder="contoh: AIZ"
-            className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+            className="w-full bg-background border border-input rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono"
           />
         </div>
       </section>
 
       {/* 2. STICKER SIZE SECTION */}
-      <section className="bg-slate-950/80 border border-slate-800/90 rounded-xl p-4 shadow-sm flex flex-col gap-3.5">
-        <h2 className="text-xs font-bold tracking-wider uppercase flex items-center gap-2 text-emerald-400 border-b border-slate-800/80 pb-2.5">
-          <Grid className="size-4 text-emerald-400" />
+      <section className="bg-muted/40 border border-border rounded-xl p-4 shadow-xs flex flex-col gap-3.5">
+        <h2 className="text-xs font-bold tracking-wider uppercase flex items-center gap-2 text-accent-foreground border-b border-border pb-2.5">
+          <Grid className="size-4 text-accent-foreground" />
           Ukuran Stiker (mm)
         </h2>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
-            <label htmlFor="input-width" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-width" className="text-xs font-medium text-muted-foreground">
               Width (mm)
             </label>
             <DeferredNumberInput
@@ -318,7 +318,7 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="input-height" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-height" className="text-xs font-medium text-muted-foreground">
               Height (mm)
             </label>
             <DeferredNumberInput
@@ -333,7 +333,7 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-slate-400">Preset Ukuran Populer:</label>
+          <label className="text-xs font-medium text-muted-foreground">Preset Ukuran Populer:</label>
           <div className="flex flex-wrap gap-1.5 mt-0.5">
             {PRESET_SIZES.map((preset) => {
               const isActive =
@@ -348,8 +348,8 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
                   }}
                   className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer border ${
                     isActive
-                      ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-sm'
-                      : 'bg-slate-900 text-slate-300 border-slate-700/80 hover:bg-slate-800 hover:border-slate-600'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                      : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   {preset.label}
@@ -361,14 +361,14 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
       </section>
 
       {/* 3. A4 LAYOUT SETTINGS */}
-      <section className="bg-slate-950/80 border border-slate-800/90 rounded-xl p-4 shadow-sm flex flex-col gap-3.5">
-        <h2 className="text-xs font-bold tracking-wider uppercase flex items-center gap-2 text-emerald-400 border-b border-slate-800/80 pb-2.5">
-          <LayoutGrid className="size-4 text-emerald-400" />
+      <section className="bg-muted/40 border border-border rounded-xl p-4 shadow-xs flex flex-col gap-3.5">
+        <h2 className="text-xs font-bold tracking-wider uppercase flex items-center gap-2 text-accent-foreground border-b border-border pb-2.5">
+          <LayoutGrid className="size-4 text-accent-foreground" />
           Layout Kertas A4
         </h2>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
-            <label htmlFor="input-margin" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-margin" className="text-xs font-medium text-muted-foreground">
               Margin A4 (mm)
             </label>
             <DeferredNumberInput
@@ -381,7 +381,7 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="input-copies" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-copies" className="text-xs font-medium text-muted-foreground">
               Jumlah Cetak (Pcs)
             </label>
             <DeferredNumberInput
@@ -398,7 +398,7 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
-            <label htmlFor="input-hgap" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-hgap" className="text-xs font-medium text-muted-foreground">
               Gap Horisontal (mm)
             </label>
             <DeferredNumberInput
@@ -411,7 +411,7 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor="input-vgap" className="text-xs font-medium text-slate-300">
+            <label htmlFor="input-vgap" className="text-xs font-medium text-muted-foreground">
               Gap Vertikal (mm)
             </label>
             <DeferredNumberInput
@@ -426,7 +426,7 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="select-pdf-scale" className="text-xs font-medium text-slate-300">
+          <label htmlFor="select-pdf-scale" className="text-xs font-medium text-muted-foreground">
             Skala Kualitas PDF (Resolusi/DPI)
           </label>
           <select
@@ -435,48 +435,48 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
             onChange={(e) =>
               onUpdateConfig('pdfScale', parseInt(e.target.value, 10) || 3)
             }
-            className="w-full bg-slate-900/90 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer font-medium"
+            className="w-full bg-background border border-input rounded-lg px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer font-medium"
           >
-            <option value={1} className="bg-slate-900 text-slate-100">1x Scale (Draft / Cepat)</option>
-            <option value={2} className="bg-slate-900 text-slate-100">2x Scale (Standard HD)</option>
-            <option value={3} className="bg-slate-900 text-slate-100">3x Scale (Super Jernih - Default)</option>
-            <option value={4} className="bg-slate-900 text-slate-100">4x Scale (Ultra HD / High-Res)</option>
+            <option value={1} className="bg-popover text-popover-foreground">1x Scale (Draft / Cepat)</option>
+            <option value={2} className="bg-popover text-popover-foreground">2x Scale (Standard HD)</option>
+            <option value={3} className="bg-popover text-popover-foreground">3x Scale (Super Jernih - Default)</option>
+            <option value={4} className="bg-popover text-popover-foreground">4x Scale (Ultra HD / High-Res)</option>
           </select>
         </div>
       </section>
 
       {/* 4. LAYOUT CAPACITY SUMMARY */}
-      <section className="bg-slate-950/80 border border-slate-800/90 rounded-xl p-3.5 space-y-2 text-xs">
-        <div className="flex justify-between items-center text-slate-400">
+      <section className="bg-muted/40 border border-border rounded-xl p-3.5 space-y-2 text-xs">
+        <div className="flex justify-between items-center text-muted-foreground">
           <span>Susunan Kolom:</span>
-          <span className="font-semibold text-slate-200">{layoutStats.cols} kolom</span>
+          <span className="font-semibold text-foreground">{layoutStats.cols} kolom</span>
         </div>
-        <div className="flex justify-between items-center text-slate-400">
+        <div className="flex justify-between items-center text-muted-foreground">
           <span>Susunan Baris:</span>
-          <span className="font-semibold text-slate-200">{layoutStats.rows} baris</span>
+          <span className="font-semibold text-foreground">{layoutStats.rows} baris</span>
         </div>
-        <div className="flex justify-between items-center text-slate-400">
+        <div className="flex justify-between items-center text-muted-foreground">
           <span>Kapasitas 1 lembar A4:</span>
-          <span className="font-bold text-emerald-400">{layoutStats.capacityPerPage} stiker/A4</span>
+          <span className="font-bold text-accent-foreground">{layoutStats.capacityPerPage} stiker/A4</span>
         </div>
-        <div className="flex justify-between items-center text-slate-400">
+        <div className="flex justify-between items-center text-muted-foreground">
           <span>Kebutuhan Kertas:</span>
-          <span className="font-bold text-emerald-400">
+          <span className="font-bold text-accent-foreground">
             {layoutStats.totalPages} Halaman ({config.copies} pcs)
           </span>
         </div>
       </section>
 
       {/* DEMO / RANDOMIZE & RESET ACTIONS */}
-      <div className="flex flex-col gap-2.5 pt-3 border-t border-slate-800">
+      <div className="flex flex-col gap-2.5 pt-3 border-t border-border">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onToggleRandomize}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer ${
               isRandomizing
-                ? 'bg-rose-500 text-white hover:bg-rose-600 animate-pulse'
-                : 'bg-amber-400 text-slate-950 hover:bg-amber-300'
+                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90 animate-pulse'
+                : 'bg-amber-500 text-slate-950 hover:bg-amber-400'
             }`}
           >
             <Zap className="size-4" />
@@ -487,7 +487,7 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
           <button
             type="button"
             onClick={onReset}
-            className="p-2.5 rounded-lg border border-slate-700/80 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white transition-all cursor-pointer"
+            className="p-2.5 rounded-lg border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer"
             title="Reset Data Ke Default Reference"
           >
             <RefreshCw className="size-4" />
@@ -495,7 +495,7 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
         </div>
 
         {/* Speed chips for demo */}
-        <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+        <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
           <span>Speed:</span>
           <div className="flex gap-1">
             {[50, 100, 200, 500].map((speed) => (
@@ -505,8 +505,8 @@ export const StickerConfigurationPanel: React.FC<StickerConfigurationPanelProps>
                 onClick={() => onChangeRandomSpeed(speed)}
                 className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all cursor-pointer ${
                   randomSpeedMs === speed
-                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'bg-background border border-border text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {speed}ms
