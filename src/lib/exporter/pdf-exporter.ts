@@ -237,6 +237,7 @@ export async function exportDocumentPagesToPdf(
       height: heightPx,
       scale,
       backgroundColor: bg,
+      renderProfile: options.renderProfile,
     })
 
     const imgData = canvas.toDataURL('image/jpeg', 0.95)

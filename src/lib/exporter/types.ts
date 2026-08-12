@@ -16,6 +16,8 @@ export interface ExportPdfOptions {
   scale?: number
   filename?: string
   backgroundColor?: string
+  /** Rendering profile for specialized document pipelines. */
+  renderProfile?: 'default' | 'reports-bitmap'
 }
 
 export interface ExportPptxOptions {
