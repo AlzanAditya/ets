@@ -1147,7 +1147,7 @@ export default function ReportPreview({ data }: { data: ReportData }) {
       })
     } catch (error) {
       console.error('Foreign Object PDF export failed:', error)
-      window.alert('PDF Foreign Object gagal dibuat. Pastikan semua asset preview sudah termuat lalu coba lagi.')
+      window.alert(`PDF Foreign Object gagal dibuat. ${error instanceof Error ? error.message : 'Terjadi kesalahan saat merender dokumen.'}`)
     } finally {
       setIsExporting(false)
     }
