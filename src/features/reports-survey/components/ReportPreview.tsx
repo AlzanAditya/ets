@@ -5,7 +5,12 @@ import { ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react'
 import { ReportData, ProductData } from '../types'
 import { ASSET } from '../data/template'
 import { SmartImage } from '@/components/ui/smart-image'
-import { exportDocumentPagesToPdf, exportDocumentPagesToPptx, exportDocumentPagesToNativePrint } from '@/lib/document-exporter'
+import {
+  exportDocumentPagesToPdf,
+  exportDocumentPagesToForeignObjectPdf,
+  exportDocumentPagesToPptx,
+  exportDocumentPagesToNativePrint,
+} from '@/lib/document-exporter'
 
 const A = ASSET
 const BG1 = `${A}bg-01.png`
@@ -1063,16 +1068,12 @@ export default function ReportPreview({ data }: { data: ReportData }) {
   const firstPostProduct = 3 + productCount * 2
   const total = firstPostProduct + 9 + (productCount > 1 ? 1 : 0)
 
-  const [renderScale, setRenderScale] = useState<number | ''>(2.5)
+  const [renderScale, setRenderScale] = useState<number | ''>(1.5)
   const [isExporting, setIsExporting] = useState(false)
-  const MIN_RENDER_SCALE = 0.5
-  const MAX_RENDER_SCALE = 5
+  const MIN_RENDER_SCALE = 0.1
 
-  const numScale = typeof renderScale === 'number' ? renderScale : 2.5
-  const normalizedRenderScale = Math.min(
-    MAX_RENDER_SCALE,
-    Math.max(MIN_RENDER_SCALE, Number.isFinite(numScale) ? numScale : 2.5)
-  )
+  const numScale = typeof renderScale === 'number' ? renderScale : 1.5
+  const normalizedRenderScale = Number.isFinite(numScale) && numScale > 0 ? numScale : 1.5
 
   async function downloadPdf() {
     if (!pagesRef.current) return
@@ -1129,6 +1130,29 @@ export default function ReportPreview({ data }: { data: ReportData }) {
     }
   }
 
+  async function downloadPdfForeignObject() {
+    if (!pagesRef.current) return
+    const pages = Array.from(pagesRef.current.querySelectorAll('.report-page')) as HTMLElement[]
+    if (!pages.length) return
+
+    setIsExporting(true)
+    try {
+      const filename = `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'} - Foreign Object.pdf`
+      await exportDocumentPagesToForeignObjectPdf(pages, {
+        orientation: 'landscape',
+        widthPx: 1600,
+        heightPx: 900,
+        scale: normalizedRenderScale,
+        filename,
+      })
+    } catch (error) {
+      console.error('Foreign Object PDF export failed:', error)
+      window.alert('PDF Foreign Object gagal dibuat. Pastikan semua asset preview sudah termuat lalu coba lagi.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   async function downloadPptx() {
     if (!pagesRef.current) return
     const pages = Array.from(pagesRef.current.querySelectorAll('.report-page')) as HTMLElement[]
@@ -1180,13 +1204,12 @@ export default function ReportPreview({ data }: { data: ReportData }) {
           <p>Export menggunakan bitmap berkualitas tinggi agar PDF dan PPTX mengikuti preview.</p>
         </div>
         <div className="preview-actions">
-          <span className="preview-layout-badge">2 KOLOM • BITMAP • VIEWER v2.7.1</span>
+          <span className="preview-layout-badge">2 KOLOM • MULTI-RENDERER • VIEWER v2.7.1</span>
           <label className="render-scale-control" title="Skala render bitmap saat export">
             <span>Skala render</span>
             <input
               type="number"
               min={MIN_RENDER_SCALE}
-              max={MAX_RENDER_SCALE}
               step="0.1"
               inputMode="decimal"
               value={renderScale}
@@ -1198,11 +1221,10 @@ export default function ReportPreview({ data }: { data: ReportData }) {
                   return
                 }
                 const parsed = Number.parseFloat(value)
-                if (Number.isFinite(parsed))
-                  setRenderScale(Math.min(MAX_RENDER_SCALE, Math.max(MIN_RENDER_SCALE, parsed)))
+                if (Number.isFinite(parsed) && parsed >= MIN_RENDER_SCALE) setRenderScale(parsed)
               }}
               onBlur={() => {
-                if (!Number.isFinite(Number(renderScale))) setRenderScale(2.5)
+                if (!Number.isFinite(Number(renderScale)) || Number(renderScale) <= 0) setRenderScale(1.5)
               }}
               aria-label="Skala render bitmap"
             />
@@ -1232,6 +1254,15 @@ export default function ReportPreview({ data }: { data: ReportData }) {
             style={{ backgroundColor: '#0284c7', borderColor: '#0369a1' }}
           >
             Unduh PDF (Presisi - bisa diseleksi)
+          </button>
+          <button
+            className="download-pdf download-pdf-foreign"
+            onClick={downloadPdfForeignObject}
+            disabled={isExporting}
+            title="Eksperimen renderer SVG Foreign Object; layout tetap berasal dari preview HTML/CSS."
+            style={{ backgroundColor: '#7c3aed', borderColor: '#6d28d9' }}
+          >
+            Unduh PDF (Foreign Object)
           </button>
         </div>
       </div>

@@ -33,4 +33,4 @@ export interface ExportPptxOptions {
   slideHeightInches?: number
 }
 
-export type ExportDocumentFormat = 'pdf' | 'pptx'
+export type ExportDocumentFormat = 'pdf' | 'pdf-foreign-object' | 'pptx'
