@@ -18,6 +18,8 @@ export interface ExportPdfOptions {
   backgroundColor?: string
   /** Rendering profile for specialized document pipelines. */
   renderProfile?: 'default' | 'reports-bitmap'
+  /** Vertical text compensation in CSS px, applied only to the reports bitmap clone. */
+  textOffsetY?: number
 }
 
 export interface ExportPptxOptions {

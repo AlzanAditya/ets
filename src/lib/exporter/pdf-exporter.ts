@@ -104,6 +104,16 @@ export async function renderPageElementToCanvas(
   clonedPage.style.backgroundColor = bg
   clonedPage.style.overflow = 'hidden'
 
+  // Reports bitmap can use a small export-only vertical compensation for HTML
+  // text because html2canvas may rasterize font metrics a few pixels lower than
+  // the live browser preview. This never touches the real preview DOM.
+  const textOffsetY = options.textOffsetY ?? 0
+  if (isReportsBitmap && textOffsetY !== 0) {
+    clonedPage.querySelectorAll<HTMLElement>('.report-text').forEach((el) => {
+      el.style.transform = `translateY(${textOffsetY}px)`
+    })
+  }
+
   exportRoot.appendChild(clonedPage)
   document.body.appendChild(exportRoot)
 
@@ -238,6 +248,7 @@ export async function exportDocumentPagesToPdf(
       scale,
       backgroundColor: bg,
       renderProfile: options.renderProfile,
+      textOffsetY: options.textOffsetY,
     })
 
     const imgData = canvas.toDataURL('image/jpeg', 0.95)

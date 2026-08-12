@@ -1068,6 +1068,11 @@ export default function ReportPreview({ data }: { data: ReportData }) {
   const MIN_RENDER_SCALE = 0.5
   const MAX_RENDER_SCALE = 5
 
+  // Export-only vertical compensation for report bitmap text.
+  // Negative values move text upward; 0 disables the compensation.
+  // Adjust this single value before deployment to compare PDF output.
+  const REPORT_BITMAP_TEXT_OFFSET_Y = -2
+
   const numScale = typeof renderScale === 'number' ? renderScale : 2.5
   const normalizedRenderScale = Math.min(
     MAX_RENDER_SCALE,
@@ -1094,6 +1099,7 @@ export default function ReportPreview({ data }: { data: ReportData }) {
         heightPx: 900,
         scale: normalizedRenderScale,
         renderProfile: 'reports-bitmap',
+        textOffsetY: REPORT_BITMAP_TEXT_OFFSET_Y,
         filename,
       })
     } catch (error) {
