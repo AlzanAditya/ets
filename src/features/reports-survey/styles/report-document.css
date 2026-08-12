@@ -238,6 +238,17 @@
   object-fit: contain !important;
 }
 
+/*
+ * The technical comparison artwork is a full-width, pre-rendered report page
+ * section. It must occupy its exact export box instead of preserving the
+ * source image aspect ratio (which creates the white side gutters visible in
+ * the live preview). The bitmap PDF already uses this full-width composition,
+ * so keep the preview geometry identical to the bitmap target.
+ */
+.comparison-image {
+  object-fit: fill !important;
+}
+
 .portrait-photo {
   object-fit: cover;
   border: 0;

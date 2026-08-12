@@ -441,7 +441,7 @@ function LockedPage({
   if (type === 'comparison')
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Img src="s13-p01.png" left="0%" top="10.43%" width="100%" height="84.63%" className="contain-image" />
+        <Img src="s13-p01.png" left="0%" top="10.43%" width="100%" height="84.63%" className="contain-image comparison-image" />
       </Page>
     )
 
