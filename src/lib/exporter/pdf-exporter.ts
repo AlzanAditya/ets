@@ -52,68 +52,122 @@ export async function renderPageElementToCanvas(
   const height = options.height || 900
   const scale = options.scale || 2
   const bg = options.backgroundColor || '#ffffff'
+  const isReportsBitmap = options.renderProfile === 'reports-bitmap'
 
-  if (document.fonts?.ready) {
-    await document.fonts.ready
-  }
-
-  // Create clean isolated container for offscreen rendering
-  const tempWrapper = document.createElement('div')
-  tempWrapper.style.position = 'fixed'
-  tempWrapper.style.top = '0'
-  tempWrapper.style.left = '0'
-  tempWrapper.style.width = `${width}px`
-  tempWrapper.style.height = `${height}px`
-  tempWrapper.style.boxSizing = 'border-box'
-  tempWrapper.style.backgroundColor = bg
-  tempWrapper.style.color = '#111111'
-  tempWrapper.style.zIndex = '-99999'
-  tempWrapper.style.opacity = '1'
-  tempWrapper.style.pointerEvents = 'none'
+  // Reports use a dedicated bitmap profile that renders the clone as a normal,
+  // visible DOM tree in an off-screen export root. This keeps text metrics close
+  // to the proven reference pipeline while leaving other document exporters intact.
+  const exportRoot = document.createElement('div')
+  exportRoot.className = 'pdf-export-root'
+  exportRoot.setAttribute('aria-hidden', 'true')
+  exportRoot.style.cssText = isReportsBitmap
+    ? [
+        'position:fixed',
+        'left:-20000px',
+        'top:0',
+        `width:${width}px`,
+        'height:auto',
+        'z-index:0',
+        'pointer-events:none',
+        `background:${bg}`,
+        'visibility:visible',
+      ].join(';')
+    : [
+        'position:fixed',
+        'top:0',
+        'left:0',
+        `width:${width}px`,
+        `height:${height}px`,
+        'box-sizing:border-box',
+        `background:${bg}`,
+        'z-index:-99999',
+        'opacity:1',
+        'pointer-events:none',
+      ].join(';')
 
   const clonedPage = pageEl.cloneNode(true) as HTMLElement
 
-  // Clean interactive/UI badges
   clonedPage
     .querySelectorAll('.page-indicator, .template-badge, .pdf-ui-only, .a4-page-badge')
     .forEach((el) => el.remove())
 
-  // Force exact page dimensions and light background
-  clonedPage.style.transform = 'none'
-  clonedPage.style.margin = '0'
-  clonedPage.style.boxShadow = 'none'
-  clonedPage.style.border = 'none'
+  clonedPage.classList.add('pdf-export-page')
   clonedPage.style.width = `${width}px`
   clonedPage.style.height = `${height}px`
   clonedPage.style.maxWidth = 'none'
   clonedPage.style.aspectRatio = 'auto'
+  clonedPage.style.margin = '0'
+  clonedPage.style.transform = 'none'
+  clonedPage.style.boxShadow = 'none'
+  clonedPage.style.border = 'none'
   clonedPage.style.boxSizing = 'border-box'
   clonedPage.style.backgroundColor = bg
-  clonedPage.style.color = '#111111'
-  clonedPage.style.position = 'relative'
   clonedPage.style.overflow = 'hidden'
 
-  tempWrapper.appendChild(clonedPage)
-  document.body.appendChild(tempWrapper)
+  exportRoot.appendChild(clonedPage)
+  document.body.appendChild(exportRoot)
 
-  // Ensure all embedded images in the cloned element are loaded
-  const imgs = Array.from(tempWrapper.querySelectorAll('img'))
-  await Promise.all(
-    imgs.map((img) => {
-      if (img.complete) return Promise.resolve()
-      return new Promise((resolve) => {
-        img.onload = resolve
-        img.onerror = resolve
-      })
-    })
-  )
-  await new Promise((resolve) => setTimeout(resolve, 80))
+  const waitForAssets = async () => {
+    if (document.fonts?.ready) {
+      await document.fonts.ready
+    }
+
+    // Explicitly request the report fonts used by the document. This does not
+    // use img.decode(), because decode() can reject for CDN/CORS images even
+    // after the browser has successfully displayed them in the live preview.
+    if (document.fonts?.load) {
+      await Promise.allSettled([
+        document.fonts.load("800 49.6px Raleway"),
+        document.fonts.load("700 25.92px Raleway"),
+        document.fonts.load("700 44.8px Raleway"),
+      ])
+    }
+
+    const imgs = Array.from(clonedPage.querySelectorAll('img'))
+    await Promise.all(
+      imgs.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            let settled = false
+            let timeoutId = 0
+
+            const done = () => {
+              if (settled) return
+              settled = true
+              window.clearTimeout(timeoutId)
+              img.removeEventListener('load', done)
+              img.removeEventListener('error', done)
+              resolve()
+            }
+
+            if (img.complete) {
+              done()
+              return
+            }
+
+            timeoutId = window.setTimeout(done, 8000)
+            img.addEventListener('load', done, { once: true })
+            img.addEventListener('error', done, { once: true })
+          })
+      )
+    )
+
+    // Let the browser perform at least two layout/paint passes after fonts and
+    // images are ready. This is intentionally short and bounded.
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    )
+  }
 
   try {
+    await waitForAssets()
+
     const canvas = await html2canvas(clonedPage, {
       scale,
       useCORS: true,
-      allowTaint: true,
+      // Keep this false for the report bitmap export. A tainted canvas is not
+      // useful for toDataURL() and can hide the real asset/CORS problem.
+      allowTaint: isReportsBitmap ? false : true,
       logging: false,
       backgroundColor: bg,
       imageTimeout: 15000,
@@ -125,25 +179,22 @@ export async function renderPageElementToCanvas(
       y: 0,
       scrollX: 0,
       scrollY: 0,
+      removeContainer: true,
       onclone: (clonedDoc) => {
-        // Strip dark mode classes and force light background theme
         clonedDoc.documentElement.classList.remove('dark')
         clonedDoc.body.classList.remove('dark')
         clonedDoc.documentElement.style.backgroundColor = bg
         clonedDoc.body.style.backgroundColor = bg
-        clonedDoc.documentElement.style.color = '#111111'
-        clonedDoc.body.style.color = '#111111'
         clonedDoc.documentElement.style.colorScheme = 'light'
 
         clonedDoc.querySelectorAll('.dark').forEach((el) => el.classList.remove('dark'))
         sanitizeOklchInDoc(clonedDoc)
       },
     })
+
     return canvas
   } finally {
-    if (tempWrapper.parentNode) {
-      document.body.removeChild(tempWrapper)
-    }
+    exportRoot.remove()
   }
 }
 

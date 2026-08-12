@@ -1,323 +1,249 @@
-import { buildIsolatedPrintDocument, collectPrintStyles } from './document-print-template'
-
 export interface ExportNativePrintOptions {
   filename?: string
   widthPx?: number
   heightPx?: number
   orientation?: 'landscape' | 'portrait'
-  assetTimeoutMs?: number
-  fontTimeoutMs?: number
 }
 
 /**
- * Native browser print exporter.
- *
- * The print document is isolated from the ETS application shell. The supplied
- * page elements are cloned into a brand-new document, so navigation, forms,
- * toolbars and other application UI can never become part of the print tree.
- *
- * Before cloning, the original preview is treated as the source of truth for
- * asset readiness. This is important for ETS because report/sticker assets can
- * come from local files or the CDN and SmartImage may still be resolving a
- * fallback URL when the user clicks Print.
+ * Universal isolated native print exporter.
+ * Clones target pages into an offscreen .native-print-container on document.body,
+ * dynamically injects a temporary @media print stylesheet that hides all web app UI
+ * (#root, navbars, forms, toolbars, sidebars) and renders ONLY the cloned document pages,
+ * sets explicit @page sizing (16:9 Landscape for Reports, A4 Portrait for Stickers),
+ * awaits web fonts, image loading & decoding, and DOM layout reflow (with 4s max timeout),
+ * then calls window.print() for 100% vector, searchable PDF generation.
  */
 export async function exportDocumentPagesToNativePrint(
   pageElements: HTMLElement[],
   options: ExportNativePrintOptions = {}
 ): Promise<void> {
-  if (!pageElements?.length) {
+  if (!pageElements || !pageElements.length) {
     throw new Error('Tidak ada halaman dokumen yang dapat dicetak/diexport!')
   }
 
   const orientation = options.orientation || 'landscape'
   const widthPx = options.widthPx || (orientation === 'landscape' ? 1600 : 794)
   const heightPx = options.heightPx || (orientation === 'landscape' ? 900 : 1123)
-  const assetTimeoutMs = options.assetTimeoutMs ?? 8000
-  const fontTimeoutMs = options.fontTimeoutMs ?? 3000
 
-  const isA4 = orientation === 'portrait' || (widthPx === 794 && heightPx === 1123)
-  const pageWidth = isA4 ? '210mm' : `${widthPx}px`
-  const pageHeight = isA4 ? '297mm' : `${heightPx}px`
-  const pageSize = isA4
-    ? 'A4 portrait'
-    : `${(widthPx / 96).toFixed(4)}in ${(heightPx / 96).toFixed(4)}in`
-
-  // Open synchronously from the user click so popup blockers do not interfere.
-  const printWindow = window.open('', '_blank')
-  if (!printWindow) {
-    throw new Error('Jendela print diblokir oleh browser. Izinkan pop-up untuk melanjutkan.')
+  // Determine explicit @page CSS size rule
+  // 1600px / 96 = 16.6667in, 900px / 96 = 9.375in (16:9 Landscape Widescreen)
+  // 794px / 96 = 8.2708in, 1123px / 96 = 11.6979in (210mm x 297mm A4 Portrait)
+  let pageCssSize = ''
+  if (orientation === 'portrait' || (widthPx === 794 && heightPx === 1123)) {
+    pageCssSize = '210mm 297mm'
+  } else {
+    const widthIn = Number((widthPx / 96).toFixed(4))
+    const heightIn = Number((heightPx / 96).toFixed(4))
+    pageCssSize = `${widthIn}in ${heightIn}in`
   }
 
-  // Keep the new window useful while the source preview is being checked.
-  printWindow.document.open()
-  printWindow.document.write(buildPrintLoadingDocument())
-  printWindow.document.close()
+  // 1. Create native print container directly on document.body
+  const printContainer = document.createElement('div')
+  printContainer.className = 'native-print-container'
+
+  // 2. Clone each page element into the container
+  pageElements.forEach((pageEl, idx) => {
+    const clonedPage = pageEl.cloneNode(true) as HTMLElement
+
+    // Remove UI badges, indicators, scale controls, and non-printable elements
+    clonedPage
+      .querySelectorAll('.page-indicator, .template-badge, .pdf-ui-only, .a4-page-badge, .render-scale-control, .no-print')
+      .forEach((el) => el.remove())
+
+    clonedPage.classList.add('native-print-page')
+    clonedPage.style.width = `${widthPx}px`
+    clonedPage.style.height = `${heightPx}px`
+    clonedPage.style.maxWidth = 'none'
+    clonedPage.style.maxHeight = 'none'
+    clonedPage.style.transform = 'none'
+    clonedPage.style.margin = '0'
+    clonedPage.style.boxShadow = 'none'
+    clonedPage.style.boxSizing = 'border-box'
+    clonedPage.style.position = 'relative'
+    clonedPage.style.backgroundColor = '#ffffff'
+    clonedPage.style.pageBreakAfter = idx === pageElements.length - 1 ? 'auto' : 'always'
+    clonedPage.style.breakAfter = idx === pageElements.length - 1 ? 'auto' : 'page'
+    clonedPage.style.pageBreakInside = 'avoid'
+    clonedPage.style.breakInside = 'avoid'
+    clonedPage.style.overflow = 'hidden'
+
+    printContainer.appendChild(clonedPage)
+  })
+
+  // 3. Inject dynamic temporary @media print stylesheet into document head
+  const dynamicStyleId = 'dynamic-native-print-style'
+  const existingStyle = document.getElementById(dynamicStyleId)
+  if (existingStyle) {
+    existingStyle.remove()
+  }
+
+  const styleEl = document.createElement('style')
+  styleEl.id = dynamicStyleId
+  styleEl.textContent = `
+    @media screen {
+      .native-print-container {
+        display: none !important;
+      }
+    }
+
+    @media print {
+      @page {
+        size: ${pageCssSize};
+        margin: 0;
+      }
+
+      /* Hide ALL web app UI (navbar, forms, sidebars, toolbars, controls) */
+      body > *:not(.native-print-container) {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        overflow: hidden !important;
+      }
+
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        width: 100% !important;
+      }
+
+      .native-print-container {
+        display: block !important;
+        visibility: visible !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: #ffffff !important;
+      }
+
+      .native-print-container * {
+        visibility: visible !important;
+      }
+
+      .native-print-page {
+        width: ${widthPx}px !important;
+        height: ${heightPx}px !important;
+        max-width: none !important;
+        max-height: none !important;
+        transform: none !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+        background-color: #ffffff !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        overflow: hidden !important;
+      }
+
+      .native-print-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+    }
+  `
+
+  document.head.appendChild(styleEl)
+  document.body.appendChild(printContainer)
+  document.body.classList.add('is-native-printing')
+
+  // 4. Await web fonts readiness, image loading/decoding & layout reflow with 4-second timeout guard
+  const prepareAssetsPromise = async () => {
+    // Fonts readiness
+    if (document.fonts?.ready) {
+      try {
+        await document.fonts.ready
+      } catch (e) {
+        // Ignore font loading timeout/errors
+      }
+    }
+
+    // Images loading & decoding inside print container
+    const images = Array.from(printContainer.querySelectorAll('img'))
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) {
+          return Promise.resolve()
+        }
+        return new Promise<void>((resolve) => {
+          let settled = false
+          const done = () => {
+            if (!settled) {
+              settled = true
+              resolve()
+            }
+          }
+          img.onload = done
+          img.onerror = done
+          if (img.decode) {
+            img.decode().then(done).catch(done)
+          }
+          setTimeout(done, 1500)
+        })
+      })
+    )
+
+    // Brief pause for browser layout reflow
+    await new Promise((resolve) => setTimeout(resolve, 300))
+  }
+
+  const timeoutGuardPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error('Proses penyiapan cetak PDF melebihi batas waktu (4 detik). Silakan coba lagi.'))
+    }, 4000)
+  })
+
+  // Cleanup helper
+  const performCleanup = () => {
+    document.body.classList.remove('is-native-printing')
+    if (styleEl.parentNode) {
+      styleEl.parentNode.removeChild(styleEl)
+    }
+    if (printContainer.parentNode) {
+      printContainer.parentNode.removeChild(printContainer)
+    }
+  }
 
   try {
-    const initialReadiness = getSourcePreviewReadiness(pageElements)
+    await Promise.race([prepareAssetsPromise(), timeoutGuardPromise])
+  } catch (err) {
+    performCleanup()
+    throw err
+  }
 
-    if (!initialReadiness.ready) {
-      const shouldWait = window.confirm(
-        `Dokumen belum selesai dimuat.\n\n` +
-          `${initialReadiness.pendingImages} gambar/aset masih dimuat dan ` +
-          `${initialReadiness.fontsPending ? 'font masih dimuat' : 'font sudah siap'}.\n\n` +
-          `Pilih OK untuk menunggu hingga siap, atau Batal untuk membatalkan Native Print.`
-      )
+  // 5. Trigger native browser print dialog & clean up after printing
+  return new Promise<void>((resolve) => {
+    let cleanedUp = false
 
-      if (!shouldWait) {
-        printWindow.close()
-        return
-      }
-
-      const waitedReadiness = await waitForSourcePreviewReady(
-        pageElements,
-        assetTimeoutMs,
-        fontTimeoutMs
-      )
-
-      if (!waitedReadiness.ready) {
-        const shouldContinue = window.confirm(
-          `Sebagian aset masih belum siap setelah ${Math.round(assetTimeoutMs / 1000)} detik.\n\n` +
-            `${waitedReadiness.pendingImages} gambar/aset belum siap` +
-            `${waitedReadiness.fontsPending ? ' dan font belum selesai dimuat' : ''}.\n\n` +
-            `OK = tetap lanjutkan Native Print\nBatal = batalkan` 
-        )
-
-        if (!shouldContinue) {
-          printWindow.close()
-          return
-        }
-      }
+    const cleanup = () => {
+      if (cleanedUp) return
+      cleanedUp = true
+      window.removeEventListener('afterprint', cleanup)
+      performCleanup()
+      resolve()
     }
 
-    // Clone ONLY the document roots supplied by the caller. Do not clone their
-    // preview wrappers or any ancestor belonging to the application UI.
-    const pageHtml = pageElements
-      .map((pageEl) => {
-        const clone = pageEl.cloneNode(true) as HTMLElement
+    window.addEventListener('afterprint', cleanup, { once: true })
 
-        clone
-          .querySelectorAll(
-            '.page-indicator, .template-badge, .pdf-ui-only, .a4-page-badge, .render-scale-control, .no-print'
-          )
-          .forEach((el) => el.remove())
+    // Fallback cleanup timer in case afterprint doesn't fire immediately
+    setTimeout(() => {
+      cleanup()
+    }, 60000)
 
-        clone.classList.add('native-print-page')
-        clone.style.transform = 'none'
-        clone.style.margin = '0'
-        clone.style.boxShadow = 'none'
-        clone.style.maxWidth = 'none'
-        clone.style.maxHeight = 'none'
-        clone.style.position = 'relative'
-        clone.style.boxSizing = 'border-box'
-        clone.style.overflow = 'hidden'
-        clone.style.pageBreakAfter = 'always'
-        clone.style.breakAfter = 'page'
-
-        return clone.outerHTML
-      })
-      .join('\n')
-
-    const stylesHtml = collectPrintStyles()
-    const html = buildIsolatedPrintDocument(pageHtml, stylesHtml, {
-      pageWidth,
-      pageHeight,
-      pageSize,
-      title: options.filename || 'ETS Document',
-    })
-
-    printWindow.document.open()
-    printWindow.document.write(html)
-    printWindow.document.close()
-
-    // The source preview was already validated. The print document only needs
-    // a bounded safety wait for the browser to attach its cloned assets.
-    await waitForPrintDocument(printWindow, assetTimeoutMs, fontTimeoutMs)
-    await nextAnimationFrame(printWindow)
-    await nextAnimationFrame(printWindow)
-
-    printWindow.focus()
-    printWindow.print()
-  } catch (error) {
     try {
-      printWindow.close()
-    } catch {
-      // Ignore close errors.
+      window.print()
+    } catch (err) {
+      console.error('Window print error:', err)
+      cleanup()
     }
-    throw error
-  }
-}
-
-interface PreviewReadiness {
-  ready: boolean
-  pendingImages: number
-  failedImages: number
-  fontsPending: boolean
-}
-
-function getSourcePreviewReadiness(pageElements: HTMLElement[]): PreviewReadiness {
-  const images = pageElements.flatMap((page) =>
-    Array.from(page.querySelectorAll<HTMLImageElement>('img'))
-  )
-
-  let pendingImages = 0
-  let failedImages = 0
-
-  for (const image of images) {
-    if (!image.complete) {
-      pendingImages++
-    } else if (image.naturalWidth === 0) {
-      // SmartImage may still be switching from a failed local URL to its CDN
-      // fallback. Treat it as pending rather than immediately as a fatal error.
-      pendingImages++
-      failedImages++
-    }
-  }
-
-  const fontsPending = document.fonts ? document.fonts.status !== 'loaded' : false
-
-  return {
-    ready: pendingImages === 0 && !fontsPending,
-    pendingImages,
-    failedImages,
-    fontsPending,
-  }
-}
-
-async function waitForSourcePreviewReady(
-  pageElements: HTMLElement[],
-  assetTimeoutMs: number,
-  fontTimeoutMs: number
-): Promise<PreviewReadiness> {
-  const imagePromise = waitForSourceImages(pageElements, assetTimeoutMs)
-  const fontPromise = waitForSourceFonts(fontTimeoutMs)
-
-  await Promise.all([imagePromise, fontPromise])
-  return getSourcePreviewReadiness(pageElements)
-}
-
-async function waitForSourceImages(pageElements: HTMLElement[], timeoutMs: number): Promise<void> {
-  const images = pageElements.flatMap((page) =>
-    Array.from(page.querySelectorAll<HTMLImageElement>('img'))
-  )
-
-  if (!images.length) return
-
-  await Promise.all(
-    images.map((img) =>
-      new Promise<void>((resolve) => {
-        if (img.complete && img.naturalWidth > 0) {
-          resolve()
-          return
-        }
-
-        let finished = false
-        const finish = () => {
-          if (finished) return
-          finished = true
-          img.removeEventListener('load', finish)
-          img.removeEventListener('error', finish)
-          window.clearTimeout(timer)
-          resolve()
-        }
-
-        const timer = window.setTimeout(finish, timeoutMs)
-        img.addEventListener('load', finish, { once: true })
-        img.addEventListener('error', finish, { once: true })
-      })
-    )
-  )
-}
-
-async function waitForSourceFonts(timeoutMs: number): Promise<void> {
-  if (!document.fonts?.ready) return
-
-  await Promise.race([
-    document.fonts.ready.then(() => undefined).catch(() => undefined),
-    new Promise<void>((resolve) => window.setTimeout(resolve, timeoutMs)),
-  ])
-}
-
-async function waitForPrintDocument(
-  printWindow: Window,
-  assetTimeoutMs: number,
-  fontTimeoutMs: number
-): Promise<void> {
-  const doc = printWindow.document
-
-  if (doc.readyState !== 'complete') {
-    await new Promise<void>((resolve) => {
-      const done = () => {
-        printWindow.removeEventListener('load', done)
-        resolve()
-      }
-      printWindow.addEventListener('load', done, { once: true })
-      printWindow.setTimeout(done, 5000)
-    })
-  }
-
-  if (doc.fonts?.ready) {
-    await Promise.race([
-      doc.fonts.ready.then(() => undefined).catch(() => undefined),
-      new Promise<void>((resolve) => printWindow.setTimeout(resolve, fontTimeoutMs)),
-    ])
-  }
-
-  const images = Array.from(doc.images)
-  await Promise.all(
-    images.map(
-      (img) =>
-        new Promise<void>((resolve) => {
-          if (img.complete) {
-            resolve()
-            return
-          }
-
-          let finished = false
-          const finish = () => {
-            if (finished) return
-            finished = true
-            img.removeEventListener('load', finish)
-            img.removeEventListener('error', finish)
-            printWindow.clearTimeout(timer)
-            resolve()
-          }
-
-          const timer = printWindow.setTimeout(finish, assetTimeoutMs)
-          img.addEventListener('load', finish, { once: true })
-          img.addEventListener('error', finish, { once: true })
-        })
-    )
-  )
-
-  void doc.body.offsetHeight
-  doc.querySelectorAll<HTMLElement>('.native-print-page').forEach((page) => {
-    void page.offsetHeight
-    void page.getBoundingClientRect()
-  })
-}
-
-function buildPrintLoadingDocument(): string {
-  return `<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ETS — Menyiapkan Print</title>
-  <style>
-    html, body { margin: 0; min-height: 100%; font-family: system-ui, sans-serif; }
-    body { display: grid; place-items: center; background: #fff; color: #111; }
-    .loading { text-align: center; padding: 32px; }
-  </style>
-</head>
-<body>
-  <div class="loading">Menyiapkan dokumen untuk dicetak…</div>
-</body>
-</html>`
-}
-
-function nextAnimationFrame(printWindow: Window): Promise<void> {
-  return new Promise((resolve) => {
-    printWindow.requestAnimationFrame(() => resolve())
   })
 }

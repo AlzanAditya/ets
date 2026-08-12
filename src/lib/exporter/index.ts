@@ -1,12 +1,10 @@
 import { exportDocumentPagesToPdf } from './pdf-exporter'
-import { exportDocumentPagesToForeignObjectPdf } from './pdf-foreign-object-exporter'
 import { exportDocumentPagesToPptx } from './pptx-exporter'
 import { exportDocumentPagesToNativePrint } from '../document-pdf-native-print'
 import { ExportDocumentFormat, ExportPdfOptions, ExportPptxOptions } from './types'
 
 export * from './types'
 export * from './pdf-exporter'
-export * from './pdf-foreign-object-exporter'
 export * from './pptx-exporter'
 export * from '../document-pdf-native-print'
 
@@ -20,8 +18,6 @@ export async function exportDocument(
 ): Promise<void> {
   if (format === 'pdf') {
     return exportDocumentPagesToPdf(pageElements, options)
-  } else if (format === 'pdf-foreign-object') {
-    return exportDocumentPagesToForeignObjectPdf(pageElements, options)
   } else if (format === 'native-print') {
     return exportDocumentPagesToNativePrint(pageElements, options)
   } else if (format === 'pptx') {

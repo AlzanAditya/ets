@@ -3,6 +3,8 @@ export interface RenderPageOptions {
   height?: number
   scale?: number
   backgroundColor?: string
+  /** Rendering profile for specialized document pipelines. */
+  renderProfile?: 'default' | 'reports-bitmap'
 }
 
 export interface ExportPdfOptions {
@@ -33,4 +35,4 @@ export interface ExportPptxOptions {
   slideHeightInches?: number
 }
 
-export type ExportDocumentFormat = 'pdf' | 'pdf-foreign-object' | 'pptx'
+export type ExportDocumentFormat = 'pdf' | 'pptx'
