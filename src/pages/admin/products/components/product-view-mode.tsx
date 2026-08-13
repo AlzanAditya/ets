@@ -96,10 +96,10 @@ export function ProductViewMode({
   }, [refreshData]);
 
   // Determine status flags
-  const isInstallationActive = events.some(
-    (e) => e.event_type === "installation" && e.status === "active"
-  );
   const isMaintenance = currentProduct.status === "maintenance";
+  const isInstallationActive =
+    !isMaintenance &&
+    events.some((e) => e.event_type === "installation" && e.status === "active");
 
   let statusLabel = "Bergaransi";
   let statusColor: "emerald" | "amber" = "emerald";
@@ -292,15 +292,22 @@ export function ProductViewMode({
 
       {/* ── Global Entity Profile Banner ── */}
       <EntityProfileBanner
+        variant={
+          isMaintenance
+            ? "orange"
+            : isInstallationActive
+            ? "blue"
+            : "emerald"
+        }
         profile={{
           type: "icon",
           icon: isMaintenance ? Wrench : isInstallationActive ? Wrench : ShieldCheckIcon,
           containerClassName: cn(
             isMaintenance
-              ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-              : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20",
-            isMaintenance && "animate-pulse ring-4 ring-amber-500/40 dark:ring-amber-400/40 shadow-md",
-            isInstallationActive && "animate-pulse ring-4 ring-emerald-500/40 dark:ring-emerald-400/40 shadow-md"
+              ? "bg-orange-500/10 text-orange-500 border border-orange-500/20 animate-pulse ring-4 ring-orange-500/40 dark:ring-orange-400/40 shadow-md"
+              : isInstallationActive
+              ? "bg-blue-500/10 text-blue-500 border border-blue-500/20 animate-pulse ring-4 ring-blue-500/40 dark:ring-blue-400/40 shadow-md"
+              : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
           ),
           overlay: currentProduct.client
             ? {
@@ -320,7 +327,16 @@ export function ProductViewMode({
         subtitle={
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 rounded-md border border-border/80 bg-muted/30 font-mono text-[10px] sm:text-xs">
             <span className="text-muted-foreground font-medium">SN:</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+            <span
+              className={cn(
+                "font-bold",
+                isMaintenance
+                  ? "text-orange-600 dark:text-orange-400"
+                  : isInstallationActive
+                  ? "text-blue-600 dark:text-blue-400"
+                  : "text-emerald-600 dark:text-emerald-400"
+              )}
+            >
               {currentProduct.serial_number}
             </span>
           </div>

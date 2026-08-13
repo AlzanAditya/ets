@@ -1,5 +1,4 @@
 import * as React from "react";
-import type { ColumnDef } from "@tanstack/react-table";
 import {
   ClockIcon,
   UserIcon,
@@ -10,12 +9,19 @@ import {
   CheckCircle2Icon,
   RefreshCwIcon,
 } from "lucide-react";
-import { DataTable, type DataTableRow } from "@/components/data-table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { ProductWithRelations } from "@/services/products.service";
 import { safeUUID } from "@/lib/utils";
 
-export interface ActivityLogItem extends DataTableRow {
+export interface ActivityLogItem {
   id: string;
   timestamp: string;
   activity: string;
@@ -173,63 +179,6 @@ function getActivityBadge(type?: string, activity?: string) {
   );
 }
 
-const TIMELINE_COLUMNS: ColumnDef<ActivityLogItem>[] = [
-  {
-    accessorKey: "timestamp",
-    header: "Waktu",
-    cell: ({ row }) => {
-      const date = new Date(row.original.timestamp);
-      const isValid = !isNaN(date.getTime());
-      const formattedDate = isValid
-        ? date.toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })
-        : "—";
-      const formattedTime = isValid
-        ? date.toLocaleTimeString("id-ID", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "";
-
-      return (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
-          <ClockIcon className="size-3.5 shrink-0 text-muted-foreground/70" />
-          <span className="font-mono font-medium text-foreground">{formattedDate}</span>
-          <span className="text-[11px]">{formattedTime}</span>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "activity",
-    header: "Aktivitas",
-    cell: ({ row }) => getActivityBadge(row.original.type, row.original.activity),
-  },
-  {
-    accessorKey: "performer",
-    header: "Pelaksana",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1.5 text-xs font-medium text-foreground whitespace-nowrap">
-        <UserIcon className="size-3.5 text-muted-foreground" />
-        <span>{row.original.performer || "System Admin"}</span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "notes",
-    header: "Keterangan",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-[200px]">
-        <FileTextIcon className="size-3.5 text-muted-foreground/60 shrink-0" />
-        <span>{row.original.notes || "—"}</span>
-      </div>
-    ),
-  },
-];
-
 interface ProductActivityTimelineProps {
   productId: string;
   product?: ProductWithRelations | null;
@@ -264,14 +213,74 @@ export function ProductActivityTimeline({
         </Badge>
       </div>
 
-      <DataTable
-        persistenceKey={`product-timeline-${productId}`}
-        columns={TIMELINE_COLUMNS}
-        data={logs}
-        addButtonLabel=""
-        defaultTab="all"
-        tabs={[{ value: "all", label: "Semua Aktivitas", badge: logs.length }]}
-      />
+      <div className="rounded-xl border border-zinc-800 bg-zinc-950/90 overflow-hidden shadow-lg">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-zinc-800 bg-zinc-900/90 hover:bg-zinc-900/90">
+              <TableHead className="w-12 text-center text-xs font-bold text-zinc-400">No.</TableHead>
+              <TableHead className="text-xs font-bold text-zinc-400">Waktu</TableHead>
+              <TableHead className="text-xs font-bold text-zinc-400">Aktivitas</TableHead>
+              <TableHead className="text-xs font-bold text-zinc-400">Pelaksana</TableHead>
+              <TableHead className="text-xs font-bold text-zinc-400">Catatan</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {logs.length === 0 ? (
+              <TableRow className="border-zinc-800/60">
+                <TableCell colSpan={5} className="text-center py-6 text-xs text-zinc-500">
+                  Belum ada log aktivitas terdeteksi.
+                </TableCell>
+              </TableRow>
+            ) : (
+              logs.map((log, idx) => {
+                const date = new Date(log.timestamp);
+                const isValid = !isNaN(date.getTime());
+                const formattedDate = isValid
+                  ? date.toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "—";
+                const formattedTime = isValid
+                  ? date.toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "";
+
+                return (
+                  <TableRow key={log.id} className="hover:bg-zinc-900/80 transition-colors border-zinc-800/60">
+                    <TableCell className="text-center text-zinc-400 font-mono text-xs">
+                      {idx + 1}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-300 whitespace-nowrap">
+                        <ClockIcon className="size-3.5 shrink-0 text-zinc-500" />
+                        <span className="font-mono font-medium text-zinc-200">{formattedDate}</span>
+                        <span className="text-[11px] text-zinc-400">{formattedTime}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getActivityBadge(log.type, log.activity)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-200 whitespace-nowrap">
+                        <UserIcon className="size-3.5 text-zinc-400" />
+                        <span>{log.performer || "System Admin"}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-400 min-w-[180px]">
+                        <FileTextIcon className="size-3.5 text-zinc-500 shrink-0" />
+                        <span>{log.notes || "—"}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

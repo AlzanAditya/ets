@@ -5,6 +5,7 @@ import { QrCode, Camera, Upload, Search, Loader2, AlertCircle, RefreshCw } from 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatSerialNumber } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface QrScannerModalProps {
@@ -31,11 +32,11 @@ export function QrScannerModal({ isOpen, onClose, onScanSuccess }: QrScannerModa
     // Check if full URL containing /p/:serial
     const urlMatch = trimmed.match(/\/p\/([A-Za-z0-9_-]+)/);
     if (urlMatch && urlMatch[1]) {
-      return urlMatch[1];
+      return formatSerialNumber(urlMatch[1]);
     }
 
     // Otherwise return clean string as serial number
-    return trimmed;
+    return formatSerialNumber(trimmed);
   };
 
   const handleDetectedCode = React.useCallback(
@@ -322,7 +323,14 @@ export function QrScannerModal({ isOpen, onClose, onScanSuccess }: QrScannerModa
                   </label>
                   <Input
                     value={manualSerial}
-                    onChange={(e) => setManualSerial(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.toLowerCase().startsWith("http")) {
+                        setManualSerial(val);
+                      } else {
+                        setManualSerial(formatSerialNumber(val));
+                      }
+                    }}
                     placeholder="Contoh: UPS-00001234"
                     className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-500 rounded-xl font-mono text-sm"
                   />

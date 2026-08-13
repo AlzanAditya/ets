@@ -7,6 +7,7 @@ export interface StickerData {
   voltage: string;
   frequency: string;
   model: string;
+  clientName?: string;
 }
 
 export interface StickerConfig {
@@ -26,4 +27,6 @@ export interface LayoutStats {
   rows: number;
   capacityPerPage: number;
   totalPages: number;
+  totalStickers: number;
+  totalItems: number;
 }

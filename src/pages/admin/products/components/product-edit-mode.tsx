@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatSerialNumber } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -158,9 +159,8 @@ export function ProductEditMode({
                   <Input
                     id="serial_number"
                     value={fields.serial_number}
-                    onChange={(e) => setField("serial_number", e.target.value)}
+                    onChange={(e) => setField("serial_number", formatSerialNumber(e.target.value))}
                     placeholder="SN-..."
-                    disabled={!!editTarget}
                     className="font-mono text-sm"
                   />
                 </div>

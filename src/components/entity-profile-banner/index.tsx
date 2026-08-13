@@ -101,12 +101,93 @@ export interface ProfileIconMode {
 
 export type ProfileConfig = ProfileImageMode | ProfileIconMode;
 
+export type EntityProfileBannerVariant =
+  | "emerald"
+  | "amber"
+  | "orange"
+  | "blue"
+  | "rose"
+  | "purple"
+  | "indigo"
+  | "slate";
+
+const VARIANT_STYLES: Record<
+  EntityProfileBannerVariant,
+  {
+    outerBorder: string;
+    shadow: string;
+    innerBg: string;
+    detailIconBg: string;
+    detailHoverBorder: string;
+  }
+> = {
+  emerald: {
+    outerBorder: "from-emerald-400/60 via-zinc-800/40 to-emerald-400/60",
+    shadow: "shadow-[0_4px_24px_rgba(16,185,129,0.08)]",
+    innerBg: "from-emerald-500/10 via-card/95 to-card dark:from-emerald-950/40 dark:via-zinc-900/95 dark:to-zinc-950",
+    detailIconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    detailHoverBorder: "hover:border-emerald-500/40",
+  },
+  amber: {
+    outerBorder: "from-amber-400/60 via-zinc-800/40 to-amber-400/60",
+    shadow: "shadow-[0_4px_24px_rgba(245,158,11,0.08)]",
+    innerBg: "from-amber-500/10 via-card/95 to-card dark:from-amber-950/40 dark:via-zinc-900/95 dark:to-zinc-950",
+    detailIconBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    detailHoverBorder: "hover:border-amber-500/40",
+  },
+  orange: {
+    outerBorder: "from-orange-400/60 via-zinc-800/40 to-orange-400/60",
+    shadow: "shadow-[0_4px_24px_rgba(249,115,22,0.08)]",
+    innerBg: "from-orange-500/10 via-card/95 to-card dark:from-orange-950/40 dark:via-zinc-900/95 dark:to-zinc-950",
+    detailIconBg: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+    detailHoverBorder: "hover:border-orange-500/40",
+  },
+  blue: {
+    outerBorder: "from-blue-400/60 via-zinc-800/40 to-blue-400/60",
+    shadow: "shadow-[0_4px_24px_rgba(59,130,246,0.08)]",
+    innerBg: "from-blue-500/10 via-card/95 to-card dark:from-blue-950/40 dark:via-zinc-900/95 dark:to-zinc-950",
+    detailIconBg: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    detailHoverBorder: "hover:border-blue-500/40",
+  },
+  rose: {
+    outerBorder: "from-rose-400/60 via-zinc-800/40 to-rose-400/60",
+    shadow: "shadow-[0_4px_24px_rgba(244,63,94,0.08)]",
+    innerBg: "from-rose-500/10 via-card/95 to-card dark:from-rose-950/40 dark:via-zinc-900/95 dark:to-zinc-950",
+    detailIconBg: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    detailHoverBorder: "hover:border-rose-500/40",
+  },
+  purple: {
+    outerBorder: "from-purple-400/60 via-zinc-800/40 to-purple-400/60",
+    shadow: "shadow-[0_4px_24px_rgba(168,85,247,0.08)]",
+    innerBg: "from-purple-500/10 via-card/95 to-card dark:from-purple-950/40 dark:via-zinc-900/95 dark:to-zinc-950",
+    detailIconBg: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+    detailHoverBorder: "hover:border-purple-500/40",
+  },
+  indigo: {
+    outerBorder: "from-indigo-400/60 via-zinc-800/40 to-indigo-400/60",
+    shadow: "shadow-[0_4px_24px_rgba(99,102,241,0.08)]",
+    innerBg: "from-indigo-500/10 via-card/95 to-card dark:from-indigo-950/40 dark:via-zinc-900/95 dark:to-zinc-950",
+    detailIconBg: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+    detailHoverBorder: "hover:border-indigo-500/40",
+  },
+  slate: {
+    outerBorder: "from-slate-400/60 via-zinc-800/40 to-slate-400/60",
+    shadow: "shadow-[0_4px_24px_rgba(100,116,139,0.08)]",
+    innerBg: "from-slate-500/10 via-card/95 to-card dark:from-slate-950/40 dark:via-zinc-900/95 dark:to-zinc-950",
+    detailIconBg: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
+    detailHoverBorder: "hover:border-slate-500/40",
+  },
+};
+
 export interface EntityProfileBannerProps {
+  // Color Variant
+  variant?: EntityProfileBannerVariant;
+
   // Profile (Image or Icon)
-  profile: ProfileConfig;
+  profile?: ProfileConfig;
 
   // Identity
-  title: string;
+  title?: string;
   subtitle?: React.ReactNode;
   meta?: React.ReactNode;
 
@@ -121,26 +202,36 @@ export interface EntityProfileBannerProps {
 
   // Expandable Area
   expandable?: {
-    isExpandable: boolean;
+    isExpandable?: boolean;
     defaultExpanded?: boolean;
+    hideToggleTrigger?: boolean;
     expandTriggerLabel?: string;
     collapseTriggerLabel?: string;
     content: React.ReactNode;
   };
+
+  // Direct Back Layer Content (Always visible without expand/collapse button)
+  backLayerContent?: React.ReactNode;
+
+  // Custom Front Layer (Custom layout inside gradient frame)
+  customFrontLayer?: React.ReactNode;
 
   children?: React.ReactNode;
   className?: string;
 }
 
 export function EntityProfileBanner({
+  variant = "emerald",
   profile,
-  title,
+  title = "",
   subtitle,
   meta,
   badges = [],
   details = [],
   headerActions = [],
   expandable,
+  backLayerContent,
+  customFrontLayer,
   children,
   className,
 }: EntityProfileBannerProps) {
@@ -148,11 +239,13 @@ export function EntityProfileBanner({
     expandable?.defaultExpanded ?? false
   );
 
-  return (
+  const currentVariant = VARIANT_STYLES[variant] || VARIANT_STYLES.emerald;
+
+  const mainContent = (
     <div
       className={cn(
-        "bg-card border border-border/80 rounded-2xl p-5 md:p-6 shadow-2xs space-y-5 transition-all",
-        className
+        "w-full h-full bg-gradient-to-br p-5 md:p-6 rounded-[calc(1rem-1px)] space-y-5",
+        currentVariant.innerBg
       )}
     >
       {/* ── Top Main Header Row ── */}
@@ -160,122 +253,126 @@ export function EntityProfileBanner({
         {/* Left Column: Avatar & Identity */}
         <div className="flex flex-row items-start gap-4 md:gap-5 flex-1 min-w-0">
           {/* Profile Container */}
-          <div className="flex flex-col items-center gap-2.5 shrink-0">
-            <div className="relative size-20 md:size-24 rounded-full shrink-0 border-2 border-border/80 bg-muted/40 flex items-center justify-center shadow-xs">
-              {profile.type === "image" ? (
-                profile.avatarUrl ? (
-                  <img
-                    src={profile.avatarUrl || undefined}
-                    alt={title}
-                    className="size-[74px] md:size-[88px] rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="size-[74px] md:size-[88px] rounded-full bg-primary/15 text-primary flex items-center justify-center text-xl md:text-2xl font-bold tracking-wider select-none">
-                    {profile.fallbackInitials}
-                  </div>
-                )
-              ) : (
-                <div
-                  className={cn(
-                    "size-[74px] md:size-[88px] rounded-full bg-primary/10 text-primary flex items-center justify-center",
-                    profile.containerClassName
-                  )}
-                >
-                  <profile.icon
-                    className={cn("size-8 md:size-10", profile.iconClassName)}
-                  />
-                </div>
-              )}
-
-              {/* ── Floating Overlay ── */}
-              {profile.type === "image" && profile.overlay?.type === "pencil" && (
-                <>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="absolute bottom-0 right-0 p-1.5 md:p-2 rounded-full bg-primary text-primary-foreground shadow-md hover:scale-105 transition-transform cursor-pointer border-2 border-background"
-                        title={profile.overlay.title || "Ubah foto profil"}
-                      >
-                        <PencilIcon className="size-3 md:size-3.5" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48 rounded-xl">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          if (profile.overlay?.fileInputRef?.current) {
-                            profile.overlay.fileInputRef.current.click();
-                          } else if (profile.overlay?.onUploadClick) {
-                            profile.overlay.onUploadClick();
-                          }
-                        }}
-                        className="cursor-pointer gap-2 text-xs"
-                      >
-                        <UploadIcon className="size-4" />
-                        <span>
-                          {profile.avatarUrl ? "Ganti Foto Profil" : "Unggah Foto Profil"}
-                        </span>
-                      </DropdownMenuItem>
-                      {profile.avatarUrl && profile.overlay.onRemoveClick && (
-                        <DropdownMenuItem
-                          onClick={profile.overlay.onRemoveClick}
-                          className="cursor-pointer gap-2 text-xs text-destructive focus:text-destructive"
-                        >
-                          <Trash2Icon className="size-4" />
-                          <span>Hapus Foto Profil</span>
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {profile.overlay.fileInputRef && profile.overlay.onFileChange && (
-                    <input
-                      type="file"
-                      ref={profile.overlay.fileInputRef}
-                      accept="image/*"
-                      onChange={profile.overlay.onFileChange}
-                      className="hidden"
+          {profile && (
+            <div className="flex flex-col items-center gap-2.5 shrink-0">
+              <div className="relative size-20 md:size-24 rounded-full shrink-0 border-2 border-border/80 bg-muted/40 flex items-center justify-center shadow-xs">
+                {profile.type === "image" ? (
+                  profile.avatarUrl ? (
+                    <img
+                      src={profile.avatarUrl || undefined}
+                      alt={title}
+                      className="size-[74px] md:size-[88px] rounded-full object-cover"
                     />
-                  )}
-                </>
-              )}
-
-              {profile.type === "icon" &&
-                profile.overlay?.type === "client_avatar" && (
-                  <button
-                    type="button"
-                    onClick={profile.overlay.onClick}
-                    title={profile.overlay.title || "Klien Pemilik"}
+                  ) : (
+                    <div className="size-[74px] md:size-[88px] rounded-full bg-primary/15 text-primary flex items-center justify-center text-xl md:text-2xl font-bold tracking-wider select-none">
+                      {profile.fallbackInitials}
+                    </div>
+                  )
+                ) : (
+                  <div
                     className={cn(
-                      "absolute -bottom-1 -right-1 size-7 md:size-8 rounded-full border-2 border-background bg-card shadow-sm flex items-center justify-center overflow-hidden transition-transform",
-                      profile.overlay.onClick && "hover:scale-105 cursor-pointer"
+                      "size-[74px] md:size-[88px] rounded-full bg-primary/10 text-primary flex items-center justify-center",
+                      profile.containerClassName
                     )}
                   >
-                    {profile.overlay.avatarUrl ? (
-                      <div className="relative size-full">
-                        <img
-                          src={profile.overlay.avatarUrl || undefined}
-                          alt="Owner Avatar"
-                          className="size-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                            const fb = e.currentTarget.nextElementSibling;
-                            if (fb) (fb as HTMLElement).style.display = "flex";
+                    <profile.icon
+                      className={cn("size-8 md:size-10", profile.iconClassName)}
+                    />
+                  </div>
+                )}
+
+                {/* ── Floating Overlay ── */}
+                {profile.type === "image" && profile.overlay?.type === "pencil" && (
+                  <>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="absolute bottom-0 right-0 p-1.5 md:p-2 rounded-full bg-primary text-primary-foreground shadow-md hover:scale-105 transition-transform cursor-pointer border-2 border-background"
+                          title={profile.overlay.title || "Ubah foto profil"}
+                        >
+                          <PencilIcon className="size-3 md:size-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-48 rounded-xl">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (profile.type === "image" && profile.overlay?.type === "pencil") {
+                              if (profile.overlay.fileInputRef?.current) {
+                                profile.overlay.fileInputRef.current.click();
+                              } else if (profile.overlay.onUploadClick) {
+                                profile.overlay.onUploadClick();
+                              }
+                            }
                           }}
-                        />
-                        <div style={{ display: "none" }} className="size-full bg-muted text-muted-foreground font-bold text-[10px] md:text-xs items-center justify-center">
+                          className="cursor-pointer gap-2 text-xs"
+                        >
+                          <UploadIcon className="size-4" />
+                          <span>
+                            {profile.avatarUrl ? "Ganti Foto Profil" : "Unggah Foto Profil"}
+                          </span>
+                        </DropdownMenuItem>
+                        {profile.avatarUrl && profile.overlay.onRemoveClick && (
+                          <DropdownMenuItem
+                            onClick={profile.overlay.onRemoveClick}
+                            className="cursor-pointer gap-2 text-xs text-destructive focus:text-destructive"
+                          >
+                            <Trash2Icon className="size-4" />
+                            <span>Hapus Foto Profil</span>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {profile.overlay.fileInputRef && profile.overlay.onFileChange && (
+                      <input
+                        type="file"
+                        ref={profile.overlay.fileInputRef}
+                        accept="image/*"
+                        onChange={profile.overlay.onFileChange}
+                        className="hidden"
+                      />
+                    )}
+                  </>
+                )}
+
+                {profile.type === "icon" &&
+                  profile.overlay?.type === "client_avatar" && (
+                    <button
+                      type="button"
+                      onClick={profile.overlay.onClick}
+                      title={profile.overlay.title || "Klien Pemilik"}
+                      className={cn(
+                        "absolute -bottom-1 -right-1 size-7 md:size-8 rounded-full border-2 border-background bg-card shadow-sm flex items-center justify-center overflow-hidden transition-transform",
+                        profile.overlay.onClick && "hover:scale-105 cursor-pointer"
+                      )}
+                    >
+                      {profile.overlay.avatarUrl ? (
+                        <div className="relative size-full">
+                          <img
+                            src={profile.overlay.avatarUrl || undefined}
+                            alt="Owner Avatar"
+                            className="size-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              const fb = e.currentTarget.nextElementSibling;
+                              if (fb) (fb as HTMLElement).style.display = "flex";
+                            }}
+                          />
+                          <div style={{ display: "none" }} className="size-full bg-muted text-muted-foreground font-bold text-[10px] md:text-xs items-center justify-center">
+                            {profile.overlay.fallbackInitials || "CL"}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="size-full bg-muted text-muted-foreground font-bold text-[10px] md:text-xs flex items-center justify-center">
                           {profile.overlay.fallbackInitials || "CL"}
                         </div>
-                      </div>
-                    ) : (
-                      <div className="size-full bg-muted text-muted-foreground font-bold text-[10px] md:text-xs flex items-center justify-center">
-                        {profile.overlay.fallbackInitials || "CL"}
-                      </div>
-                    )}
-                  </button>
-                )}
+                      )}
+                    </button>
+                  )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Identity Info Column */}
           <div className="space-y-1.5 sm:space-y-2 flex-1 min-w-0 pt-0.5 sm:pt-1">
@@ -360,19 +457,24 @@ export function EntityProfileBanner({
             const content = (
               <div
                 key={item.id || i}
-                className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-muted/30 border border-border/40 text-xs hover:bg-muted/50 transition-colors h-full"
+                className={cn(
+                  "flex items-center justify-between gap-2 p-2.5 rounded-xl bg-muted/40 dark:bg-zinc-950/60 border border-border/80 dark:border-zinc-800/80 dark:hover:border-zinc-700/80 text-xs transition-colors h-full",
+                  currentVariant.detailHoverBorder
+                )}
               >
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                   {ItemIcon && (
-                    <ItemIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <div className={cn("p-2 rounded-lg shrink-0", currentVariant.detailIconBg)}>
+                      <ItemIcon className="size-4 shrink-0" />
+                    </div>
                   )}
                   <div className="flex flex-col min-w-0 flex-1">
                     {item.label && (
-                      <span className="text-[11px] text-muted-foreground font-medium">
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block truncate">
                         {item.label}
                       </span>
                     )}
-                    <span className="font-semibold text-foreground break-words select-all">
+                    <span className="font-bold text-foreground dark:text-zinc-100 font-mono text-xs sm:text-sm break-words select-all">
                       {item.value || "—"}
                     </span>
                   </div>
@@ -411,31 +513,83 @@ export function EntityProfileBanner({
       )}
 
       {children}
+    </div>
+  );
 
-      {/* ── Optional Expandable Area ── */}
-      {expandable?.isExpandable && (
-        <div className="pt-2 border-t border-border/40">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded((prev) => !prev)}
-            className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground"
-          >
-            <span>
-              {isExpanded
-                ? expandable.collapseTriggerLabel || "Sembunyikan Detail Tambahan"
-                : expandable.expandTriggerLabel || "Tampilkan Detail Tambahan"}
-            </span>
-            {isExpanded ? (
-              <ChevronUpIcon className="size-4" />
-            ) : (
-              <ChevronDownIcon className="size-4" />
-            )}
-          </Button>
-
-          {isExpanded && <div className="pt-3">{expandable.content}</div>}
-        </div>
+  // Render Front Layer (Product Header Card with gradient)
+  const layerDepan = (
+    <div
+      className={cn(
+        "relative z-10 rounded-2xl p-[1px] bg-gradient-to-bl overflow-hidden transition-all",
+        currentVariant.outerBorder,
+        currentVariant.shadow
       )}
+    >
+      {customFrontLayer ? (
+        <div
+          className={cn(
+            "w-full h-full bg-gradient-to-br rounded-[calc(1rem-1px)]",
+            currentVariant.innerBg
+          )}
+        >
+          {customFrontLayer}
+        </div>
+      ) : (
+        mainContent
+      )}
+    </div>
+  );
+
+  const effectiveBackLayer = backLayerContent || expandable?.content;
+  const hideToggleTrigger =
+    expandable?.hideToggleTrigger ||
+    Boolean(backLayerContent) ||
+    expandable?.isExpandable === false;
+
+  if (!effectiveBackLayer) {
+    return <div className={cn("relative w-full", className)}>{layerDepan}</div>;
+  }
+
+  return (
+    <div className={cn("relative w-full", className)}>
+      {/* ── LAYER BELAKANG: Flat Solid Component Container ── */}
+      <div className="relative rounded-2xl bg-card border border-border/80 shadow-xs overflow-hidden transition-all">
+        {/* Layer Depan (Header gradient) sitting at top 0 of Layer Belakang */}
+        {layerDepan}
+
+        {/* Layer Belakang Protruding Area */}
+        {hideToggleTrigger ? (
+          <div className="relative z-0 p-4 sm:p-5 md:p-6 bg-card text-foreground">
+            {effectiveBackLayer}
+          </div>
+        ) : (
+          <div className="relative z-0 px-4 py-2.5 md:px-6 md:py-3 bg-card space-y-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              className="w-full flex items-center justify-between text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-2 py-1.5 rounded-xl hover:bg-muted/50 transition-colors"
+            >
+              <span>
+                {isExpanded
+                  ? expandable?.collapseTriggerLabel || "Sembunyikan Detail Tambahan"
+                  : expandable?.expandTriggerLabel || "Tampilkan Detail Tambahan"}
+              </span>
+              {isExpanded ? (
+                <ChevronUpIcon className="size-4 shrink-0" />
+              ) : (
+                <ChevronDownIcon className="size-4 shrink-0" />
+              )}
+            </Button>
+
+            {isExpanded && (
+              <div className="pt-2 pb-1 border-t border-border/60 transition-all animate-in fade-in slide-in-from-top-1 duration-200">
+                {effectiveBackLayer}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

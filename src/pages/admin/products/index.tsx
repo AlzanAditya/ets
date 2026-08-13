@@ -24,7 +24,7 @@ import { useClients } from "@/hooks/use-clients";
 import { useTableSchema } from "@/hooks/use-table-schema";
 import { mergeDynamicColumns } from "@/lib/dynamic-columns";
 import { supabase } from "@/lib/supabase";
-import { safeUUID } from "@/lib/utils";
+import { safeUUID, formatSerialNumber } from "@/lib/utils";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { ErrorState } from "@/components/error-state";
 import { EmptyState } from "@/components/empty-state";
@@ -605,7 +605,8 @@ export default function ProductsPage() {
 
   // ── Handle Submit ─────────────────────────────────────────────────────────────
   async function handleSubmit() {
-    if (!fields.serial_number.trim() || !fields.product_name.trim()) {
+    const formattedSerial = formatSerialNumber(fields.serial_number);
+    if (!formattedSerial || !fields.product_name.trim()) {
       toast.error("Nomor seri dan nama produk wajib diisi");
       return;
     }
@@ -613,7 +614,7 @@ export default function ProductsPage() {
     setIsSubmitting(true);
     try {
       const productData: ProductInsert = {
-        serial_number: fields.serial_number.trim(),
+        serial_number: formattedSerial,
         product_code: fields.product_code.trim() || null,
         product_name: fields.product_name.trim(),
         model: fields.model || null,
@@ -749,7 +750,7 @@ export default function ProductsPage() {
 
         toast.success("Produk berhasil diperbarui");
         refetch();
-        navigate(`/products/${encodeURIComponent(fields.serial_number.trim() || fields.product_name.trim() || editTarget.serial_number)}`, { replace: true });
+        navigate(`/products/${encodeURIComponent(formattedSerial || fields.product_name.trim() || editTarget.serial_number)}`, { replace: true });
         return;
       } else {
         // ── Add mode: create product then move images ─────────────────────────────

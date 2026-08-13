@@ -231,7 +231,7 @@ export type ScanLogInsert = Omit<ScanLogRow, "id" | "scanned_at">;
 // ─── Update Types (all fields optional) ───────────────────────────────────────
 
 export type ProductUpdate = Partial<
-  Omit<ProductRow, "product_id" | "serial_number" | "created_at" | "updated_at">
+  Omit<ProductRow, "product_id" | "created_at" | "updated_at">
 >;
 export type TransactionUpdate = Partial<
   Omit<TransactionRow, "transaction_id" | "created_at" | "updated_at">

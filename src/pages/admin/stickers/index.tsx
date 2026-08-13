@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import '@/features/stickers/stickers.css';
 import { StickerData, StickerConfig, PreviewTab } from '@/features/stickers/types';
 import { calculateLayoutStats } from '@/features/stickers/utils/layout-calculator';
-import { generateRandomStickerData } from '@/features/stickers/utils/randomizer';
 import { exportA4PagesToPDF, exportA4PagesToNativePrint } from '@/features/stickers/utils/pdf-exporter';
 import { StickerConfigurationPanel } from '@/features/stickers/components/StickerConfigurationPanel';
 import { StickerPreviewToolbar } from '@/features/stickers/components/StickerPreviewToolbar';
@@ -29,7 +28,7 @@ const DEFAULT_CONFIG: StickerConfig = {
   marginMm: 2,
   hGapMm: 2,
   vGapMm: 2,
-  copies: 10,
+  copies: 1, // Default cetak per item = 1
   pdfScale: 4,
 };
 
@@ -73,12 +72,6 @@ export default function StickersPage() {
     () => cachedState?.zoomLevel ?? 100
   );
 
-  const [isRandomizing, setIsRandomizing] = useState<boolean>(false);
-  const [randomSpeedMs, setRandomSpeedMs] = useState<number>(
-    () => cachedState?.randomSpeedMs ?? 100
-  );
-  const randomizeIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
 
@@ -95,7 +88,6 @@ export default function StickersPage() {
         config,
         activeTab,
         zoomLevel,
-        randomSpeedMs,
       };
       localStorage.setItem(CACHE_KEY, JSON.stringify(stateToCache));
     } catch (e) {
@@ -108,7 +100,6 @@ export default function StickersPage() {
     config,
     activeTab,
     zoomLevel,
-    randomSpeedMs,
   ]);
 
   // Auto-select product from URL params if navigated from Admin Products page
@@ -148,8 +139,8 @@ export default function StickersPage() {
   }, [selectedProducts, activeProductIndex, singleStickerData]);
 
   const layoutStats = useMemo(() => {
-    return calculateLayoutStats(config);
-  }, [config]);
+    return calculateLayoutStats(config, selectedProducts.length || 1);
+  }, [config, selectedProducts.length]);
 
   const updateCurrentStickerField = (field: keyof StickerData, value: string) => {
     if (selectedProducts.length > 0 && selectedProducts[activeProductIndex]) {
@@ -215,53 +206,12 @@ export default function StickersPage() {
     };
   }, [autoFitZoom]);
 
-  // Handle Randomizer Tick
-  useEffect(() => {
-    if (isRandomizing) {
-      randomizeIntervalRef.current = setInterval(() => {
-        const randomData = generateRandomStickerData();
-        setSingleStickerData(randomData);
-        if (selectedProducts.length > 0) {
-          setSelectedProducts((prev) => {
-            const updated = [...prev];
-            if (updated[activeProductIndex]) {
-              updated[activeProductIndex] = {
-                ...updated[activeProductIndex],
-                ...randomData,
-              };
-            }
-            return updated;
-          });
-        }
-      }, randomSpeedMs);
-    } else {
-      if (randomizeIntervalRef.current) {
-        clearInterval(randomizeIntervalRef.current);
-        randomizeIntervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (randomizeIntervalRef.current) {
-        clearInterval(randomizeIntervalRef.current);
-      }
-    };
-  }, [isRandomizing, randomSpeedMs, selectedProducts, activeProductIndex]);
-
-  const handleToggleRandomize = () => {
-    setIsRandomizing((prev) => !prev);
-  };
-
   const handleReset = () => {
-    if (isRandomizing) {
-      setIsRandomizing(false);
-    }
     setSelectedProducts([]);
     setActiveProductIndex(0);
     setSingleStickerData(DEFAULT_STICKER_DATA);
     setConfig(DEFAULT_CONFIG);
     setZoomLevel(100);
-    setRandomSpeedMs(100);
     try {
       localStorage.removeItem(CACHE_KEY);
     } catch (e) {
@@ -276,21 +226,7 @@ export default function StickersPage() {
     toast.success(`${products.length} produk berhasil dimuat ke Sticker Generator.`);
   };
 
-  const handleRemoveProduct = (index: number) => {
-    setSelectedProducts((prev) => {
-      const updated = prev.filter((_, i) => i !== index);
-      if (activeProductIndex >= updated.length) {
-        setActiveProductIndex(Math.max(0, updated.length - 1));
-      }
-      return updated;
-    });
-  };
-
   const handleDownloadPdf = async () => {
-    if (isRandomizing) {
-      setIsRandomizing(false);
-    }
-
     // Switch to A4 tab if not already there so container ref is mounted
     if (activeTab !== 'a4') {
       setActiveTab('a4');
@@ -324,10 +260,6 @@ export default function StickersPage() {
   };
 
   const handleDownloadPdfNative = async () => {
-    if (isRandomizing) {
-      setIsRandomizing(false);
-    }
-
     if (activeTab !== 'a4') {
       setActiveTab('a4');
     }
@@ -362,23 +294,21 @@ export default function StickersPage() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-65px)] w-full bg-background text-foreground">
       {/* App Main Layout Grid */}
-      <main className="app-layout grid grid-cols-1 lg:grid-cols-[360px_1fr] flex-1">
+      <main className="app-layout grid grid-cols-1 lg:grid-cols-[400px_1fr] flex-1">
         {/* Left Sidebar Controls */}
         <StickerConfigurationPanel
+          allProducts={allDbProducts || []}
+          loadingProducts={!allDbProducts}
+          onSelectProducts={setSelectedProducts}
           selectedProducts={selectedProducts}
           activeProductIndex={activeProductIndex}
           setActiveProductIndex={setActiveProductIndex}
           currentSticker={currentSticker}
           onUpdateCurrentSticker={updateCurrentStickerField}
           onOpenProductModal={() => setIsProductModalOpen(true)}
-          onRemoveProduct={handleRemoveProduct}
           config={config}
           onUpdateConfig={updateConfig}
           layoutStats={layoutStats}
-          isRandomizing={isRandomizing}
-          onToggleRandomize={handleToggleRandomize}
-          randomSpeedMs={randomSpeedMs}
-          onChangeRandomSpeed={setRandomSpeedMs}
           onReset={handleReset}
         />
 

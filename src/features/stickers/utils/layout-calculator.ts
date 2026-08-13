@@ -1,6 +1,6 @@
 import { StickerConfig, LayoutStats } from '../types';
 
-export function calculateLayoutStats(config: StickerConfig): LayoutStats {
+export function calculateLayoutStats(config: StickerConfig, itemCount: number = 1): LayoutStats {
   const a4WidthMm = 210;
   const a4HeightMm = 297;
 
@@ -20,13 +20,17 @@ export function calculateLayoutStats(config: StickerConfig): LayoutStats {
   if (rows < 1) rows = 1;
 
   const capacityPerPage = cols * rows;
-  const copies = Math.max(1, config.copies);
-  const totalPages = Math.ceil(copies / capacityPerPage);
+  const copiesPerItem = Math.max(1, config.copies);
+  const totalItems = Math.max(1, itemCount);
+  const totalStickers = totalItems * copiesPerItem;
+  const totalPages = Math.ceil(totalStickers / capacityPerPage) || 1;
 
   return {
     cols,
     rows,
     capacityPerPage,
     totalPages,
+    totalStickers,
+    totalItems,
   };
 }

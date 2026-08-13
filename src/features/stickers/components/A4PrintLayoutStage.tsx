@@ -19,26 +19,40 @@ export const A4PrintLayoutStage: React.FC<A4PrintLayoutStageProps> = ({
   zoomLevel,
   containerRef,
 }) => {
-  const { cols, rows, capacityPerPage, totalPages } = layoutStats;
+  const { cols, rows, capacityPerPage } = layoutStats;
   const margin = Math.max(0, config.marginMm);
   const hGap = Math.max(0, config.hGapMm);
   const vGap = Math.max(0, config.vGapMm);
   const w = Math.max(10, config.widthMm);
   const h = Math.max(10, config.heightMm);
 
-  const copies = Math.max(1, config.copies);
-  const productsList =
+  const copiesPerItem = Math.max(1, config.copies);
+  const baseProducts =
     selectedProducts.length > 0 ? selectedProducts : [currentSticker];
 
-  let totalStickersCreated = 0;
+  // Expand list: each selected product is repeated `copiesPerItem` times
+  const allStickersToPrint = React.useMemo(() => {
+    const list: StickerData[] = [];
+    for (const prod of baseProducts) {
+      for (let i = 0; i < copiesPerItem; i++) {
+        list.push(prod);
+      }
+    }
+    return list;
+  }, [baseProducts, copiesPerItem]);
+
+  const totalStickersCount = allStickersToPrint.length;
+  const totalPages = Math.ceil(totalStickersCount / capacityPerPage) || 1;
 
   // Build Pages Array
   const pages = [];
-  let remainingCopies = copies;
+  let stickerGlobalIndex = 0;
 
   for (let page = 1; page <= totalPages; page++) {
-    const stickersOnThisPage = Math.min(remainingCopies, capacityPerPage);
-    remainingCopies -= stickersOnThisPage;
+    const stickersOnThisPage = Math.min(
+      totalStickersCount - stickerGlobalIndex,
+      capacityPerPage
+    );
 
     const pageRows = [];
     let stickerIndexInPage = 0;
@@ -58,13 +72,11 @@ export const A4PrintLayoutStage: React.FC<A4PrintLayoutStageProps> = ({
         const isRightmostCol = c === cols - 1;
         const rightMargin = isRightmostCol ? 0 : hGap;
 
-        // Choose product data for this sticker slot
-        const productForSticker =
-          productsList[totalStickersCreated % productsList.length];
+        const productForSticker = allStickersToPrint[stickerGlobalIndex];
 
         rowStickers.push(
           <div
-            key={`sticker-${page}-${r}-${c}`}
+            key={`sticker-${page}-${r}-${c}-${stickerGlobalIndex}`}
             className="ets-sticker-wrapper"
             style={{
               width: `${w}mm`,
@@ -79,7 +91,7 @@ export const A4PrintLayoutStage: React.FC<A4PrintLayoutStageProps> = ({
         );
 
         stickerIndexInPage++;
-        totalStickersCreated++;
+        stickerGlobalIndex++;
       }
 
       pageRows.push(

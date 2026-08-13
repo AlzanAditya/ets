@@ -19,7 +19,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PublicHeader } from "./components/PublicHeader";
+import { formatSerialNumber } from "@/lib/utils";
 import { productsService, type ProductWithRelations } from "@/services/products.service";
+import { publicCache } from "@/lib/public-cache";
 import { toast } from "sonner";
 
 const QrScannerModal = React.lazy(() => import("./components/QrScannerModal"));
@@ -31,17 +33,42 @@ export default function PublicLanding() {
   const [sampleProducts, setSampleProducts] = React.useState<ProductWithRelations[]>([]);
   const [loadingProducts, setLoadingProducts] = React.useState(true);
 
-  // Load sample real products from database
+  // Reset scroll position on mount
+  React.useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+  }, []);
+
+  // Load sample real products from database with cache
   React.useEffect(() => {
     let isMounted = true;
     async function loadSamples() {
+      const cacheKey = "landing_sample_products";
+      const cachedSamples = publicCache.get<ProductWithRelations[]>(cacheKey);
+
+      if (cachedSamples && cachedSamples.length > 0) {
+        if (isMounted) {
+          setSampleProducts(cachedSamples);
+          setLoadingProducts(false);
+        }
+      } else {
+        if (isMounted) setLoadingProducts(true);
+      }
+
       try {
-        setLoadingProducts(true);
         const data = await productsService.getProducts();
         if (isMounted) {
-          // Take first 3-6 products with serial numbers
+          // Take first 3 products with serial numbers
           const valid = (data || []).filter((p) => p.serial_number);
-          setSampleProducts(valid.slice(0, 3));
+          const sliced = valid.slice(0, 3);
+          setSampleProducts(sliced);
+          publicCache.set(cacheKey, sliced);
+
+          // Pre-cache individual products by serial number for instant navigation
+          sliced.forEach((p) => {
+            if (p.serial_number) {
+              publicCache.set(`public_product_${p.serial_number}`, p);
+            }
+          });
         }
       } catch (err) {
         console.warn("Could not load public sample products:", err);
@@ -57,7 +84,7 @@ export default function PublicLanding() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleaned = searchSerial.trim();
+    const cleaned = formatSerialNumber(searchSerial);
     if (!cleaned) {
       toast.error("Masukkan nomor seri produk");
       return;
@@ -127,7 +154,7 @@ export default function PublicLanding() {
               >
                 <Input
                   value={searchSerial}
-                  onChange={(e) => setSearchSerial(e.target.value)}
+                  onChange={(e) => setSearchSerial(formatSerialNumber(e.target.value))}
                   placeholder="Ketik Serial Number..."
                   className="bg-transparent border-none text-zinc-100 placeholder:text-zinc-500 font-mono text-xs sm:text-sm focus-visible:ring-0 shadow-none px-3"
                 />

@@ -24,7 +24,8 @@ import {
   Image as ImageIcon,
   FileText,
   Hexagon,
-  ChevronRight,
+  ExternalLink,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,8 +36,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { PublicHeader } from "./components/PublicHeader";
 import { PublicQrCodeCard } from "./components/PublicQrCodeCard";
+import { EntityProfileBanner } from "@/components/entity-profile-banner";
+import { cn } from "@/lib/utils";
+import { publicCache } from "@/lib/public-cache";
 
 const QrScannerModal = React.lazy(() => import("./components/QrScannerModal"));
 import { PublicEventAccordion } from "./components/PublicEventAccordion";
@@ -90,12 +102,42 @@ function SpecDetailItem({
   );
 }
 
+function ClientProductStatusBadge({ status }: { status?: string }) {
+  const s = status?.toLowerCase() || "";
+  if (s === "maintenance") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+        <Wrench className="h-3 w-3" />
+        <span>Maintenance</span>
+      </span>
+    );
+  }
+  if (s === "instalasi" || s === "installation") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+        <Zap className="h-3 w-3" />
+        <span>Instalasi</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+      <ShieldCheck className="h-3 w-3" />
+      <span>Bergaransi</span>
+    </span>
+  );
+}
+
 export default function PublicProductDetail() {
   const { serial_number } = useParams<{ serial_number: string }>();
   const navigate = useNavigate();
 
   const [product, setProduct] = React.useState<ProductWithRelations | null>(null);
   const [events, setEvents] = React.useState<ProductEventData[]>([]);
+  const [clientProducts, setClientProducts] = React.useState<ProductWithRelations[]>([]);
+  const [clientProductsLoading, setClientProductsLoading] = React.useState(false);
+  const [isClientExpanded, setIsClientExpanded] = React.useState(false);
+
   const [loading, setLoading] = React.useState(true);
   const [notFound, setNotFound] = React.useState(false);
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
@@ -219,47 +261,186 @@ export default function PublicProductDetail() {
     };
   }, [product]);
 
-  // Load product & events from Supabase by serial_number
+  // Reset scroll position to top whenever serial_number changes
+  React.useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+  }, [serial_number]);
+
+  // 1. Topmost Component: Load product identity by serial_number
   React.useEffect(() => {
     let isMounted = true;
-    async function loadData() {
+    async function loadProductData() {
       if (!serial_number) {
         if (isMounted) setNotFound(true);
         return;
       }
 
-      try {
-        setLoading(true);
-        setNotFound(false);
+      const cacheKeyProduct = `public_product_${serial_number}`;
+      const cachedProd = publicCache.get<ProductWithRelations>(cacheKeyProduct);
 
+      if (cachedProd) {
+        if (isMounted) {
+          setProduct(cachedProd);
+          setNotFound(false);
+          setLoading(false); // Render top component IMMEDIATELY!
+        }
+      } else {
+        if (isMounted) setLoading(true);
+      }
+
+      try {
         const prod = await productsService.getProductBySerial(serial_number);
         if (!prod) {
-          if (isMounted) setNotFound(true);
+          if (isMounted && !cachedProd) setNotFound(true);
           return;
         }
 
-        if (isMounted) setProduct(prod);
-
-        // Fetch events
-        const evts = await productEventsService.getProductEvents(prod.product_id);
-        if (isMounted) setEvents(evts || []);
-
+        publicCache.set(cacheKeyProduct, prod);
+        if (isMounted) {
+          setProduct(prod);
+          setNotFound(false);
+        }
       } catch (err) {
         console.error("Failed to load public product detail:", err);
-        if (isMounted) setNotFound(true);
+        if (isMounted && !cachedProd) setNotFound(true);
       } finally {
         if (isMounted) setLoading(false);
       }
     }
 
-    loadData();
+    loadProductData();
     return () => {
       isMounted = false;
     };
   }, [serial_number]);
 
-  // Determine status
-  const isMaintenance = product?.status === "maintenance";
+  // 2. Client Component: Load client's other products progressively once client ID is known
+  React.useEffect(() => {
+    let isMounted = true;
+    const clientId = product?.client?.client_id || product?.current_client_id || undefined;
+    if (!clientId) {
+      setClientProducts([]);
+      return;
+    }
+
+    async function loadClientProducts() {
+      const cacheKey = `public_client_prods_${clientId}`;
+      const cachedList = publicCache.get<ProductWithRelations[]>(cacheKey);
+
+      if (cachedList) {
+        if (isMounted) {
+          setClientProducts(cachedList);
+          setClientProductsLoading(false);
+        }
+      } else {
+        if (isMounted) setClientProductsLoading(true);
+      }
+
+      try {
+        const list = await productsService.getProducts({ client_id: clientId, limit: 100 });
+        const valid = list || [];
+        publicCache.set(cacheKey, valid);
+        if (isMounted) setClientProducts(valid);
+      } catch (err) {
+        console.error("Failed to load client products:", err);
+      } finally {
+        if (isMounted) setClientProductsLoading(false);
+      }
+    }
+
+    loadClientProducts();
+    return () => {
+      isMounted = false;
+    };
+  }, [product?.client?.client_id, product?.current_client_id]);
+
+  // 3. Events Component: Load product events progressively once product ID is known
+  React.useEffect(() => {
+    let isMounted = true;
+    const pid = product?.product_id;
+    if (!pid) {
+      setEvents([]);
+      return;
+    }
+
+    async function loadEventsData(productIdStr: string) {
+      const cacheKeyEvents = `public_events_${productIdStr}`;
+      const cachedEvts = publicCache.get<ProductEventData[]>(cacheKeyEvents);
+
+      if (cachedEvts) {
+        if (isMounted) setEvents(cachedEvts);
+      }
+
+      try {
+        const evts = await productEventsService.getProductEvents(productIdStr);
+        const validEvts = evts || [];
+        publicCache.set(cacheKeyEvents, validEvts);
+        if (isMounted) setEvents(validEvts);
+      } catch (err) {
+        console.error("Failed to load product events:", err);
+      }
+    }
+
+    loadEventsData(pid);
+    return () => {
+      isMounted = false;
+    };
+  }, [product?.product_id]);
+
+  // Calculate count of other products owned by client (excluding current product)
+  const otherProductsCount = React.useMemo(() => {
+    if (!product) return 0;
+    return clientProducts.filter((p) => p.product_id !== product.product_id).length;
+  }, [clientProducts, product]);
+
+  // Determine status & dynamic theme configuration
+  const statusConfig = React.useMemo(() => {
+    const s = product?.status?.toLowerCase() || "";
+    if (s === "maintenance") {
+      return {
+        statusKey: "maintenance",
+        bannerVariant: "orange" as const,
+        label: "Maintenance",
+        Icon: Wrench,
+        headerTextColor: "text-amber-400 dark:text-amber-400",
+        accentGradient: "from-amber-400 via-amber-500/50 to-amber-500/0",
+        snChipBg: "bg-amber-500 text-zinc-950",
+        snBorder: "border-amber-500/40",
+        glowBg: "bg-amber-500/25",
+        detailIconBg: "bg-amber-500/10 text-amber-400",
+        badgeBg: "bg-amber-500/20 text-amber-300 border-amber-500/50",
+      };
+    }
+    if (s === "instalasi" || s === "installation") {
+      return {
+        statusKey: "instalasi",
+        bannerVariant: "blue" as const,
+        label: "Instalasi",
+        Icon: Zap,
+        headerTextColor: "text-blue-400 dark:text-blue-400",
+        accentGradient: "from-blue-400 via-blue-500/50 to-blue-500/0",
+        snChipBg: "bg-blue-500 text-zinc-950",
+        snBorder: "border-blue-500/40",
+        glowBg: "bg-blue-500/25",
+        detailIconBg: "bg-blue-500/10 text-blue-400",
+        badgeBg: "bg-blue-500/20 text-blue-300 border-blue-500/50",
+      };
+    }
+    // Default: Garansi / Bergaransi
+    return {
+      statusKey: "garansi",
+      bannerVariant: "emerald" as const,
+      label: "Bergaransi",
+      Icon: ShieldCheck,
+      headerTextColor: "text-emerald-400 dark:text-emerald-400",
+      accentGradient: "from-emerald-400 via-emerald-500/50 to-emerald-500/0",
+      snChipBg: "bg-emerald-500 text-zinc-950",
+      snBorder: "border-emerald-500/40",
+      glowBg: "bg-emerald-500/25",
+      detailIconBg: "bg-emerald-500/10 text-emerald-400",
+      badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/50",
+    };
+  }, [product?.status]);
   const totalPhotoCount = React.useMemo(() => {
     return events.reduce(
       (acc, evt) => acc + evt.steps.reduce((sAcc, step) => sAcc + step.images.length, 0),
@@ -557,167 +738,260 @@ export default function PublicProductDetail() {
           </Button>
         </div>
 
-        {/* 1. Header Group: Product Identity (Top) + Client (Bottom) */}
+        {/* 1. Header Group: Product Identity (Layer Depan) + Client Owner (Layer Belakang) */}
         <motion.div
           id="identitas"
           initial={{ opacity: 0, filter: "blur(8px)", y: 12 }}
           animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-          className="space-y-1.5 scroll-mt-16"
+          className="scroll-mt-16"
         >
-          {/* 1A. Product Identity Card (Top Section) */}
-          <div className="relative rounded-t-3xl rounded-b-none p-[1px] bg-gradient-to-bl from-emerald-400/60 via-zinc-800/40 to-emerald-400/60 shadow-[0_4px_24px_rgba(16,185,129,0.08)] overflow-hidden">
-            <div className="w-full h-full bg-gradient-to-br from-emerald-950/40 via-zinc-900/95 to-zinc-950 p-5 sm:p-6 rounded-t-[23px] rounded-b-none space-y-6">
-              
-              {/* Top Row: Left Text (Identitas Produk) + Right UPS Image */}
-              <div className="flex flex-row items-center justify-between gap-4">
-                {/* Left Text / Info */}
-                <div className="space-y-2.5 flex-1 min-w-0">
-                  <div className="flex items-center gap-2 text-emerald-400 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
-                    <Hexagon className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.5]" />
-                    <span>IDENTITAS PRODUK</span>
+          <EntityProfileBanner
+            variant={statusConfig.bannerVariant}
+            customFrontLayer={
+              <div className="p-5 sm:p-6 space-y-5">
+                {/* Top Row: Left Text (Identitas Produk) + Right UPS Image with Attached Badge */}
+                <div className="flex flex-row items-center justify-between gap-4">
+                  {/* Left Text / Info */}
+                  <div className="space-y-2.5 flex-1 min-w-0">
+                    <div className={cn("flex items-center gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider", statusConfig.headerTextColor)}>
+                      <Hexagon className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.5]" />
+                      <span>IDENTITAS PRODUK</span>
+                    </div>
+
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-foreground tracking-tight leading-tight truncate">
+                      {product.product_name}
+                    </h1>
+
+                    {/* Dynamic Accent Line */}
+                    <div className={cn("h-1 w-16 sm:w-20 bg-gradient-to-r rounded-full my-1", statusConfig.accentGradient)} />
+
+                    {/* Dual-color Serial Number Badge */}
+                    <div className="pt-2.5 sm:pt-4">
+                      <div className={cn("inline-flex items-center rounded-xl p-0.5 sm:p-1 border font-mono text-xs sm:text-sm font-bold shadow-inner overflow-hidden bg-zinc-950/90", statusConfig.snBorder)}>
+                        <span className={cn("px-2.5 py-0.5 sm:py-1 rounded-lg font-black text-xs uppercase tracking-wider shrink-0 shadow-xs", statusConfig.snChipBg)}>
+                          SN:
+                        </span>
+                        <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 text-zinc-100 font-bold tracking-wide font-mono">
+                          {product.serial_number}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-tight truncate">
-                    {product.product_name}
-                  </h1>
+                  {/* Right Image Container with Absolute Status Badge */}
+                  <div className="flex flex-col justify-center items-center relative shrink-0 w-32 sm:w-44 md:w-52 py-2">
+                    {/* Dynamic Ambient Radial Glow */}
+                    <div className={cn("absolute inset-0 m-auto w-24 h-24 sm:w-36 sm:h-36 rounded-full blur-2xl pointer-events-none transition-colors duration-300", statusConfig.glowBg)} />
 
-                  {/* Accent Line */}
-                  <div className="h-1 w-16 sm:w-20 bg-gradient-to-r from-emerald-400 to-emerald-500/0 rounded-full my-1" />
+                    {/* UPS Asset Image */}
+                    <img
+                      src="https://cdn.zanxa.studio/ets/UPS-0000.webp"
+                      alt={product.product_name}
+                      className="relative z-10 h-32 sm:h-44 md:h-52 w-auto object-contain transition-transform hover:scale-105 duration-300 pointer-events-none select-none pb-2 sm:pb-3"
+                    />
 
-                  {/* Serial Number Badge */}
-                  <div className="pt-0.5">
-                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/60 font-mono text-xs sm:text-sm font-bold shadow-inner">
-                      <span className="text-emerald-400/80">SN:</span>
-                      <span className="text-emerald-300 tracking-wide">{product.serial_number}</span>
+                    {/* Absolute Status Badge Attached to Image */}
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 shrink-0 whitespace-nowrap">
+                      <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold border shadow-lg backdrop-blur-md transition-all", statusConfig.badgeBg)}>
+                        <statusConfig.Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                        <span>{statusConfig.label}</span>
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Right Image Container (Side-by-side with Identitas Produk Header) */}
-                <div className="flex flex-col justify-center items-center relative shrink-0 w-32 sm:w-44 md:w-52 py-1">
-                  {/* Soft Radial Ambient Glow (Borderless, pure circular aura) */}
-                  <div className="absolute inset-0 m-auto w-24 h-24 sm:w-36 sm:h-36 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
-                  
-                  {/* UPS Asset Image */}
-                  <img
-                    src="https://cdn.zanxa.studio/ets/UPS-0000.webp"
-                    alt={product.product_name}
-                    className="relative z-10 h-32 sm:h-44 md:h-52 w-auto object-contain transition-transform hover:scale-105 duration-300 pointer-events-none select-none"
-                  />
-                </div>
-              </div>
+                {/* Bottom Row: 2-Column Product Information Grid with Dynamic Icon Colors */}
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
+                  <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
+                    <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
+                      <Tag className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
+                        Kode Produk
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
+                        {product.product_code || "-"}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Bottom Row: 2-Column Product Information Grid */}
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
-                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-zinc-700/80 transition-colors">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
-                    <Tag className="h-4 w-4" />
+                  <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
+                    <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
+                      <FileCode className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
+                        Kode Model
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
+                        {product.model_code || "-"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block truncate">
-                      Kode Produk
-                    </span>
-                    <span className="text-xs sm:text-sm font-bold font-mono text-zinc-100 truncate block mt-0.5">
-                      {product.product_code || "-"}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-zinc-700/80 transition-colors">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
-                    <FileCode className="h-4 w-4" />
+                  <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
+                    <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
+                      <Cpu className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
+                        Model
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
+                        {product.model || "-"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block truncate">
-                      Kode Model
-                    </span>
-                    <span className="text-xs sm:text-sm font-bold font-mono text-zinc-100 truncate block mt-0.5">
-                      {product.model_code || "-"}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-zinc-700/80 transition-colors">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
-                    <Cpu className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block truncate">
-                      Model
-                    </span>
-                    <span className="text-xs sm:text-sm font-bold font-mono text-zinc-100 truncate block mt-0.5">
-                      {product.model || "-"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-zinc-700/80 transition-colors">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
-                    <Calendar className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block truncate">
-                      Tahun Produksi
-                    </span>
-                    <span className="text-xs sm:text-sm font-bold font-mono text-zinc-100 truncate block mt-0.5">
-                      {product.manufacture_year || "-"}
-                    </span>
+                  <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
+                    <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
+                      <Calendar className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
+                        Tahun Produksi
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
+                        {product.manufacture_year || "-"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-
-            </div>
-          </div>
-
-          {/* 1B. Client / Owner Card (Bottom Section) */}
-          <div className="rounded-b-3xl rounded-t-none border border-zinc-800/90 bg-zinc-900/90 p-4 sm:p-5 shadow-lg">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="relative flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-white p-1 shadow-md border border-zinc-700 overflow-hidden">
-                  {clientAvatarUrl && !clientAvatarError ? (
-                    <img
-                      src={clientAvatarUrl}
-                      alt={clientName}
-                      className="h-full w-full object-contain"
-                      onError={() => setClientAvatarError(true)}
-                    />
-                  ) : (
-                    <span className="font-bold text-sm text-zinc-900">{initials}</span>
-                  )}
-                </div>
-
-                <div className="min-w-0">
-                  <h2 className="font-bold text-base sm:text-lg text-zinc-100 truncate leading-snug">
-                    {clientName}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-                        isMaintenance
-                          ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                          : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                      }`}
-                    >
-                      {isMaintenance ? (
-                        <>
-                          <Wrench className="h-3 w-3" />
-                          <span>Status: Maintenance</span>
-                        </>
+            }
+            backLayerContent={
+              <div className="space-y-3">
+                {/* Header row with click to toggle expand */}
+                <div
+                  onClick={() => setIsClientExpanded((prev) => !prev)}
+                  className="flex items-center justify-between gap-3 cursor-pointer select-none group p-1 -m-1 rounded-xl hover:bg-zinc-900/60 transition-colors"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div className="relative flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-white p-1 shadow-md border border-zinc-700 overflow-hidden">
+                      {clientAvatarUrl && !clientAvatarError ? (
+                        <img
+                          src={clientAvatarUrl}
+                          alt={clientName}
+                          className="h-full w-full object-contain"
+                          onError={() => setClientAvatarError(true)}
+                        />
                       ) : (
-                        <>
-                          <ShieldCheck className="h-3 w-3" />
-                          <span>Status: Bergaransi</span>
-                        </>
+                        <span className="font-bold text-sm text-zinc-900">{initials}</span>
                       )}
-                    </span>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                        Klien Pemilik
+                      </span>
+                      <h2 className="font-bold text-base sm:text-lg text-foreground truncate leading-snug mt-0.5 group-hover:text-emerald-400 transition-colors">
+                        {clientName}
+                      </h2>
+                    </div>
+                  </div>
+
+                  {/* Badge & Chevron Controls Box (Placed right before Chevron) */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {clientProductsLoading ? (
+                      <div className="px-2.5 py-1.5 rounded-xl border border-zinc-800 text-zinc-400 text-xs font-normal flex items-center gap-1.5">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />
+                        <span className="hidden sm:inline">Memuat...</span>
+                      </div>
+                    ) : (
+                      <div className="px-2.5 py-1.5 rounded-xl border border-zinc-800 text-zinc-400 group-hover:text-zinc-100 group-hover:border-zinc-700 transition-all text-xs font-normal flex items-center gap-1">
+                        <span className="hidden sm:inline">
+                          {otherProductsCount > 0 ? `${otherProductsCount} Produk Lainnya` : "0 Produk Lainnya"}
+                        </span>
+                        <span className="inline-flex sm:hidden items-center gap-1">
+                          <span>{otherProductsCount}</span>
+                          <Package className="h-3.5 w-3.5 text-zinc-400 stroke-[1.5]" />
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="p-2 rounded-xl border border-zinc-800 text-zinc-400 group-hover:text-zinc-100 group-hover:border-zinc-700 transition-all shrink-0">
+                      {isClientExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <ChevronRight className="h-5 w-5 text-zinc-500 shrink-0" />
-            </div>
-          </div>
+                {/* Expandable Table for Client Products */}
+                <AnimatePresence initial={false}>
+                  {isClientExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="overflow-hidden pt-2"
+                    >
+                      <div className="rounded-xl border border-zinc-800 bg-zinc-950/90 overflow-hidden shadow-lg">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-zinc-800 bg-zinc-900/90 hover:bg-zinc-900/90">
+                              <TableHead className="w-12 text-center text-xs font-bold text-zinc-400">No.</TableHead>
+                              <TableHead className="text-xs font-bold text-zinc-400">Serial Nomor</TableHead>
+                              <TableHead className="text-xs font-bold text-zinc-400">Nama Produk</TableHead>
+                              <TableHead className="text-xs font-bold text-zinc-400">Status</TableHead>
+                              <TableHead className="w-12 text-center text-xs font-bold text-zinc-400"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {clientProducts.map((p, idx) => {
+                              const isCurrentProduct = p.product_id === product?.product_id;
+                              return (
+                                <TableRow
+                                  key={p.product_id}
+                                  onClick={() => {
+                                    if (!isCurrentProduct) {
+                                      navigate(`/p/${p.serial_number}`);
+                                    } else {
+                                      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+                                    }
+                                  }}
+                                  className={cn(
+                                    "hover:bg-zinc-900/80 cursor-pointer transition-colors border-zinc-800/60",
+                                    isCurrentProduct && "bg-zinc-800/90 hover:bg-zinc-800"
+                                  )}
+                                >
+                                  <TableCell className="text-center text-zinc-400 font-mono text-xs">
+                                    {idx + 1}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-zinc-200 text-xs font-semibold">
+                                    {p.serial_number}
+                                  </TableCell>
+                                  <TableCell className="text-zinc-200 text-xs">
+                                    {p.product_name}
+                                  </TableCell>
+                                  <TableCell>
+                                    <ClientProductStatusBadge status={p.status} />
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <ExternalLink
+                                      className={cn(
+                                        "h-4 w-4 inline-block",
+                                        isCurrentProduct ? "text-emerald-400" : "text-zinc-500 hover:text-zinc-200"
+                                      )}
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            }
+          />
         </motion.div>
 
         {/* 2. Spesifikasi Produk Card */}

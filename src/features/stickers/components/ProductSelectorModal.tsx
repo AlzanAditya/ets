@@ -32,6 +32,7 @@ export function mapProductToStickerData(product: ProductWithRelations): StickerD
     voltage: product.input_voltage || product.output_voltage || 'AC 220V',
     frequency: product.frequency || '50 Hz',
     model: product.model || product.model_code || 'AIZ',
+    clientName: product.client?.client_name || undefined,
   };
 }
 

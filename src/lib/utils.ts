@@ -25,3 +25,17 @@ export function safeUUID(): string {
     return v.toString(16)
   })
 }
+
+/**
+ * Formats a serial number according to system rules:
+ * - No spaces (leading, middle, or trailing)
+ * - Only alphanumeric (A-Z, 0-9) and hyphen (-)
+ * - All letters automatically uppercase
+ */
+export function formatSerialNumber(val: string): string {
+  if (!val) return ""
+  return val
+    .replace(/\s+/g, "")
+    .replace(/[^a-zA-Z0-9-]/g, "")
+    .toUpperCase()
+}
