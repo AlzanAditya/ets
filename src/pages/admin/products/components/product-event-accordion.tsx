@@ -5,6 +5,7 @@ import {
   Lock,
   Plus,
   Trash2,
+  X,
   GripVertical,
   ChevronDown,
   Loader2,
@@ -13,6 +14,7 @@ import {
   Download,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { exportImages } from "@/lib/image-export";
 import {
@@ -45,8 +47,13 @@ interface ProductEventAccordionProps {
 
 export function ProductEventAccordion({
   productId,
+  isProductReadOnly = false,
   onEventsUpdated,
 }: ProductEventAccordionProps) {
+  const { user, role } = useAuth();
+  const isAuthenticated = Boolean(user && role !== "guest");
+  const canDeletePhotos = isAuthenticated && !isProductReadOnly;
+
   const [events, setEvents] = React.useState<ProductEventData[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [expandedEvents, setExpandedEvents] = React.useState<Record<string, boolean>>({});
@@ -54,6 +61,16 @@ export function ProductEventAccordion({
   const [uploadingStepId, setUploadingStepId] = React.useState<string | null>(null);
   const [actionLoadingStepId, setActionLoadingStepId] = React.useState<string | null>(null);
   const [creatingMaint, setCreatingMaint] = React.useState(false);
+
+  // Photo delete confirmation state
+  const [imageToDelete, setImageToDelete] = React.useState<{
+    eventId: string;
+    stepId: string;
+    imageId: string;
+    storagePath?: string;
+    thumbnailPath?: string | null;
+  } | null>(null);
+  const [deletingImageId, setDeletingImageId] = React.useState<string | null>(null);
 
   // Maximum preview count state (default: 3)
   const [visibleCount, setVisibleCount] = React.useState(3);
@@ -232,17 +249,76 @@ export function ProductEventAccordion({
     }
   };
 
-  // Delete image
-  const handleDeleteImage = async (eventId: string, stepId: string, imageId: string) => {
+  // Execute delete image from storage and DB
+  const executeDeleteImage = async (
+    eventId: string,
+    stepId: string,
+    imageId: string,
+    storagePath?: string,
+    thumbnailPath?: string | null
+  ) => {
+    setDeletingImageId(imageId);
+    const toastId = toast.loading("Menghapus foto...");
     try {
-      const updated = await productEventsService.deleteStepImage(productId, eventId, stepId, imageId);
+      const updated = await productEventsService.deleteStepImage(
+        productId,
+        eventId,
+        stepId,
+        imageId,
+        storagePath,
+        thumbnailPath || undefined
+      );
       const sorted = [...updated].sort((a, b) => b.sequence_number - a.sequence_number);
       setEvents(sorted);
-      toast.success("Gambar dihapus");
+      setImageToDelete(null);
+      toast.success("Foto berhasil dihapus", { id: toastId });
+      onEventsUpdated?.();
     } catch (err: any) {
       console.error("Failed to delete image:", err);
-      toast.error("Gagal menghapus gambar");
+      toast.error(err.message || "Gagal menghapus foto", { id: toastId });
+    } finally {
+      setDeletingImageId(null);
     }
+  };
+
+  // Lightbox delete handler
+  const handleLightboxDelete = async (image: LightboxImage, _idx: number) => {
+    let eventId = image.eventId;
+    let stepId = image.stepId;
+
+    if (!eventId || !stepId) {
+      for (const evt of events) {
+        for (const st of evt.steps) {
+          if (st.images.some((img) => img.id === image.id)) {
+            eventId = evt.event_id;
+            stepId = st.step_id;
+            break;
+          }
+        }
+        if (eventId) break;
+      }
+    }
+
+    if (eventId && stepId) {
+      await executeDeleteImage(eventId, stepId, image.id, image.storage_path, image.thumbnail_path);
+    }
+  };
+
+  // Delete image trigger (opens confirmation modal)
+  const handleDeleteImage = (
+    eventId: string,
+    stepId: string,
+    imageId: string,
+    storagePath?: string,
+    thumbnailPath?: string | null
+  ) => {
+    setImageToDelete({
+      eventId,
+      stepId,
+      imageId,
+      storagePath,
+      thumbnailPath,
+    });
   };
 
   // Export Level 2: Export all images for a Main Event
@@ -392,11 +468,21 @@ export function ProductEventAccordion({
   };
 
   // Open Lightbox for a step gallery
-  const openLightbox = (images: ProductStepImage[], initialIdx: number, stepTitle: string) => {
+  const openLightbox = (
+    images: ProductStepImage[],
+    initialIdx: number,
+    stepTitle: string,
+    eventId?: string,
+    stepId?: string
+  ) => {
     const lightboxImages: LightboxImage[] = images.map((img, i) => ({
       id: img.id,
       url: img.signedUrl || img.thumbnail_path || img.storage_path,
       title: `${stepTitle} - Foto ${i + 1}`,
+      storage_path: img.storage_path,
+      thumbnail_path: img.thumbnail_path,
+      eventId,
+      stepId,
     }));
 
     setLightboxState({
@@ -651,7 +737,15 @@ export function ProductEventAccordion({
                                 onDragStart={() => handleDragStart(evt.event_id, step.step_id, imgIdx)}
                                 onDragOver={handleDragOver}
                                 onDrop={() => handleDrop(evt.event_id, step.step_id, imgIdx, step.images)}
-                                onClick={() => openLightbox(step.images, imgIdx, STEP_TYPE_TITLES[step.step_type] || step.title)}
+                                onClick={() =>
+                                  openLightbox(
+                                    step.images,
+                                    imgIdx,
+                                    STEP_TYPE_TITLES[step.step_type] || step.title,
+                                    evt.event_id,
+                                    step.step_id
+                                  )
+                                }
                                 className="group relative aspect-square rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden shadow-xs transition-all hover:border-zinc-700 cursor-pointer"
                               >
                                 {(() => {
@@ -683,17 +777,30 @@ export function ProductEventAccordion({
                                   </div>
                                 )}
 
-                                {/* Delete image button */}
-                                {!isEventCompleted && (
+                                {/* Delete image X button (mobile-friendly and authenticated only) */}
+                                {canDeletePhotos && !isEventCompleted && (
                                   <button
+                                    type="button"
+                                    disabled={deletingImageId === img.id}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleDeleteImage(evt.event_id, step.step_id, img.id);
+                                      handleDeleteImage(
+                                        evt.event_id,
+                                        step.step_id,
+                                        img.id,
+                                        img.storage_path,
+                                        img.thumbnail_path
+                                      );
                                     }}
-                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-rose-600/90 hover:bg-rose-600 p-1 rounded-md text-white shadow-xs"
+                                    className="absolute top-1 right-1 z-10 size-6 sm:size-6 flex items-center justify-center rounded-full bg-black/75 hover:bg-rose-600 active:scale-90 text-white shadow-md border border-white/20 transition-all opacity-90 sm:opacity-0 sm:group-hover:opacity-100"
                                     title="Hapus foto"
+                                    aria-label="Hapus foto"
                                   >
-                                    <Trash2 className="size-3" />
+                                    {deletingImageId === img.id ? (
+                                      <Loader2 className="size-3 animate-spin text-white" />
+                                    ) : (
+                                      <X className="size-3.5 stroke-[2.5]" />
+                                    )}
                                   </button>
                                 )}
                               </div>
@@ -845,9 +952,56 @@ export function ProductEventAccordion({
         isOpen={lightboxState.isOpen}
         images={lightboxState.images}
         currentIndex={lightboxState.currentIndex}
+        canDelete={canDeletePhotos}
+        onDelete={handleLightboxDelete}
         onClose={() => setLightboxState((prev) => ({ ...prev, isOpen: false }))}
         onNavigate={(newIdx) => setLightboxState((prev) => ({ ...prev, currentIndex: newIdx }))}
       />
+
+      {/* ── AlertDialog: Confirm Delete Photo ── */}
+      <AlertDialog
+        open={!!imageToDelete}
+        onOpenChange={(open) => !open && !deletingImageId && setImageToDelete(null)}
+      >
+        <AlertDialogContent className="max-w-sm rounded-2xl bg-zinc-950 border-zinc-800 text-zinc-100">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base sm:text-lg text-zinc-100">Hapus foto ini?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm text-zinc-400">
+              Foto yang dihapus akan dihilangkan secara permanen dari penyimpanan dan database. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel
+              disabled={!!deletingImageId}
+              className="border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white rounded-xl text-xs sm:text-sm"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!!deletingImageId}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!imageToDelete) return;
+                await executeDeleteImage(
+                  imageToDelete.eventId,
+                  imageToDelete.stepId,
+                  imageToDelete.imageId,
+                  imageToDelete.storagePath,
+                  imageToDelete.thumbnailPath
+                );
+              }}
+              className="bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs sm:text-sm gap-1.5"
+            >
+              {deletingImageId ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+              <span>{deletingImageId ? "Menghapus..." : "Hapus Foto"}</span>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── AlertDialog 3A: Confirm Complete Sub Event ── */}
       <AlertDialog

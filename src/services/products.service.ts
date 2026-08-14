@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { safeUUID } from "@/lib/utils";
+import { deleteImageFiles, PRODUCT_ASSETS_BUCKET } from "@/lib/image-service";
 import type {
   ProductRow,
   ProductInsert,
@@ -537,10 +538,39 @@ export const productsService = {
   },
 
   /**
-   * Delete a product_images record by its id.
-   * Note: This does NOT delete the storage file — call image-service deleteFiles() separately.
+   * Delete a product_images record and remove associated files from storage.
    */
-  async deleteProductImage(imageId: string): Promise<void> {
+  async deleteProductImage(
+    imageId: string,
+    storagePath?: string,
+    thumbnailPath?: string
+  ): Promise<void> {
+    let fullPath = storagePath;
+    let thumbPath = thumbnailPath;
+
+    if (!fullPath || !thumbPath) {
+      try {
+        const { data: imgRow } = await supabase
+          .from("product_images")
+          .select("storage_path, thumbnail_path")
+          .eq("image_id", imageId)
+          .maybeSingle();
+
+        if (imgRow) {
+          if (!fullPath && imgRow.storage_path) fullPath = imgRow.storage_path;
+          if (!thumbPath && imgRow.thumbnail_path) thumbPath = imgRow.thumbnail_path;
+        }
+      } catch (err) {
+        console.warn("Failed to fetch product image record before deletion:", err);
+      }
+    }
+
+    try {
+      await deleteImageFiles(fullPath, thumbPath, PRODUCT_ASSETS_BUCKET);
+    } catch (storageErr) {
+      console.warn("Storage deletion error (will proceed with DB delete):", storageErr);
+    }
+
     const { error } = await supabase
       .from("product_images")
       .delete()

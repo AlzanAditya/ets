@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { safeUUID } from "@/lib/utils";
-import { uploadProductStepImagePair, deleteFiles, PRODUCT_ASSETS_BUCKET, getSignedUrls, type UploadedImagePaths } from "@/lib/image-service";
+import { uploadProductStepImagePair, deleteFiles, deleteImageFiles, PRODUCT_ASSETS_BUCKET, getSignedUrls, type UploadedImagePaths } from "@/lib/image-service";
 import { productsService } from "@/services/products.service";
 
 export type EventType = "installation" | "maintenance";
@@ -828,13 +828,49 @@ export const productEventsService = {
   },
 
   /**
-   * Delete step image
+   * Delete step image and remove associated files from storage
    */
-  async deleteStepImage(productId: string, _eventId: string, _stepId: string, imageId: string): Promise<ProductEventData[]> {
+  async deleteStepImage(
+    productId: string,
+    _eventId: string,
+    _stepId: string,
+    imageId: string,
+    storagePath?: string,
+    thumbnailPath?: string
+  ): Promise<ProductEventData[]> {
     console.group("SUPABASE DELETE product_images");
     console.log("Table: product_images");
     console.log("imageId:", imageId);
 
+    // 1. If paths not explicitly provided, query image record first
+    let fullPath = storagePath;
+    let thumbPath = thumbnailPath;
+
+    if (!fullPath || !thumbPath) {
+      try {
+        const { data: imgRow } = await (supabase as any)
+          .from("product_images")
+          .select("storage_path, thumbnail_path")
+          .eq("image_id", imageId)
+          .maybeSingle();
+
+        if (imgRow) {
+          if (!fullPath && imgRow.storage_path) fullPath = imgRow.storage_path;
+          if (!thumbPath && imgRow.thumbnail_path) thumbPath = imgRow.thumbnail_path;
+        }
+      } catch (fetchErr) {
+        console.warn("Could not query image paths before delete:", fetchErr);
+      }
+    }
+
+    // 2. Delete physical storage files (full + thumbnail)
+    try {
+      await deleteImageFiles(fullPath, thumbPath, PRODUCT_ASSETS_BUCKET);
+    } catch (storageErr) {
+      console.warn("Failed to remove storage files, proceeding with DB deletion:", storageErr);
+    }
+
+    // 3. Delete database record
     const { data, error } = await (supabase as any)
       .from("product_images")
       .delete()

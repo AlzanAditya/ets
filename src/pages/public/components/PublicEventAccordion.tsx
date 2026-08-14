@@ -20,15 +20,18 @@ import {
   type ProductStepImage,
   STEP_TYPE_TITLES,
 } from "@/services/product-events.service";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PublicEventAccordionProps {
   productId: string;
   serialNumber: string;
+  isProductLoading?: boolean;
 }
 
 export function PublicEventAccordion({
   productId,
   serialNumber,
+  isProductLoading = false,
 }: PublicEventAccordionProps) {
   const [events, setEvents] = React.useState<ProductEventData[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -215,16 +218,33 @@ export function PublicEventAccordion({
     });
   };
 
-  if (loading) {
+  const isAnyLoading = loading || isProductLoading;
+
+  if (isAnyLoading && events.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center gap-2 text-sm text-zinc-400">
-        <Loader2 className="size-5 animate-spin text-emerald-500" />
-        <span>Memuat dokumentasi produk...</span>
+      <div className="space-y-3 animate-pulse">
+        {[1, 2].map((i) => (
+          <div
+            key={i}
+            className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 sm:p-5 space-y-3 shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-xl bg-zinc-800" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-36 bg-zinc-800" />
+                  <Skeleton className="h-2.5 w-24 bg-zinc-800" />
+                </div>
+              </div>
+              <Skeleton className="h-6 w-20 rounded-full bg-zinc-800" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
 
-  if (events.length === 0) {
+  if (!isAnyLoading && events.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-zinc-800 p-8 text-center bg-zinc-900/40">
         <p className="text-sm text-zinc-400">Belum ada dokumentasi event tercatat untuk produk ini.</p>
@@ -236,8 +256,14 @@ export function PublicEventAccordion({
   const hasMoreEvents = visibleCount < events.length;
 
   return (
-    <div className="space-y-4">
-      {visibleEvents.map((evt) => {
+    <div className="relative">
+      <div
+        className={cn(
+          "space-y-4 transition-all duration-300",
+          isAnyLoading && "filter blur-[2px] opacity-40 pointer-events-none select-none"
+        )}
+      >
+        {visibleEvents.map((evt) => {
         const isEventExpanded = !!expandedEvents[evt.event_id];
         const isEventCompleted = evt.status === "completed";
         const totalPhotos = evt.steps.reduce((acc, s) => acc + s.images.length, 0);
@@ -465,6 +491,19 @@ export function PublicEventAccordion({
               )}
             />
           </Button>
+        </div>
+      )}
+      </div>
+
+      {/* Spinner Overlay when re-fetching events */}
+      {isAnyLoading && events.length > 0 && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-zinc-950/40 backdrop-blur-[2px] rounded-2xl p-4 transition-all duration-200 animate-in fade-in">
+          <div className="flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800/80 shadow-2xl">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-400 stroke-[2.5]" />
+            <span className="text-xs font-semibold text-zinc-300 font-mono tracking-wide">
+              Memuat dokumentasi event...
+            </span>
+          </div>
         </div>
       )}
 

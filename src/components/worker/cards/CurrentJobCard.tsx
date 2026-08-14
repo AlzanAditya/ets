@@ -21,6 +21,17 @@ import {
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/contexts/auth-context"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   Dialog,
   DialogContent,
@@ -48,6 +59,8 @@ export function CurrentJobCard({
   onViewDetail,
   className,
 }: CurrentJobCardProps) {
+  const { user, role } = useAuth()
+  const canDelete = Boolean(user && role !== "guest")
   const { uploadStepPhotos, deleteStepPhoto, completeWorkerStep } = useWorkerData()
   const [job, setJob] = React.useState<WorkerJob | null>(initialJob)
   const [detailOpen, setDetailOpen] = React.useState(false)
@@ -56,6 +69,14 @@ export function CurrentJobCard({
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([])
   const [uploadedPhotos, setUploadedPhotos] = React.useState<{ id: string; url: string; name: string }[]>([])
   const [isUploading, setIsUploading] = React.useState(false)
+
+  // Photo delete confirmation state
+  const [photoToDelete, setPhotoToDelete] = React.useState<{
+    stepId: string
+    photoId: string
+    url?: string
+  } | null>(null)
+  const [deletingPhotoId, setDeletingPhotoId] = React.useState<string | null>(null)
 
   // Step accordion state
   const [expandedSteps, setExpandedSteps] = React.useState<Record<string, boolean>>({})
@@ -132,16 +153,37 @@ export function CurrentJobCard({
     }
   }
 
-  // Delete photo from step
-  const handleDeletePhoto = async (stepId: string, photoId: string) => {
+  // Execute delete photo from storage and DB
+  const executeDeletePhoto = async (stepId: string, photoId: string, _url?: string) => {
     if (!job.eventId) return
+    setDeletingPhotoId(photoId)
+    const toastId = "delete-photo-toast"
     try {
+      toast.loading("Menghapus foto...", { id: toastId })
       await deleteStepPhoto(job.id, job.eventId, stepId, photoId)
-      toast.success("Foto berhasil dihapus")
-    } catch (err) {
+      toast.success("Foto berhasil dihapus", { id: toastId })
+      setPhotoToDelete(null)
+    } catch (err: any) {
       console.error("Failed to delete photo:", err)
-      toast.error("Gagal menghapus foto")
+      toast.error(err?.message || "Gagal menghapus foto", { id: toastId })
+    } finally {
+      setDeletingPhotoId(null)
     }
+  }
+
+  // Delete photo from step (trigger dialog)
+  const handleDeletePhoto = (stepId: string, photoId: string, url?: string) => {
+    setPhotoToDelete({
+      stepId,
+      photoId,
+      url,
+    })
+  }
+
+  // Lightbox delete handler
+  const handleLightboxDelete = async (image: LightboxImage, _idx: number) => {
+    const stepId = image.stepId || selectedStepId || (job.steps[0]?.id ?? "")
+    await executeDeletePhoto(stepId, image.id, image.url)
   }
 
   // Complete step
@@ -166,11 +208,17 @@ export function CurrentJobCard({
   }
 
   // Open Lightbox
-  const openLightbox = (photos: Array<{ id: string; url: string; caption?: string }>, initialIdx: number, stepName: string) => {
+  const openLightbox = (
+    photos: Array<{ id: string; url: string; caption?: string }>,
+    initialIdx: number,
+    stepName: string,
+    stepId?: string
+  ) => {
     const images: LightboxImage[] = photos.map((p, i) => ({
       id: p.id || `img-${i}`,
       url: p.url,
       title: `${stepName} - Foto ${i + 1}`,
+      stepId,
     }))
     setLightboxState({
       isOpen: true,
@@ -382,7 +430,7 @@ export function CurrentJobCard({
                         {step.photos?.map((photo, pIdx) => (
                           <div
                             key={photo.id || pIdx}
-                            onClick={() => openLightbox(step.photos || [], pIdx, step.name)}
+                            onClick={() => openLightbox(step.photos || [], pIdx, step.name, step.id)}
                             className="aspect-square rounded-xl border border-border bg-muted overflow-hidden relative group cursor-pointer shadow-2xs hover:border-primary/50 transition-all"
                           >
                             <img
@@ -390,18 +438,24 @@ export function CurrentJobCard({
                               alt={`Dokumentasi ${pIdx + 1}`}
                               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             />
-                            {/* Trash button */}
-                            {!isCompleted && (
+                            {/* Mobile-friendly X delete button */}
+                            {canDelete && !isCompleted && (
                               <button
                                 type="button"
+                                disabled={deletingPhotoId === photo.id}
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleDeletePhoto(step.id, photo.id)
+                                  handleDeletePhoto(step.id, photo.id, photo.url)
                                 }}
-                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-rose-600/90 hover:bg-rose-600 p-1 rounded-md text-white shadow-2xs"
+                                className="absolute top-1 right-1 z-10 size-6 flex items-center justify-center rounded-full bg-black/75 hover:bg-rose-600 active:scale-90 text-white shadow-md border border-white/20 transition-all opacity-90 sm:opacity-0 sm:group-hover:opacity-100"
                                 title="Hapus foto"
+                                aria-label="Hapus foto"
                               >
-                                <Trash2 className="size-3" />
+                                {deletingPhotoId === photo.id ? (
+                                  <Loader2 className="size-3 animate-spin text-white" />
+                                ) : (
+                                  <X className="size-3.5 stroke-[2.5]" />
+                                )}
                               </button>
                             )}
                           </div>
@@ -488,9 +542,50 @@ export function CurrentJobCard({
         images={lightboxState.images}
         currentIndex={lightboxState.currentIndex}
         isOpen={lightboxState.isOpen}
+        canDelete={canDelete}
+        onDelete={handleLightboxDelete}
         onClose={() => setLightboxState((prev) => ({ ...prev, isOpen: false }))}
         onNavigate={(newIdx) => setLightboxState((prev) => ({ ...prev, currentIndex: newIdx }))}
       />
+
+      {/* Confirmation Dialog for Photo Deletion */}
+      <AlertDialog
+        open={!!photoToDelete}
+        onOpenChange={(open) => !open && !deletingPhotoId && setPhotoToDelete(null)}
+      >
+        <AlertDialogContent className="max-w-sm rounded-2xl bg-card border-border text-foreground">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base sm:text-lg">Hapus foto ini?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground">
+              Foto dokumentasi akan dihapus secara permanen dari penyimpanan dan database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel
+              disabled={!!deletingPhotoId}
+              className="rounded-xl border-border text-muted-foreground hover:bg-muted"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!!deletingPhotoId}
+              onClick={async (e) => {
+                e.preventDefault()
+                if (!photoToDelete) return
+                await executeDeletePhoto(photoToDelete.stepId, photoToDelete.photoId, photoToDelete.url)
+              }}
+              className="bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs sm:text-sm gap-1.5"
+            >
+              {deletingPhotoId ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+              <span>{deletingPhotoId ? "Menghapus..." : "Hapus Foto"}</span>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>

@@ -611,6 +611,92 @@ export async function copyFile(
 }
 
 /**
+ * Extract storage path from a full URL, signed URL, or relative path.
+ * Handles query strings, encoding, and various bucket prefix formats.
+ */
+export function extractStoragePath(
+  urlOrPath: string,
+  bucketName: string = PRODUCT_ASSETS_BUCKET
+): string {
+  if (!urlOrPath) return ''
+  let path = urlOrPath.trim()
+
+  // Remove query parameters if present (e.g. ?token=... or ?v=...)
+  if (path.includes('?')) {
+    path = path.split('?')[0]
+  }
+
+  // Common Supabase storage URL patterns
+  const knownBuckets = Array.from(new Set([bucketName, 'product-assets', 'product-images', 'client-assets', 'worker-profiles']))
+  for (const b of knownBuckets) {
+    const markers = [
+      `/storage/v1/object/public/${b}/`,
+      `/storage/v1/object/sign/${b}/`,
+      `/storage/v1/object/authenticated/${b}/`,
+      `/storage/v1/object/${b}/`,
+      `/${b}/`,
+    ]
+    for (const marker of markers) {
+      const idx = path.indexOf(marker)
+      if (idx !== -1) {
+        return decodeURIComponent(path.substring(idx + marker.length))
+      }
+    }
+  }
+
+  // If path starts with http/https, try URL pathname parsing
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    try {
+      const urlObj = new URL(path)
+      const segments = urlObj.pathname.split('/').filter(Boolean)
+      for (const b of knownBuckets) {
+        const bIdx = segments.indexOf(b)
+        if (bIdx !== -1 && bIdx < segments.length - 1) {
+          return decodeURIComponent(segments.slice(bIdx + 1).join('/'))
+        }
+      }
+    } catch {}
+  }
+
+  return path
+}
+
+/**
+ * Delete image full and thumbnail storage files safely from bucket.
+ */
+export async function deleteImageFiles(
+  storagePath?: string | null,
+  thumbnailPath?: string | null,
+  bucket = PRODUCT_ASSETS_BUCKET
+): Promise<void> {
+  const paths: string[] = []
+  if (storagePath) {
+    const cleanFull = extractStoragePath(storagePath, bucket)
+    if (cleanFull) paths.push(cleanFull)
+  }
+  if (thumbnailPath) {
+    const cleanThumb = extractStoragePath(thumbnailPath, bucket)
+    if (cleanThumb && !paths.includes(cleanThumb)) {
+      paths.push(cleanThumb)
+    }
+  }
+
+  if (paths.length === 0) return
+
+  try {
+    await deleteFiles(paths, bucket)
+  } catch (err: any) {
+    console.warn(`Primary storage delete failed for bucket ${bucket}:`, err?.message || err)
+  }
+
+  // Also clean from alternate bucket if applicable
+  const altBucket = bucket === 'product-assets' ? 'product-images' : 'product-assets'
+  try {
+    await deleteFiles(paths, altBucket)
+  } catch {}
+}
+
+/**
  * Delete a single file from storage.
  */
 export async function deleteFile(path: string, bucket = IMAGE_BUCKET): Promise<void> {

@@ -1,6 +1,18 @@
 import React from 'react';
 import { PreviewTab } from '../types';
-import { Download, Printer } from 'lucide-react';
+import {
+  RectangleHorizontal,
+  LayoutGrid,
+  Download,
+  Printer,
+  ChevronDown,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 interface StickerPreviewToolbarProps {
   activeTab: PreviewTab;
@@ -8,7 +20,7 @@ interface StickerPreviewToolbarProps {
   zoomLevel: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
-  onZoomReset: () => void;
+  onZoomReset?: () => void;
   onZoomFit: () => void;
   onDownloadPdf: () => void;
   onDownloadPdfNative?: () => void;
@@ -23,7 +35,6 @@ export const StickerPreviewToolbar: React.FC<StickerPreviewToolbarProps> = ({
   zoomLevel,
   onZoomIn,
   onZoomOut,
-  onZoomReset,
   onZoomFit,
   onDownloadPdf,
   onDownloadPdfNative,
@@ -33,105 +44,120 @@ export const StickerPreviewToolbar: React.FC<StickerPreviewToolbarProps> = ({
 }) => {
   return (
     <div className="flex flex-wrap gap-3 items-center justify-between w-full bg-card border border-border p-2.5 rounded-xl shadow-xs text-card-foreground">
-      {/* Tab Switcher */}
-      <div className="flex gap-1 p-1 rounded-lg bg-muted border border-border">
+      {/* Tab Switcher: Icons only */}
+      <div className="flex items-center gap-1 p-1 rounded-lg bg-muted border border-border">
         <button
           type="button"
           onClick={() => onTabChange('single')}
-          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+          title="Single Sticker Preview"
+          aria-label="Single Sticker Preview"
+          className={`p-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
             activeTab === 'single'
               ? 'bg-primary text-primary-foreground shadow-xs'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          Single Sticker Preview
+          <RectangleHorizontal className="size-4" />
         </button>
         <button
           type="button"
           onClick={() => onTabChange('a4')}
-          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+          title="A4 Print Layout Preview"
+          aria-label="A4 Print Layout Preview"
+          className={`p-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
             activeTab === 'a4'
               ? 'bg-primary text-primary-foreground shadow-xs'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          A4 Print Layout Preview
+          <LayoutGrid className="size-4" />
         </button>
       </div>
 
-      {/* Action Buttons: Download PDF & Print */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={onDownloadPdf}
-          disabled={isGeneratingPdf}
-          title="Export cepat format bitmap image"
-          className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-semibold text-xs flex items-center gap-2 shadow-xs transition-all border border-primary/30 cursor-pointer"
-        >
-          <Download className={`size-4 ${isGeneratingPdf ? 'animate-spin' : ''}`} />
-          {isGeneratingPdf ? `Menyiapkan PDF (${pdfScale}x)...` : 'Unduh PDF (Cepat - bitmap)'}
-        </button>
-        {onDownloadPdfNative && (
-          <button
-            type="button"
-            onClick={onDownloadPdfNative}
-            disabled={isGeneratingPdf}
-            title="Teks bisa diseleksi & dicari. Pilih 'Save as PDF' di dialog cetak browser."
-            className="px-3.5 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-secondary-foreground font-semibold text-xs flex items-center gap-2 shadow-xs transition-all border border-border cursor-pointer"
-          >
-            <Printer className="size-4" />
-            Unduh PDF (Presisi - bisa diseleksi)
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={onPrint}
-          className="px-3.5 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold text-xs flex items-center gap-2 shadow-xs transition-all border border-border cursor-pointer"
-        >
-          <Printer className="size-4" />
-          Cetak A4
-        </button>
-      </div>
-
-      {/* Zoom Controls */}
-      <div className="flex items-center gap-1.5 text-xs">
-        <span className="text-muted-foreground hidden sm:inline font-medium">Zoom:</span>
+      {/* Zoom Controls (Tengah): Terbungkus seperti ButtonGroup dengan separator & latar belakang gelap untuk persen */}
+      <div className="inline-flex items-center rounded-lg border border-zinc-700 bg-zinc-900/90 shadow-2xs overflow-hidden divide-x divide-zinc-700 text-xs">
         <button
           type="button"
           onClick={onZoomOut}
-          className="px-2 py-1 rounded-md bg-muted border border-border text-muted-foreground hover:text-foreground font-bold transition-all cursor-pointer"
+          className="h-8 px-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 font-bold transition-all cursor-pointer flex items-center justify-center"
           title="Zoom Out"
         >
           -
         </button>
-        <span className="min-w-[42px] text-center font-bold text-foreground">
+        <div className="h-8 px-3 flex items-center justify-center bg-zinc-950/90 text-zinc-100 font-mono font-bold min-w-[52px]">
           {zoomLevel}%
-        </span>
+        </div>
         <button
           type="button"
           onClick={onZoomIn}
-          className="px-2 py-1 rounded-md bg-muted border border-border text-muted-foreground hover:text-foreground font-bold transition-all cursor-pointer"
+          className="h-8 px-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 font-bold transition-all cursor-pointer flex items-center justify-center"
           title="Zoom In"
         >
           +
         </button>
         <button
           type="button"
-          onClick={onZoomReset}
-          className="px-2.5 py-1 rounded-md bg-muted border border-border text-muted-foreground hover:text-foreground font-semibold transition-all cursor-pointer"
-          title="Reset 100%"
-        >
-          100%
-        </button>
-        <button
-          type="button"
           onClick={onZoomFit}
-          className="px-2.5 py-1 rounded-md bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold transition-all cursor-pointer"
+          className="h-8 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 font-semibold transition-all cursor-pointer flex items-center justify-center"
           title="Sesuaikan Layar"
         >
           Fit
         </button>
       </div>
+
+      {/* Action Buttons (Kanan): Neutral Gray ButtonGroup with Download & Dropdown Menu */}
+      <div className="inline-flex items-center rounded-lg border border-zinc-700 bg-zinc-900 shadow-2xs overflow-hidden text-xs">
+        <button
+          type="button"
+          onClick={onDownloadPdf}
+          disabled={isGeneratingPdf}
+          className="h-8 px-3.5 text-xs font-semibold flex items-center cursor-pointer bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white transition-colors disabled:opacity-50"
+          title="Unduh PDF (Bitmap)"
+        >
+          {isGeneratingPdf ? `Menyiapkan (${pdfScale}x)...` : 'Unduh'}
+        </button>
+
+        {/* Separator yang sama persis dengan Zoom Controls */}
+        <div className="w-px h-8 bg-zinc-700 shrink-0" aria-hidden="true" />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              disabled={isGeneratingPdf}
+              className="h-8 px-2 text-xs cursor-pointer bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white flex items-center justify-center transition-colors disabled:opacity-50"
+              aria-label="Opsi Unduh & Cetak"
+              title="Pilihan Format Unduh & Cetak"
+            >
+              <ChevronDown className="size-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuItem
+              onClick={onDownloadPdf}
+              className="text-xs font-medium cursor-pointer flex items-center gap-2"
+            >
+              <Download className="size-3.5 text-muted-foreground" />
+              <span>Unduh PDF (Bitmap)</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={onDownloadPdfNative ?? onDownloadPdf}
+              className="text-xs font-medium cursor-pointer flex items-center gap-2"
+            >
+              <Download className="size-3.5 text-muted-foreground" />
+              <span>Unduh PDF (Presisi)</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={onPrint}
+              className="text-xs font-medium cursor-pointer flex items-center gap-2"
+            >
+              <Printer className="size-3.5 text-muted-foreground" />
+              <span>Cetak PDF A4</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 };
+

@@ -17,6 +17,7 @@ interface StickerSettingsModalProps {
   onClose: () => void;
   config: StickerConfig;
   onUpdateConfig: <K extends keyof StickerConfig>(key: K, value: StickerConfig[K]) => void;
+  onReset?: () => void;
 }
 
 const PRESET_SIZES = [

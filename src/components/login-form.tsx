@@ -280,7 +280,7 @@ export function LoginForm({
               <SmartImage
                 src="/ets-logo.png"
                 alt="ETS Logo"
-                className="h-16 w-16 object-contain brightness-0 invert"
+                className="h-16 w-16 object-contain"
               />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40 mb-1">

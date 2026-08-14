@@ -6,10 +6,11 @@ import { calculateLayoutStats } from '@/features/stickers/utils/layout-calculato
 import { exportA4PagesToPDF, exportA4PagesToNativePrint } from '@/features/stickers/utils/pdf-exporter';
 import { StickerConfigurationPanel } from '@/features/stickers/components/StickerConfigurationPanel';
 import { StickerPreviewToolbar } from '@/features/stickers/components/StickerPreviewToolbar';
-import { SingleStickerStage } from '@/features/stickers/components/SingleStickerStage';
-import { A4PrintLayoutStage } from '@/features/stickers/components/A4PrintLayoutStage';
+import { InteractiveCanvasStage } from '@/features/stickers/components/InteractiveCanvasStage';
+import { StickerTopControls } from '@/features/stickers/components/StickerTopControls';
 import { ProductSelectorModal, mapProductToStickerData } from '@/features/stickers/components/ProductSelectorModal';
 import { useProducts } from '@/hooks/use-products';
+import { useClients } from '@/hooks/use-clients';
 import { toast } from 'sonner';
 
 const DEFAULT_STICKER_DATA: StickerData = {
@@ -37,6 +38,12 @@ const CACHE_KEY = 'sticker_page_cache_v1';
 export default function StickersPage() {
   const [searchParams] = useSearchParams();
   const { data: allDbProducts } = useProducts();
+  const { data: clients = [] } = useClients();
+
+  // Filter & Search & Setting states shared between mobile sticky bar and desktop panel
+  const [selectedClient, setSelectedClient] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   // Read initial cache safely from localStorage
   const cachedState = useMemo(() => {
@@ -75,7 +82,6 @@ export default function StickersPage() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
 
-  const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const a4ContainerRef = useRef<HTMLDivElement>(null);
 
   // Sync state variables to localStorage whenever they change
@@ -101,6 +107,30 @@ export default function StickersPage() {
     activeTab,
     zoomLevel,
   ]);
+
+  // Derived client options for dropdown
+  const clientOptions = useMemo(() => {
+    const clientMap = new Map<string, string>();
+
+    clients.forEach((c) => {
+      if (c.client_id && c.client_name) {
+        clientMap.set(c.client_id, c.client_name);
+      }
+    });
+
+    (allDbProducts || []).forEach((p) => {
+      if (p.client?.client_id && p.client?.client_name) {
+        clientMap.set(p.client.client_id, p.client.client_name);
+      } else if (p.client?.client_name) {
+        clientMap.set(p.client.client_name, p.client.client_name);
+      }
+    });
+
+    return Array.from(clientMap.entries()).map(([id, name]) => ({
+      id,
+      name,
+    }));
+  }, [clients, allDbProducts]);
 
   // Auto-select product from URL params if navigated from Admin Products page
   useEffect(() => {
@@ -142,24 +172,6 @@ export default function StickersPage() {
     return calculateLayoutStats(config, selectedProducts.length || 1);
   }, [config, selectedProducts.length]);
 
-  const updateCurrentStickerField = (field: keyof StickerData, value: string) => {
-    if (selectedProducts.length > 0 && selectedProducts[activeProductIndex]) {
-      setSelectedProducts((prev) => {
-        const updated = [...prev];
-        updated[activeProductIndex] = {
-          ...updated[activeProductIndex],
-          [field]: value,
-        };
-        return updated;
-      });
-    } else {
-      setSingleStickerData((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
-    }
-  };
-
   const updateConfig = <K extends keyof StickerConfig>(
     key: K,
     value: StickerConfig[K]
@@ -172,39 +184,14 @@ export default function StickersPage() {
 
   // Auto fit zoom calculation
   const autoFitZoom = useCallback(() => {
-    const wrapper = canvasWrapperRef.current;
-    if (!wrapper) return;
-    const padding = window.innerWidth <= 768 ? 16 : 32;
-    const availableWidth = wrapper.clientWidth - padding;
-    if (availableWidth <= 0) return;
-
-    let contentWidthPx = 800; // A4 page width approx @ 96DPI
     if (activeTab === 'single') {
-      contentWidthPx = Math.max(220, config.widthMm * 3.7795 + 60);
-    } else {
-      contentWidthPx = 794 + 16;
+      setZoomLevel(100);
+      return;
     }
-
-    const fitRatio = availableWidth / contentWidthPx;
-    const fitPercent = Math.min(100, Math.max(20, Math.floor(fitRatio * 100)));
+    const isMobileScreen = window.innerWidth <= 768;
+    const fitPercent = isMobileScreen ? 45 : 75;
     setZoomLevel(fitPercent);
-  }, [activeTab, config.widthMm]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      autoFitZoom();
-    }, 100);
-
-    const handleResize = () => {
-      autoFitZoom();
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [autoFitZoom]);
+  }, [activeTab]);
 
   const handleReset = () => {
     setSelectedProducts([]);
@@ -227,7 +214,6 @@ export default function StickersPage() {
   };
 
   const handleDownloadPdf = async () => {
-    // Switch to A4 tab if not already there so container ref is mounted
     if (activeTab !== 'a4') {
       setActiveTab('a4');
     }
@@ -235,7 +221,6 @@ export default function StickersPage() {
     setIsGeneratingPdf(true);
 
     try {
-      // Give DOM time to update/render A4 container if tab switched
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       const container = a4ContainerRef.current;
@@ -292,28 +277,53 @@ export default function StickersPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-65px)] w-full bg-background text-foreground">
-      {/* App Main Layout Grid */}
-      <main className="app-layout grid grid-cols-1 lg:grid-cols-[400px_1fr] flex-1">
-        {/* Left Sidebar Controls */}
-        <StickerConfigurationPanel
-          allProducts={allDbProducts || []}
-          loadingProducts={!allDbProducts}
-          onSelectProducts={setSelectedProducts}
-          selectedProducts={selectedProducts}
-          activeProductIndex={activeProductIndex}
-          setActiveProductIndex={setActiveProductIndex}
-          currentSticker={currentSticker}
-          onUpdateCurrentSticker={updateCurrentStickerField}
-          onOpenProductModal={() => setIsProductModalOpen(true)}
+    <div className="flex flex-col min-h-[calc(100vh-65px)] w-full bg-background text-foreground relative">
+      {/* ── MOBILE STICKY CONTROLS ──
+          Sticky at the top on mobile so when scrolling down past Table 1, Table 2, and the Preview Area, 
+          Filter, Search, and Setting remain firmly pinned at the top of the mobile screen. */}
+      <div className="sticky top-0 z-30 lg:hidden w-full bg-background/95 backdrop-blur-md border-b border-border/70 px-3 py-2 sm:px-4 shadow-xs">
+        <StickerTopControls
+          clients={clients}
+          clientOptions={clientOptions}
+          selectedClient={selectedClient}
+          onSelectClient={setSelectedClient}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          isSettingsOpen={isSettingsOpen}
+          setIsSettingsOpen={setIsSettingsOpen}
           config={config}
           onUpdateConfig={updateConfig}
-          layoutStats={layoutStats}
           onReset={handleReset}
         />
+      </div>
 
-        {/* Right Main Preview Area */}
-        <section className="preview-area flex flex-col items-center gap-5 p-4 sm:p-6 bg-background/95 overflow-y-auto">
+      {/* App Main Layout: Mobile = Table first, Preview second. Desktop = Left Preview (1fr), Right Table (400px) */}
+      <main className="app-layout flex flex-col lg:grid lg:grid-cols-[1fr_400px] flex-1 min-h-0 lg:h-[calc(100vh-65px)] lg:overflow-hidden">
+        {/* Table & Controls: Top on mobile (order-1), Right on desktop (order-2) */}
+        <div className="w-full order-1 lg:order-2 lg:col-start-2 lg:h-full lg:overflow-y-auto min-h-0">
+          <StickerConfigurationPanel
+            allProducts={allDbProducts || []}
+            loadingProducts={!allDbProducts}
+            onSelectProducts={setSelectedProducts}
+            selectedProducts={selectedProducts}
+            activeProductIndex={activeProductIndex}
+            setActiveProductIndex={setActiveProductIndex}
+            onOpenProductModal={() => setIsProductModalOpen(true)}
+            config={config}
+            onUpdateConfig={updateConfig}
+            onReset={handleReset}
+            selectedClient={selectedClient}
+            setSelectedClient={setSelectedClient}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            isSettingsOpen={isSettingsOpen}
+            setIsSettingsOpen={setIsSettingsOpen}
+            hideTopControlsOnMobile={true}
+          />
+        </div>
+
+        {/* Main Preview Area: Below table on mobile (order-2), Left on desktop (order-1) */}
+        <section className="preview-area flex flex-col gap-3 sm:gap-4 p-3 sm:p-5 bg-background/95 order-2 lg:order-1 lg:col-start-1 lg:h-full overflow-y-auto min-h-0">
           {/* Toolbar */}
           <StickerPreviewToolbar
             activeTab={activeTab}
@@ -322,8 +332,8 @@ export default function StickersPage() {
               setTimeout(() => autoFitZoom(), 50);
             }}
             zoomLevel={zoomLevel}
-            onZoomIn={() => setZoomLevel((prev) => Math.min(250, prev + 10))}
-            onZoomOut={() => setZoomLevel((prev) => Math.max(20, prev - 10))}
+            onZoomIn={() => setZoomLevel((prev) => Math.min(400, prev + 10))}
+            onZoomOut={() => setZoomLevel((prev) => Math.max(15, prev - 10))}
             onZoomReset={() => setZoomLevel(100)}
             onZoomFit={autoFitZoom}
             onDownloadPdf={handleDownloadPdf}
@@ -333,31 +343,22 @@ export default function StickersPage() {
             pdfScale={config.pdfScale}
           />
 
-          {/* Canvas Wrapper */}
-          <div
-            ref={canvasWrapperRef}
-            className="canvas-wrapper flex flex-col items-center w-full max-w-[1000px] min-h-[450px] p-4 overflow-auto"
-          >
-            {activeTab === 'single' ? (
-              <SingleStickerStage
-                currentSticker={currentSticker}
-                selectedProducts={selectedProducts}
-                activeProductIndex={activeProductIndex}
-                setActiveProductIndex={setActiveProductIndex}
-                config={config}
-                zoomLevel={zoomLevel}
-              />
-            ) : (
-              <A4PrintLayoutStage
-                selectedProducts={selectedProducts}
-                currentSticker={currentSticker}
-                config={config}
-                layoutStats={layoutStats}
-                zoomLevel={zoomLevel}
-                containerRef={a4ContainerRef}
-              />
-            )}
-          </div>
+          {/* Interactive Free Canvas Artboard (Pinch, Zoom, Drag/Pan anywhere past borders) */}
+          <InteractiveCanvasStage
+            activeTab={activeTab}
+            currentSticker={currentSticker}
+            selectedProducts={selectedProducts}
+            activeProductIndex={activeProductIndex}
+            setActiveProductIndex={setActiveProductIndex}
+            config={config}
+            layoutStats={layoutStats}
+            zoomLevel={zoomLevel}
+            onZoomChange={setZoomLevel}
+            onResetZoomAndPan={() => {
+              autoFitZoom();
+            }}
+            a4ContainerRef={a4ContainerRef}
+          />
         </section>
       </main>
 

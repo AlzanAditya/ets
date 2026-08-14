@@ -68,11 +68,11 @@ export function AppSidebar({
             <SidebarMenuButton
               asChild
               tooltip={brand.title}
-              className="h-[45px] data-[slot=sidebar-menu-button]:p-1! group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-0!"
+              className="h-[52px] data-[slot=sidebar-menu-button]:p-1! group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-0!"
             >
               <a
                 href={brand.href}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2.5"
                 onClick={(event) => {
                   event.preventDefault()
                   onNavigate?.(brand.href, brand.title)
@@ -82,7 +82,7 @@ export function AppSidebar({
                   <SmartImage
                     src={brand.logoSrc}
                     alt={brand.logoAlt ?? brand.title}
-                    className="h-8 w-8 shrink-0 object-contain brightness-0 invert"
+                    className="h-11 w-11 shrink-0 object-contain"
                   />
                 ) : null}
                 <span className="flex flex-col text-[0.6rem] font-medium uppercase leading-tight tracking-[0.05em] text-muted-foreground group-data-[collapsible=icon]:hidden">

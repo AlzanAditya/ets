@@ -13,6 +13,13 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Search,
   Plus,
   Trash2,
@@ -26,7 +33,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-function ClientProductStatusBadge({ status }: { status?: string }) {
+export function ClientProductStatusBadge({ status }: { status?: string }) {
   const s = status?.toLowerCase() || '';
   if (s === 'maintenance') {
     return (
@@ -52,7 +59,7 @@ function ClientProductStatusBadge({ status }: { status?: string }) {
   );
 }
 
-interface ProductDualTableSelectorProps {
+export interface ProductDualTableSelectorProps {
   allProducts: ProductWithRelations[];
   loadingProducts?: boolean;
   selectedProducts: StickerData[];
@@ -61,6 +68,15 @@ interface ProductDualTableSelectorProps {
   setActiveProductIndex: (index: number) => void;
   config: StickerConfig;
   onUpdateConfig: <K extends keyof StickerConfig>(key: K, value: StickerConfig[K]) => void;
+  onReset?: () => void;
+  // Shared filter states for sticky mobile header
+  selectedClient?: string;
+  setSelectedClient?: (client: string) => void;
+  searchTerm?: string;
+  setSearchTerm?: (term: string) => void;
+  isSettingsOpen?: boolean;
+  setIsSettingsOpen?: (open: boolean) => void;
+  hideTopControlsOnMobile?: boolean;
 }
 
 export const ProductDualTableSelector: React.FC<ProductDualTableSelectorProps> = ({
@@ -72,11 +88,26 @@ export const ProductDualTableSelector: React.FC<ProductDualTableSelectorProps> =
   setActiveProductIndex,
   config,
   onUpdateConfig,
+  onReset,
+  selectedClient: externalSelectedClient,
+  setSelectedClient: externalSetSelectedClient,
+  searchTerm: externalSearchTerm,
+  setSearchTerm: externalSetSearchTerm,
+  isSettingsOpen: externalIsSettingsOpen,
+  setIsSettingsOpen: externalSetIsSettingsOpen,
+  hideTopControlsOnMobile = false,
 }) => {
   const { data: clients } = useClients();
-  const [selectedClient, setSelectedClient] = useState<string>('ALL');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [internalSelectedClient, setInternalSelectedClient] = useState<string>('ALL');
+  const [internalSearchTerm, setInternalSearchTerm] = useState<string>('');
+  const [internalIsSettingsOpen, setInternalIsSettingsOpen] = useState<boolean>(false);
+
+  const selectedClient = externalSelectedClient !== undefined ? externalSelectedClient : internalSelectedClient;
+  const setSelectedClient = externalSetSelectedClient || setInternalSelectedClient;
+  const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
+  const setSearchTerm = externalSetSearchTerm || setInternalSearchTerm;
+  const isSettingsOpen = externalIsSettingsOpen !== undefined ? externalIsSettingsOpen : internalIsSettingsOpen;
+  const setIsSettingsOpen = externalSetIsSettingsOpen || setInternalIsSettingsOpen;
 
   // Set of IDs or Serial Numbers currently selected in Table 2
   const selectedKeysSet = useMemo(() => {
@@ -179,49 +210,80 @@ export const ProductDualTableSelector: React.FC<ProductDualTableSelectorProps> =
     toast.info('Daftar stiker terpilih dikosongkan.');
   };
 
+  const isClientFiltered = selectedClient !== 'ALL';
+  const isSearchActive = searchTerm.trim().length > 0;
+
   return (
     <div className="flex flex-col gap-3">
       {/* ── TOP CONTROL ROW: Filter Perusahaan (Kiri) | Search + Setting (Kanan) ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-        {/* Kiri: Dropdown Filter Perusahaan */}
-        <div className="flex items-center gap-2 min-w-0">
-          <select
-            value={selectedClient}
-            onChange={(e) => setSelectedClient(e.target.value)}
-            className="w-auto bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary transition-all cursor-pointer font-medium max-w-[176px] truncate shrink-0"
-          >
-            <option value="ALL">Semua Perusahaan ({allProducts.length})</option>
-            <option value="NO_CLIENT">Tanpa Perusahaan / Klien</option>
-            {clientOptions.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+      <div
+        className={cn(
+          'flex items-center justify-between gap-2 w-full',
+          hideTopControlsOnMobile && 'hidden lg:flex'
+        )}
+      >
+        {/* Kiri: Dropdown Filter Perusahaan (Lebar dinamis sesuai opsi terpilih saat ini) */}
+        <div className="shrink-0 min-w-0">
+          <Select value={selectedClient} onValueChange={setSelectedClient}>
+            <SelectTrigger
+              size="sm"
+              className={cn(
+                'w-auto h-8 pl-2.5 pr-2 py-1 text-xs font-medium bg-background rounded-lg gap-2 text-foreground focus:ring-1 focus:ring-primary focus:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary cursor-pointer transition-all',
+                isClientFiltered
+                  ? 'border-primary ring-1 ring-primary'
+                  : 'border-input'
+              )}
+            >
+              <SelectValue placeholder="Pilih Perusahaan" />
+            </SelectTrigger>
+            <SelectContent align="start" className="max-h-60">
+              <SelectItem value="ALL" className="text-xs font-medium cursor-pointer">
+                Semua Perusahaan ({allProducts.length})
+              </SelectItem>
+              <SelectItem value="NO_CLIENT" className="text-xs font-medium cursor-pointer">
+                Tanpa Perusahaan / Klien
+              </SelectItem>
+              {clientOptions.map((c) => (
+                <SelectItem key={c.id} value={c.id} className="text-xs font-medium cursor-pointer">
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Kanan: Search Serial No + Setting Button */}
-        <div className="flex items-center gap-2 justify-end">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           {/* Search Input */}
           <div
             className={cn(
-              "relative transition-all duration-200",
-              searchTerm ? "w-44 sm:w-48 md:w-56" : "w-28 focus-within:w-44 sm:focus-within:w-48 md:focus-within:w-56"
+              'relative transition-all duration-200',
+              searchTerm ? 'w-32 sm:w-40' : 'w-24 focus-within:w-32 sm:focus-within:w-40'
             )}
           >
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Search
+              className={cn(
+                'absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 transition-colors',
+                isSearchActive ? 'text-primary' : 'text-muted-foreground'
+              )}
+            />
             <input
               type="text"
               placeholder="Cari"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-background border border-input rounded-lg pl-8 pr-7 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all font-mono"
+              className={cn(
+                'w-full bg-background rounded-lg pl-8 pr-7 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono',
+                isSearchActive
+                  ? 'border border-primary ring-1 ring-primary'
+                  : 'border border-input'
+              )}
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
               >
                 <X className="size-3" />
               </button>
@@ -264,7 +326,7 @@ export const ProductDualTableSelector: React.FC<ProductDualTableSelectorProps> =
           )}
         </div>
 
-        {/* Exact Table Layout & Styling as p/:serialNomor */}
+        {/* Reverted standard table text size: text-xs, comfortable padding */}
         <div className="rounded-xl border border-zinc-800 bg-zinc-950/90 overflow-hidden shadow-lg max-h-52 overflow-y-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10">
@@ -357,8 +419,8 @@ export const ProductDualTableSelector: React.FC<ProductDualTableSelectorProps> =
           )}
         </div>
 
-        {/* Exact Table Layout & Styling as p/:serialNomor */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950/90 overflow-hidden shadow-lg max-h-52 overflow-y-auto">
+        {/* Reverted standard table text size: text-xs, comfortable padding */}
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950/90 overflow-hidden shadow-lg max-h-64 overflow-y-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10">
               <TableRow className="border-zinc-800 bg-zinc-900/90 hover:bg-zinc-900/90">
@@ -392,14 +454,7 @@ export const ProductDualTableSelector: React.FC<ProductDualTableSelectorProps> =
                         {idx + 1}
                       </TableCell>
                       <TableCell className="font-mono text-zinc-200 text-xs font-semibold">
-                        <div className="flex items-center gap-1.5">
-                          <span>{p.serialNo}</span>
-                          {isActive && (
-                            <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                              Preview
-                            </span>
-                          )}
-                        </div>
+                        <span>{p.serialNo}</span>
                       </TableCell>
                       <TableCell className="text-zinc-200 text-xs">
                         {p.productName}
@@ -435,6 +490,7 @@ export const ProductDualTableSelector: React.FC<ProductDualTableSelectorProps> =
         onClose={() => setIsSettingsOpen(false)}
         config={config}
         onUpdateConfig={onUpdateConfig}
+        onReset={onReset}
       />
     </div>
   );

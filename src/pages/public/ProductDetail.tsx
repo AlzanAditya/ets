@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck,
@@ -23,7 +23,6 @@ import {
   Cable,
   Image as ImageIcon,
   FileText,
-  Hexagon,
   ExternalLink,
   Package,
 } from "lucide-react";
@@ -49,6 +48,10 @@ import { PublicQrCodeCard } from "./components/PublicQrCodeCard";
 import { EntityProfileBanner } from "@/components/entity-profile-banner";
 import { cn } from "@/lib/utils";
 import { publicCache } from "@/lib/public-cache";
+import {
+  SectionBlurLoader,
+  FullProductDetailSkeleton,
+} from "./components/PublicProductSkeletons";
 
 const QrScannerModal = React.lazy(() => import("./components/QrScannerModal"));
 import { PublicEventAccordion } from "./components/PublicEventAccordion";
@@ -131,6 +134,7 @@ function ClientProductStatusBadge({ status }: { status?: string }) {
 export default function PublicProductDetail() {
   const { serial_number } = useParams<{ serial_number: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [product, setProduct] = React.useState<ProductWithRelations | null>(null);
   const [events, setEvents] = React.useState<ProductEventData[]>([]);
@@ -139,6 +143,8 @@ export default function PublicProductDetail() {
   const [isClientExpanded, setIsClientExpanded] = React.useState(false);
 
   const [loading, setLoading] = React.useState(true);
+  const [isProductFetching, setIsProductFetching] = React.useState(false);
+  const [activeSwitchingSerial, setActiveSwitchingSerial] = React.useState<string | null>(null);
   const [notFound, setNotFound] = React.useState(false);
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
   const [isExportingAll, setIsExportingAll] = React.useState(false);
@@ -149,6 +155,7 @@ export default function PublicProductDetail() {
   const [activeSection, setActiveSection] = React.useState<string>("identitas");
   const isManualScrollingRef = React.useRef(false);
   const manualScrollTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const preserveScrollRef = React.useRef(false);
 
   const scrollToSection = (id: string, expandFn?: () => void) => {
     if (expandFn) {
@@ -261,10 +268,15 @@ export default function PublicProductDetail() {
     };
   }, [product]);
 
-  // Reset scroll position to top whenever serial_number changes
+  // Reset scroll position to top whenever serial_number changes, EXCEPT when navigating from client table
   React.useLayoutEffect(() => {
+    const isPreserve = (location.state as any)?.preserveScroll || preserveScrollRef.current;
+    if (isPreserve) {
+      preserveScrollRef.current = false;
+      return;
+    }
     window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-  }, [serial_number]);
+  }, [serial_number, location.state]);
 
   // 1. Topmost Component: Load product identity by serial_number
   React.useEffect(() => {
@@ -282,16 +294,24 @@ export default function PublicProductDetail() {
         if (isMounted) {
           setProduct(cachedProd);
           setNotFound(false);
-          setLoading(false); // Render top component IMMEDIATELY!
+          setLoading(false);
+          setIsProductFetching(false);
+          setActiveSwitchingSerial(null);
         }
       } else {
-        if (isMounted) setLoading(true);
+        if (isMounted) {
+          if (!product) {
+            setLoading(true);
+          } else {
+            setIsProductFetching(true);
+          }
+        }
       }
 
       try {
         const prod = await productsService.getProductBySerial(serial_number);
         if (!prod) {
-          if (isMounted && !cachedProd) setNotFound(true);
+          if (isMounted && !cachedProd && !product) setNotFound(true);
           return;
         }
 
@@ -302,9 +322,13 @@ export default function PublicProductDetail() {
         }
       } catch (err) {
         console.error("Failed to load public product detail:", err);
-        if (isMounted && !cachedProd) setNotFound(true);
+        if (isMounted && !cachedProd && !product) setNotFound(true);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setIsProductFetching(false);
+          setActiveSwitchingSerial(null);
+        }
       }
     }
 
@@ -404,7 +428,8 @@ export default function PublicProductDetail() {
         Icon: Wrench,
         headerTextColor: "text-amber-400 dark:text-amber-400",
         accentGradient: "from-amber-400 via-amber-500/50 to-amber-500/0",
-        snChipBg: "bg-amber-500 text-zinc-950",
+        snChipBg: "bg-amber-500/20 text-amber-300 border-r border-amber-500/30",
+        snTextColor: "text-amber-400",
         snBorder: "border-amber-500/40",
         glowBg: "bg-amber-500/25",
         detailIconBg: "bg-amber-500/10 text-amber-400",
@@ -419,7 +444,8 @@ export default function PublicProductDetail() {
         Icon: Zap,
         headerTextColor: "text-blue-400 dark:text-blue-400",
         accentGradient: "from-blue-400 via-blue-500/50 to-blue-500/0",
-        snChipBg: "bg-blue-500 text-zinc-950",
+        snChipBg: "bg-blue-500/20 text-blue-300 border-r border-blue-500/30",
+        snTextColor: "text-blue-400",
         snBorder: "border-blue-500/40",
         glowBg: "bg-blue-500/25",
         detailIconBg: "bg-blue-500/10 text-blue-400",
@@ -434,7 +460,8 @@ export default function PublicProductDetail() {
       Icon: ShieldCheck,
       headerTextColor: "text-emerald-400 dark:text-emerald-400",
       accentGradient: "from-emerald-400 via-emerald-500/50 to-emerald-500/0",
-      snChipBg: "bg-emerald-500 text-zinc-950",
+      snChipBg: "bg-emerald-500/20 text-emerald-300 border-r border-emerald-500/30",
+      snTextColor: "text-emerald-400",
       snBorder: "border-emerald-500/40",
       glowBg: "bg-emerald-500/25",
       detailIconBg: "bg-emerald-500/10 text-emerald-400",
@@ -609,14 +636,24 @@ export default function PublicProductDetail() {
     }
   };
 
-  if (loading) {
+  if (loading && !product) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
-        <PublicHeader />
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-zinc-400">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500 mb-3" />
-          <p className="text-sm font-medium">Memuat Informasi Produk ETS...</p>
-        </div>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
+        <PublicHeader navItems={navItems} activeId={activeSection} />
+        <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap -mt-2 sm:-mt-3 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/p")}
+              className="gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 rounded-xl py-1 h-8"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Kembali ke Beranda</span>
+            </Button>
+          </div>
+          <FullProductDetailSkeleton />
+        </main>
       </div>
     );
   }
@@ -749,117 +786,118 @@ export default function PublicProductDetail() {
           <EntityProfileBanner
             variant={statusConfig.bannerVariant}
             customFrontLayer={
-              <div className="p-5 sm:p-6 space-y-5">
-                {/* Top Row: Left Text (Identitas Produk) + Right UPS Image with Attached Badge */}
-                <div className="flex flex-row items-center justify-between gap-4">
-                  {/* Left Text / Info */}
-                  <div className="space-y-2.5 flex-1 min-w-0">
-                    <div className={cn("flex items-center gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider", statusConfig.headerTextColor)}>
-                      <Hexagon className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.5]" />
-                      <span>IDENTITAS PRODUK</span>
+              <SectionBlurLoader loading={isProductFetching} label="Memuat Identitas Produk...">
+                <div className="p-5 sm:p-6 space-y-5">
+                  {/* Top Row: Left Text (Identitas Produk) + Right UPS Image with Attached Badge */}
+                  <div className="flex flex-row items-center justify-between gap-4">
+                    {/* Left Text / Info */}
+                    <div className="space-y-2.5 flex-1 min-w-0">
+                      <div className={cn("flex items-center gap-2 text-[9px] sm:text-[10px] font-bold tracking-wider", statusConfig.headerTextColor)}>
+                        <span>Nama Produk</span>
+                      </div>
+
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-foreground tracking-tight leading-tight truncate">
+                        {product.product_name}
+                      </h1>
+
+                      {/* Dynamic Accent Line */}
+                      <div className={cn("h-1 w-16 sm:w-20 bg-gradient-to-r rounded-full my-1", statusConfig.accentGradient)} />
+
+                      {/* Dual-color Serial Number Badge */}
+                      <div className="pt-2.5 sm:pt-4">
+                        <div className={cn("inline-flex items-stretch rounded-xl border font-mono text-xs sm:text-sm shadow-inner overflow-hidden bg-zinc-950/90", statusConfig.snBorder)}>
+                          <span className={cn("px-2.5 py-1 sm:py-1.5 flex items-center font-bold text-xs uppercase tracking-wider shrink-0 rounded-r-none", statusConfig.snChipBg)}>
+                            SN:
+                          </span>
+                          <span className={cn("px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center font-medium tracking-wide font-mono", statusConfig.snTextColor)}>
+                            {product.serial_number}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-foreground tracking-tight leading-tight truncate">
-                      {product.product_name}
-                    </h1>
+                    {/* Right Image Container with Absolute Status Badge */}
+                    <div className="flex flex-col justify-center items-center relative shrink-0 w-32 sm:w-44 md:w-52 py-2">
+                      {/* Dynamic Ambient Radial Glow */}
+                      <div className={cn("absolute inset-0 m-auto w-24 h-24 sm:w-36 sm:h-36 rounded-full blur-2xl pointer-events-none transition-colors duration-300", statusConfig.glowBg)} />
 
-                    {/* Dynamic Accent Line */}
-                    <div className={cn("h-1 w-16 sm:w-20 bg-gradient-to-r rounded-full my-1", statusConfig.accentGradient)} />
+                      {/* UPS Asset Image */}
+                      <img
+                        src="https://cdn.zanxa.studio/ets/UPS-0000.webp"
+                        alt={product.product_name}
+                        className="relative z-10 h-32 sm:h-44 md:h-52 w-auto object-contain transition-transform hover:scale-105 duration-300 pointer-events-none select-none pb-2 sm:pb-3"
+                      />
 
-                    {/* Dual-color Serial Number Badge */}
-                    <div className="pt-2.5 sm:pt-4">
-                      <div className={cn("inline-flex items-center rounded-xl p-0.5 sm:p-1 border font-mono text-xs sm:text-sm font-bold shadow-inner overflow-hidden bg-zinc-950/90", statusConfig.snBorder)}>
-                        <span className={cn("px-2.5 py-0.5 sm:py-1 rounded-lg font-black text-xs uppercase tracking-wider shrink-0 shadow-xs", statusConfig.snChipBg)}>
-                          SN:
-                        </span>
-                        <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 text-zinc-100 font-bold tracking-wide font-mono">
-                          {product.serial_number}
+                      {/* Absolute Status Badge Attached to Image */}
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 shrink-0 whitespace-nowrap">
+                        <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold border shadow-lg backdrop-blur-md transition-all", statusConfig.badgeBg)}>
+                          <statusConfig.Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                          <span>{statusConfig.label}</span>
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right Image Container with Absolute Status Badge */}
-                  <div className="flex flex-col justify-center items-center relative shrink-0 w-32 sm:w-44 md:w-52 py-2">
-                    {/* Dynamic Ambient Radial Glow */}
-                    <div className={cn("absolute inset-0 m-auto w-24 h-24 sm:w-36 sm:h-36 rounded-full blur-2xl pointer-events-none transition-colors duration-300", statusConfig.glowBg)} />
+                  {/* Bottom Row: 2-Column Product Information Grid with Dynamic Icon Colors */}
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
+                    <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
+                      <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
+                        <Tag className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
+                          Kode Produk
+                        </span>
+                        <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
+                          {product.product_code || "-"}
+                        </span>
+                      </div>
+                    </div>
 
-                    {/* UPS Asset Image */}
-                    <img
-                      src="https://cdn.zanxa.studio/ets/UPS-0000.webp"
-                      alt={product.product_name}
-                      className="relative z-10 h-32 sm:h-44 md:h-52 w-auto object-contain transition-transform hover:scale-105 duration-300 pointer-events-none select-none pb-2 sm:pb-3"
-                    />
+                    <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
+                      <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
+                        <FileCode className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
+                          Kode Model
+                        </span>
+                        <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
+                          {product.model_code || "-"}
+                        </span>
+                      </div>
+                    </div>
 
-                    {/* Absolute Status Badge Attached to Image */}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 shrink-0 whitespace-nowrap">
-                      <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold border shadow-lg backdrop-blur-md transition-all", statusConfig.badgeBg)}>
-                        <statusConfig.Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                        <span>{statusConfig.label}</span>
-                      </span>
+                    <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
+                      <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
+                        <Cpu className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
+                          Model
+                        </span>
+                        <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
+                          {product.model || "-"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
+                      <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
+                        <Calendar className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
+                          Tahun Produksi
+                        </span>
+                        <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
+                          {product.manufacture_year || "-"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Bottom Row: 2-Column Product Information Grid with Dynamic Icon Colors */}
-                <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
-                  <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
-                    <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
-                      <Tag className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
-                        Kode Produk
-                      </span>
-                      <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
-                        {product.product_code || "-"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
-                    <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
-                      <FileCode className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
-                        Kode Model
-                      </span>
-                      <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
-                        {product.model_code || "-"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
-                    <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
-                      <Cpu className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
-                        Model
-                      </span>
-                      <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
-                        {product.model || "-"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
-                    <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
-                      <Calendar className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block truncate">
-                        Tahun Produksi
-                      </span>
-                      <span className="text-xs sm:text-sm font-bold font-mono text-foreground truncate block mt-0.5">
-                        {product.manufacture_year || "-"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              </SectionBlurLoader>
             }
             backLayerContent={
               <div className="space-y-3">
@@ -945,19 +983,23 @@ export default function PublicProductDetail() {
                           <TableBody>
                             {clientProducts.map((p, idx) => {
                               const isCurrentProduct = p.product_id === product?.product_id;
+                              const isRowLoading = isProductFetching && activeSwitchingSerial === p.serial_number;
                               return (
                                 <TableRow
                                   key={p.product_id}
                                   onClick={() => {
                                     if (!isCurrentProduct) {
-                                      navigate(`/p/${p.serial_number}`);
+                                      preserveScrollRef.current = true;
+                                      setActiveSwitchingSerial(p.serial_number);
+                                      navigate(`/p/${p.serial_number}`, { state: { preserveScroll: true } });
                                     } else {
                                       window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
                                     }
                                   }}
                                   className={cn(
                                     "hover:bg-zinc-900/80 cursor-pointer transition-colors border-zinc-800/60",
-                                    isCurrentProduct && "bg-zinc-800/90 hover:bg-zinc-800"
+                                    isCurrentProduct && "bg-zinc-800/90 hover:bg-zinc-800",
+                                    isRowLoading && "bg-emerald-950/30 border-emerald-500/30"
                                   )}
                                 >
                                   <TableCell className="text-center text-zinc-400 font-mono text-xs">
@@ -973,12 +1015,16 @@ export default function PublicProductDetail() {
                                     <ClientProductStatusBadge status={p.status} />
                                   </TableCell>
                                   <TableCell className="text-center">
-                                    <ExternalLink
-                                      className={cn(
-                                        "h-4 w-4 inline-block",
-                                        isCurrentProduct ? "text-emerald-400" : "text-zinc-500 hover:text-zinc-200"
-                                      )}
-                                    />
+                                    {isRowLoading ? (
+                                      <Loader2 className="h-4 w-4 inline-block animate-spin text-emerald-400" />
+                                    ) : (
+                                      <ExternalLink
+                                        className={cn(
+                                          "h-4 w-4 inline-block",
+                                          isCurrentProduct ? "text-emerald-400" : "text-zinc-500 hover:text-zinc-200"
+                                        )}
+                                      />
+                                    )}
                                   </TableCell>
                                 </TableRow>
                               );
@@ -1000,54 +1046,58 @@ export default function PublicProductDetail() {
           initial={{ opacity: 0, filter: "blur(8px)", y: 12 }}
           animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-          className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 sm:p-5 shadow-xl space-y-4 scroll-mt-16"
+          className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 sm:p-5 shadow-xl space-y-4 scroll-mt-16 overflow-hidden"
         >
-          <button
-            type="button"
-            onClick={() => setIsSpecExpanded((prev) => !prev)}
-            className="w-full flex items-center justify-between text-left focus:outline-none group cursor-pointer select-none py-2 pl-2"
-          >
-            <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-200 group-hover:text-emerald-400 transition-colors">
-              SPESIFIKASI
-            </h2>
-            <div>
-              {isSpecExpanded ? (
-                <ChevronUp className="h-4 w-4 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
-              )}
-            </div>
-          </button>
+          <SectionBlurLoader loading={isProductFetching} label="Memuat Spesifikasi...">
+            <button
+              type="button"
+              onClick={() => setIsSpecExpanded((prev) => !prev)}
+              className="w-full flex items-center justify-between text-left focus:outline-none group cursor-pointer select-none py-2 pl-2"
+            >
+              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-200 group-hover:text-emerald-400 transition-colors">
+                SPESIFIKASI
+              </h2>
+              <div>
+                {isSpecExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                )}
+              </div>
+            </button>
 
-          <AnimatePresence initial={false}>
-            {isSpecExpanded && (
-              <motion.div
-                initial={{ opacity: 0, filter: "blur(6px)", height: 0 }}
-                animate={{ opacity: 1, filter: "blur(0px)", height: "auto" }}
-                exit={{ opacity: 0, filter: "blur(6px)", height: 0 }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="overflow-hidden"
-              >
-                <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
-                  <SpecDetailItem icon={Zap} label="Kapasitas Daya" value={product.power_capacity} />
-                  <SpecDetailItem icon={Gauge} label="Input Voltage" value={product.input_voltage} />
-                  <SpecDetailItem icon={Power} label="Output Voltage" value={product.output_voltage} />
-                  <SpecDetailItem icon={Radio} label="Frekuensi" value={product.frequency} />
-                  <SpecDetailItem icon={Plug} label="Jumlah Socket" value={product.socket_count} />
-                  <SpecDetailItem icon={Cable} label="Ground Output" value={product.ground_output} />
-                  <SpecDetailItem icon={Shield} label="Soft Fuse" value={product.soft_fuse} />
-                  <SpecDetailItem icon={ShieldCheck} label="Hard Fuse" value={product.hard_fuse} />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            <AnimatePresence initial={false}>
+              {isSpecExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, filter: "blur(6px)", height: 0 }}
+                  animate={{ opacity: 1, filter: "blur(0px)", height: "auto" }}
+                  exit={{ opacity: 0, filter: "blur(6px)", height: 0 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
+                    <SpecDetailItem icon={Zap} label="Kapasitas Daya" value={product.power_capacity} />
+                    <SpecDetailItem icon={Gauge} label="Input Voltage" value={product.input_voltage} />
+                    <SpecDetailItem icon={Power} label="Output Voltage" value={product.output_voltage} />
+                    <SpecDetailItem icon={Radio} label="Frekuensi" value={product.frequency} />
+                    <SpecDetailItem icon={Plug} label="Jumlah Socket" value={product.socket_count} />
+                    <SpecDetailItem icon={Cable} label="Ground Output" value={product.ground_output} />
+                    <SpecDetailItem icon={Shield} label="Soft Fuse" value={product.soft_fuse} />
+                    <SpecDetailItem icon={ShieldCheck} label="Hard Fuse" value={product.hard_fuse} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </SectionBlurLoader>
         </motion.div>
 
         {/* 3. Laporan Section */}
-        <PublicReportCard
-          isExpanded={isReportExpanded}
-          onToggleExpand={() => setIsReportExpanded((prev) => !prev)}
-        />
+        <SectionBlurLoader loading={isProductFetching} label="Memuat Laporan...">
+          <PublicReportCard
+            isExpanded={isReportExpanded}
+            onToggleExpand={() => setIsReportExpanded((prev) => !prev)}
+          />
+        </SectionBlurLoader>
 
         {/* 4. Dokumentasi & Event Section */}
         <div id="dokumentasi" className="space-y-3 pt-2 scroll-mt-16">
@@ -1058,16 +1108,19 @@ export default function PublicProductDetail() {
           <PublicEventAccordion
             productId={product.product_id}
             serialNumber={product.serial_number}
+            isProductLoading={isProductFetching}
           />
         </div>
 
         {/* 5. QR Code Section */}
-        <PublicQrCodeCard
-          serialNumber={product.serial_number}
-          productName={product.product_name}
-          isExpanded={isQrExpanded}
-          onToggleExpand={() => setIsQrExpanded((prev) => !prev)}
-        />
+        <SectionBlurLoader loading={isProductFetching} label="Memuat Kode QR...">
+          <PublicQrCodeCard
+            serialNumber={product.serial_number}
+            productName={product.product_name}
+            isExpanded={isQrExpanded}
+            onToggleExpand={() => setIsQrExpanded((prev) => !prev)}
+          />
+        </SectionBlurLoader>
       </motion.main>
 
       {/* Footer */}
