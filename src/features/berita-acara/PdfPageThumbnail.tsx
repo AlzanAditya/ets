@@ -40,8 +40,9 @@ export function PdfPageThumbnail({ pdfDocument, pageNumber, className, onClick }
         context.fillStyle = "#ffffff"
         context.fillRect(0, 0, viewport.width, viewport.height)
 
-        renderTask = page.render({ canvasContext: context, viewport })
-        await renderTask.promise
+        const task = page.render({ canvasContext: context, viewport })
+        renderTask = task
+        await task.promise
         if (!cancelled) setStatus("ready")
       } catch (error) {
         if (!cancelled && (error as { name?: string })?.name !== "RenderingCancelledException") {
