@@ -63,9 +63,9 @@ const routePreloaders: Record<string, () => Promise<any>> = {
   "/admin/reports": ReportsPage.preload,
   "/reports/survey": ReportSurveyPage.preload,
   "/reports/final-survey": ReportSurveyPage.preload,
+  "/reports/berita-acara": BeritaAcaraPage.preload,
   "/admin/reports/survey": ReportSurveyPage.preload,
   "/admin/reports/final-survey": ReportSurveyPage.preload,
-  "/reports/berita-acara": BeritaAcaraPage.preload,
   "/admin/reports/berita-acara": BeritaAcaraPage.preload,
   "/settings": SettingsPage.preload,
   "/admin/settings": SettingsPage.preload,
@@ -109,7 +109,6 @@ export function preloadAllAdminRoutes() {
     InvoicePage.preload,
     ReportsPage.preload,
     ReportSurveyPage.preload,
-    BeritaAcaraPage.preload,
     SettingsPage.preload,
   ]
 

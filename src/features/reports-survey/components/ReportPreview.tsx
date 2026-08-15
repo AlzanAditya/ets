@@ -1,7 +1,39 @@
 import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ZoomIn, ZoomOut, RotateCcw, X } from 'lucide-react'
+import {
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  X,
+  ChevronDown,
+  Presentation,
+  FileDown,
+  FileText,
+  Settings,
+  Grid2X2,
+  Square,
+  Sparkles,
+  Weight,
+  Activity,
+  Power,
+  Filter,
+  Cpu,
+  ServerCog,
+} from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { ReportData, ProductData } from '../types'
 import { ASSET } from '../data/template'
 import { SmartImage } from '@/components/ui/smart-image'
@@ -116,7 +148,7 @@ function Page({
         <SmartImage src={cover ? BG1 : BG2} className="report-bg" alt="" />
         {children}
         <span className="page-indicator pdf-ui-only">
-          Halaman {number} / {total}
+          {number} / {total}
         </span>
         {locked && <span className="template-badge pdf-ui-only">TEMPLATE</span>}
       </article>
@@ -199,6 +231,13 @@ const productPageASlots = [
   { left: '66.41%', top: '53.8%', width: '17.09%', height: '40.52%' },
 ]
 
+const productPageASlots1Row = [
+  { left: '12.8%', top: '27.8%', width: '17.9%', height: '52.8%' },
+  { left: '32.0%', top: '27.8%', width: '17.9%', height: '52.8%' },
+  { left: '51.3%', top: '27.8%', width: '17.9%', height: '52.8%' },
+  { left: '70.6%', top: '27.8%', width: '17.9%', height: '52.8%' },
+]
+
 const productPageBSlots = [
   { left: '16.1%', top: '18.98%', width: '20.725%', height: '49.12%' },
   { left: '40.25%', top: '19.11%', width: '20.725%', height: '49.12%' },
@@ -216,10 +255,12 @@ function PhotoGrid({
   photos = [],
   slots,
   labels = [],
+  bordered = false,
 }: {
   photos: string[]
   slots: { left: string; top: string; width: string; height: string }[]
   labels?: string[]
+  bordered?: boolean
 }) {
   return (
     <>
@@ -228,7 +269,11 @@ function PhotoGrid({
         const label = labels[i]
         return (
           <React.Fragment key={`${src}-${i}`}>
-            <Img src={src} {...slot} className="portrait-photo" />
+            <Img
+              src={src}
+              {...slot}
+              className={`portrait-photo ${bordered ? 'border-[1.5px] border-black' : ''}`}
+            />
             {label && (
               <div
                 className="photo-label"
@@ -262,25 +307,81 @@ function ProductPageA({
   onVisible?: (n: number) => void
   onOpen?: (el: HTMLElement, pageNum: number) => void
 }) {
+  const is1Row = p.photoLayoutMode === '1row'
+  const isUnified = p.phaseDisplayMode === 'unified'
+  const slots = is1Row ? productPageASlots1Row : productPageASlots
+
   return (
     <Page number={number} total={total} onVisible={onVisible} onOpen={onOpen}>
-      <Text left="0.5%" top="10.77%" width="22%" height="5.33%" className="product-heading">
-        {p.name}
-      </Text>
+      {is1Row ? (
+        <Text left="12.8%" top="12.2%" width="60%" height="6%" className="product-heading-underlined">
+          {p.name}
+        </Text>
+      ) : (
+        <Text left="0.5%" top="10.77%" width="35%" height="5.33%" className="product-heading">
+          {p.name}
+        </Text>
+      )}
+
       <PhotoGrid
         photos={p.photos}
-        slots={productPageASlots}
-        labels={['', '', '', '', '', '']}
+        slots={slots}
+        labels={is1Row ? ['', '', '', ''] : ['', '', '', '', '', '']}
+        bordered={is1Row}
       />
-      <Text left="32.08%" top="90.28%" width="10.15%" height="4.04%" className="phase-reading">
-        PHASE R : {p.phaseR}
-      </Text>
-      <Text left="53.33%" top="90.28%" width="10.15%" height="4.04%" className="phase-reading">
-        PHASE S : {p.phaseS}
-      </Text>
-      <Text left="73.53%" top="90.28%" width="10.15%" height="4.04%" className="phase-reading">
-        PHASE T : {p.phaseT}
-      </Text>
+
+      {isUnified ? (
+        /* Unified Phase Reading Box (Disatukan seperti foto referensi) */
+        <div
+          className="phase-reading-unified"
+          style={{
+            left: is1Row ? '76.2%' : '73.53%',
+            top: is1Row ? '82.2%' : '88.5%',
+            width: is1Row ? '12.3%' : '14.5%',
+          }}
+        >
+          <div>PHASE R : {p.phaseR || '-'}</div>
+          <div>PHASE S : {p.phaseS || '-'}</div>
+          <div>PHASE T : {p.phaseT || '-'}</div>
+          {p.phaseNG ? <div>PHASE N - G : {p.phaseNG}</div> : null}
+        </div>
+      ) : is1Row ? (
+        /* Separated Phase Reading Badges in 1-Row layout */
+        <>
+          <Text left="16.5%" top="82.5%" width="10.5%" height="4.04%" className="phase-reading">
+            PHASE R : {p.phaseR}
+          </Text>
+          <Text left="35.7%" top="82.5%" width="10.5%" height="4.04%" className="phase-reading">
+            PHASE S : {p.phaseS}
+          </Text>
+          <Text left="55.0%" top="82.5%" width="10.5%" height="4.04%" className="phase-reading">
+            PHASE T : {p.phaseT}
+          </Text>
+          {p.phaseNG && (
+            <Text left="74.3%" top="82.5%" width="10.5%" height="4.04%" className="phase-reading">
+              PHASE N - G : {p.phaseNG}
+            </Text>
+          )}
+        </>
+      ) : (
+        /* Separated Phase Reading Badges in 2-Row layout (Default) */
+        <>
+          <Text left="32.08%" top="90.28%" width="10.15%" height="4.04%" className="phase-reading">
+            PHASE R : {p.phaseR}
+          </Text>
+          <Text left="53.33%" top="90.28%" width="10.15%" height="4.04%" className="phase-reading">
+            PHASE S : {p.phaseS}
+          </Text>
+          <Text left="73.53%" top="90.28%" width="10.15%" height="4.04%" className="phase-reading">
+            PHASE T : {p.phaseT}
+          </Text>
+          {p.phaseNG && (
+            <Text left="11.0%" top="90.28%" width="10.15%" height="4.04%" className="phase-reading">
+              PHASE N - G : {p.phaseNG}
+            </Text>
+          )}
+        </>
+      )}
     </Page>
   )
 }
@@ -448,26 +549,90 @@ function LockedPage({
   if (type === 'benefits')
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Text left="-3.28%" top="10.26%" width="56.7%" height="11.0%" className="benefits-title">
+        <Text left="calc(-3.28% + 100px)" top="calc(10.26% + 15px)" width="56.7%" height="11.0%" className="benefits-title">
           Manfaat  ETS :
         </Text>
-        <div className="benefit-grid" style={{ left: '8.75%', top: '25.56%', width: '82.5%', height: '66.6%' }}>
-          {[
-            ['Auto Cut-off Protection', 'ETS akan memutus input aliran listrik ketika mendeteksi adanya tegangan extreme/surge'],
-            ['Auto Overload Protection', 'Output ETS akan di shutdown ketika ETS mendeteksi adanya beban berlebih'],
-            ['Filtering', 'ETS akan menyaring / filter input listrik dari noise ( harmonic, transient, flicker )'],
-            ['Stabilizing', 'ETS akan menstabilkan tegangan yang tidak normal dengan range yang lebar ( 150 V s/d 250 V )'],
-            ['Zero Ground Processing', 'ETS akan memperbaiki kualitas ground hingga mendekati “nol” atau di bawah “1” Volt'],
-            [
-              'Network Line Protector / NLP',
-              '( Additional Fitur )\nFungsi tambahan yang mampu melakukan Proteksi Aktif pada jalur kabel Data/ Komunikasi, selain proteksi di jalur kabel Power/Listrik',
-            ],
-          ].map(([h, b]) => (
-            <div key={h}>
-              <h3>{h}</h3>
-              <p style={{ whiteSpace: 'pre-wrap' }}>{b}</p>
+        <div className="benefits-layout-3col">
+          {/* Kolom 1 (Kiri): Auto Overload Protection, Stabilizing, Auto Cut-off Protection - Teks Right Align, Icon setelah Teks */}
+          <div className="benefit-col-left">
+            <div className="benefit-item benefit-item-right">
+              <div className="benefit-text-block text-right">
+                <h3 className="benefit-heading">Auto Overload Protection</h3>
+                <p className="benefit-desc">Output ETS akan di shutdown ketika ETS mendeteksi adanya beban berlebih</p>
+              </div>
+              <div className="benefit-icon-badge">
+                <Weight className="w-8 h-8 text-black" strokeWidth={2.2} />
+              </div>
             </div>
-          ))}
+
+            <div className="benefit-item benefit-item-right">
+              <div className="benefit-text-block text-right">
+                <h3 className="benefit-heading">Stabilizing</h3>
+                <p className="benefit-desc">ETS akan menstabilkan tegangan yang tidak normal dengan range yang lebar ( 150 V s/d 250 V )</p>
+              </div>
+              <div className="benefit-icon-badge">
+                <Activity className="w-8 h-8 text-black" strokeWidth={2.2} />
+              </div>
+            </div>
+
+            <div className="benefit-item benefit-item-right">
+              <div className="benefit-text-block text-right">
+                <h3 className="benefit-heading">Auto Cut-off Protection</h3>
+                <p className="benefit-desc">ETS akan memutus input aliran listrik ketika mendeteksi adanya tegangan extreme/surge</p>
+              </div>
+              <div className="benefit-icon-badge">
+                <Power className="w-8 h-8 text-black" strokeWidth={2.2} />
+              </div>
+            </div>
+          </div>
+
+          {/* Kolom 2 (Tengah): Hanya Logo ETS saja tanpa lingkaran kuning atau teks */}
+          <div className="benefit-center-col">
+            <div className="benefit-center-emblem">
+              <SmartImage
+                src="/ets-logo.png"
+                alt="ETS Logo"
+                className="w-full h-auto max-h-[180px] object-contain"
+              />
+            </div>
+          </div>
+
+          {/* Kolom 3 (Kanan): Filtering, Zero Ground Processing, Network Line Protector - Teks Left Align, Icon sebelum Teks */}
+          <div className="benefit-col-right">
+            <div className="benefit-item benefit-item-left">
+              <div className="benefit-icon-badge">
+                <Filter className="w-8 h-8 text-black" strokeWidth={2.2} />
+              </div>
+              <div className="benefit-text-block text-left">
+                <h3 className="benefit-heading">Filtering</h3>
+                <p className="benefit-desc">ETS akan menyaring / filter input listrik dari noise ( harmonic, transient, flicker )</p>
+              </div>
+            </div>
+
+            <div className="benefit-item benefit-item-left">
+              <div className="benefit-icon-badge">
+                <Cpu className="w-8 h-8 text-black" strokeWidth={2.2} />
+              </div>
+              <div className="benefit-text-block text-left">
+                <h3 className="benefit-heading">Zero Ground Processing</h3>
+                <p className="benefit-desc">ETS akan memperbaiki kualitas ground hingga mendekati “nol” atau di bawah “1” Volt</p>
+              </div>
+            </div>
+
+            <div className="benefit-item benefit-item-left">
+              <div className="benefit-icon-badge">
+                <ServerCog className="w-8 h-8 text-black" strokeWidth={2.2} />
+              </div>
+              <div className="benefit-text-block text-left">
+                <h3 className="benefit-heading">Network Line Protector / NLP</h3>
+                <p className="benefit-desc">
+                  ( Additional Fitur )
+                  <br />
+                  Fungsi tambahan yang mampu melakukan Proteksi Aktif pada jalur kabel Data/ Komunikasi, selain proteksi di jalur kabel Power/Listrik
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </Page>
     )
@@ -580,7 +745,7 @@ function LockedPage({
   if (type === 'summary')
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
-        <Text left="10.675%" top="20.36%" width="78.64%" className="summary-title">
+        <Text left="10.675%" top="19.5%" width="78.64%" className="summary-title">
           SUMMARY KEBUTUHAN ETS DI {data.clientName.replace(/^PT\s+/i, 'PT ')}
         </Text>
         <table className="summary-table" style={{ left: '10.675%', top: '25.5%', width: '78.64%' }}>
@@ -1056,16 +1221,17 @@ function PageModal({
 }
 
 export default function ReportPreview({ data }: { data: ReportData }) {
-  const [current, setCurrent] = useState(1)
   const [selectedPageNumber, setSelectedPageNumber] = useState<number | null>(null)
   const pagesRef = useRef<HTMLDivElement>(null)
   const productCount = data.products.length
   const firstPostProduct = 3 + productCount * 2
   const total = firstPostProduct + 9 + (productCount > 1 ? 1 : 0)
 
-  const [renderScale, setRenderScale] = useState<number | ''>(2.5)
-  const [textOffsetY, setTextOffsetY] = useState<number | ''>(-2)
+  const [renderScale, setRenderScale] = useState<number>(2.5)
+  const [textOffsetY, setTextOffsetY] = useState<number | ''>(-7)
   const [isExporting, setIsExporting] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [mobileColumns, setMobileColumns] = useState<'1' | '2'>('2')
   const MIN_RENDER_SCALE = 0.5
   const MAX_RENDER_SCALE = 5
 
@@ -1174,97 +1340,208 @@ export default function ReportPreview({ data }: { data: ReportData }) {
     setSelectedPageNumber(pageNum)
   }
 
+  const resolutionLabel = renderScale === 2.5 ? 'HD' : renderScale === 1 ? 'SD' : `${renderScale}x`
+
   return (
     <section className="preview-wrap" id="report-preview">
       <div className="preview-toolbar">
-        <div>
-          <div className="text-[11px] font-extrabold tracking-widest text-[#55d1a3]">LIVE PREVIEW</div>
-          <h2>Preview dokumen</h2>
-          <p>Export menggunakan bitmap berkualitas tinggi agar PDF dan PPTX mengikuti preview.</p>
-        </div>
-        <div className="preview-actions">
-          <span className="preview-layout-badge">2 KOLOM • BITMAP • VIEWER v2.7.1</span>
-          <label className="render-scale-control" title="Offset vertikal teks hanya untuk PDF bitmap. Nilai negatif menggeser teks ke atas.">
-            <span>Offset teks Y</span>
-            <input
-              type="number"
-              min={-20}
-              max={20}
-              step="0.1"
-              inputMode="decimal"
-              value={textOffsetY}
-              disabled={isExporting}
-              onChange={(e) => {
-                const value = e.target.value
-                if (value === '') {
-                  setTextOffsetY('')
-                  return
-                }
-                const parsed = Number.parseFloat(value)
-                if (Number.isFinite(parsed)) setTextOffsetY(Math.min(20, Math.max(-20, parsed)))
-              }}
-              onBlur={() => {
-                if (!Number.isFinite(Number(textOffsetY))) setTextOffsetY(0)
-              }}
-              aria-label="Offset vertikal teks PDF bitmap"
-            />
-            <small>− naik • + turun • 0 normal</small>
-          </label>
-          <label className="render-scale-control" title="Skala render bitmap saat export">
-            <span>Skala render</span>
-            <input
-              type="number"
-              min={MIN_RENDER_SCALE}
-              max={MAX_RENDER_SCALE}
-              step="0.1"
-              inputMode="decimal"
-              value={renderScale}
-              disabled={isExporting}
-              onChange={(e) => {
-                const value = e.target.value
-                if (value === '') {
-                  setRenderScale('')
-                  return
-                }
-                const parsed = Number.parseFloat(value)
-                if (Number.isFinite(parsed))
-                  setRenderScale(Math.min(MAX_RENDER_SCALE, Math.max(MIN_RENDER_SCALE, parsed)))
-              }}
-              onBlur={() => {
-                if (!Number.isFinite(Number(renderScale))) setRenderScale(2.5)
-              }}
-              aria-label="Skala render bitmap"
-            />
-            <small>
-              {Math.round(1600 * normalizedRenderScale)}×{Math.round(900 * normalizedRenderScale)} px
-            </small>
-          </label>
-          <div className="page-counter">
-            Halaman <b>{current}</b> / {total}
+        <div className="preview-actions flex flex-wrap items-center justify-between gap-2 w-full">
+          {/* Kontrol Kiri: Mobile Switch & Resolusi (HD / SD) */}
+          <div className="flex items-center flex-wrap gap-2">
+            {/* Mobile Column Toggle Switch (Latar Putih/Background sesuai swap) */}
+            <div className="flex items-center gap-1 p-1 rounded-lg bg-background border border-input md:hidden shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setMobileColumns('1')}
+                title="1 Kolom per baris"
+                aria-label="1 Kolom per baris"
+                className={`p-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
+                  mobileColumns === '1'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Square className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileColumns('2')}
+                title="2 Kolom per baris"
+                aria-label="2 Kolom per baris"
+                className={`p-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
+                  mobileColumns === '2'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Grid2X2 className="size-4" />
+              </button>
+            </div>
+
+            {/* Dropdown Kualitas HD / SD - Align Left */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={isExporting}
+                  className="h-8 px-3 rounded-lg border border-border bg-card hover:bg-muted text-card-foreground hover:text-foreground text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs"
+                  aria-label="Pilih Kualitas Render"
+                >
+                  <span>{resolutionLabel}</span>
+                  <ChevronDown className="size-3.5 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40">
+                <DropdownMenuItem
+                  onClick={() => setRenderScale(2.5)}
+                  className="text-xs font-medium cursor-pointer flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="size-3.5 text-primary" />
+                    <span>HD (2.5x)</span>
+                  </span>
+                  {renderScale === 2.5 && <span className="text-[10px] text-primary font-bold">Default</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setRenderScale(1)}
+                  className="text-xs font-medium cursor-pointer flex items-center justify-between"
+                >
+                  <span>SD (1x)</span>
+                  {renderScale === 1 && <span className="text-[10px] text-primary font-bold">Aktif</span>}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <button className="download-pptx" onClick={downloadPptx} disabled={isExporting}>
-            Unduh PPTX
-          </button>
-          <button
-            className="download-pdf"
-            onClick={downloadPdf}
-            disabled={isExporting}
-            title="Export cepat format bitmap image"
-          >
-            Unduh PDF (Cepat - bitmap)
-          </button>
-          <button
-            className="download-pdf download-pdf-native"
-            onClick={downloadPdfNative}
-            disabled={isExporting}
-            title="Teks bisa diseleksi & dicari. Pilih 'Save as PDF' di dialog cetak browser."
-            style={{ backgroundColor: '#0284c7', borderColor: '#0369a1' }}
-          >
-            Unduh PDF (Presisi - bisa diseleksi)
-          </button>
+
+          {/* Kontrol Kanan: ButtonGroup Unduh (Hijau) & Tombol Setting (Latar Abu-abu Muted) */}
+          <div className="flex items-center flex-wrap gap-2 ml-auto">
+            {/* ButtonGroup Unduh (Latar Hijau) */}
+            <div className="inline-flex items-center rounded-lg border border-primary/50 bg-primary shadow-2xs overflow-hidden text-xs">
+              <button
+                type="button"
+                onClick={downloadPptx}
+                disabled={isExporting}
+                className="h-8 px-3.5 text-xs font-semibold flex items-center cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground transition-colors disabled:opacity-50"
+                title="Unduh PPTX"
+              >
+                {isExporting ? 'Menyiapkan...' : 'Unduh'}
+              </button>
+
+              <div className="w-px h-8 bg-primary-foreground/20 shrink-0" aria-hidden="true" />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={isExporting}
+                    className="h-8 px-2 text-xs cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center transition-colors disabled:opacity-50"
+                    aria-label="Pilihan Format Unduh"
+                    title="Pilihan Format Unduh"
+                  >
+                    <ChevronDown className="size-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem
+                    onClick={downloadPptx}
+                    disabled={isExporting}
+                    className="text-xs font-medium cursor-pointer flex items-center gap-2"
+                  >
+                    <Presentation className="size-3.5 text-muted-foreground" />
+                    <span>Unduh PPTX</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={downloadPdf}
+                    disabled={isExporting}
+                    className="text-xs font-medium cursor-pointer flex items-center gap-2"
+                  >
+                    <FileDown className="size-3.5 text-muted-foreground" />
+                    <span>Unduh PDF (bitmap)</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={downloadPdfNative}
+                    disabled={isExporting}
+                    className="text-xs font-medium cursor-pointer flex items-center gap-2"
+                  >
+                    <FileText className="size-3.5 text-muted-foreground" />
+                    <span>Unduh PDF (Presisi)</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Tombol Setting (Latar Abu-abu Muted, ukuran setara tombol unduh h-8 px-3.5) */}
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(true)}
+              className="h-8 px-3.5 rounded-lg border border-border bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
+              title="Pengaturan Offset Teks PDF"
+              aria-label="Pengaturan Offset Teks PDF"
+            >
+              <Settings className="size-4" />
+            </button>
+          </div>
         </div>
       </div>
-      <div className="pages" ref={pagesRef}>
+
+      {/* Modal Settings Offset Teks */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="max-w-md bg-card text-card-foreground border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+              <Settings className="size-5 text-primary" />
+              Pengaturan Ekspor Dokumen
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Sesuaikan offset vertikal teks pada hasil ekspor PDF bitmap.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3.5">
+              <label htmlFor="text-offset-y-input" className="text-xs font-semibold text-foreground">
+                Offset Teks Y
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="text-offset-y-input"
+                  type="number"
+                  min={-20}
+                  max={20}
+                  step="0.1"
+                  inputMode="decimal"
+                  value={textOffsetY}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (value === '') {
+                      setTextOffsetY('')
+                      return
+                    }
+                    const parsed = Number.parseFloat(value)
+                    if (Number.isFinite(parsed)) setTextOffsetY(Math.min(20, Math.max(-20, parsed)))
+                  }}
+                  onBlur={() => {
+                    if (!Number.isFinite(Number(textOffsetY))) setTextOffsetY(-7)
+                  }}
+                  className="w-28 h-9 px-3 rounded-md border border-border bg-background text-foreground text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTextOffsetY(-7)}
+                  className="h-9 px-3 text-xs font-medium rounded-md border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Reset (-7)
+                </button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div
+        className={`pages ${mobileColumns === '1' ? 'pages-mobile-1col' : 'pages-mobile-2col'}`}
+        ref={pagesRef}
+      >
         {Array.from({ length: total }, (_, idx) => {
           const pageNum = idx + 1
           return (
@@ -1273,7 +1550,6 @@ export default function ReportPreview({ data }: { data: ReportData }) {
               pageNumber={pageNum}
               data={data}
               total={total}
-              onVisible={setCurrent}
               onOpen={handleOpenPage}
             />
           )

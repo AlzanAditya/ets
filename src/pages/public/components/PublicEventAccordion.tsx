@@ -497,13 +497,8 @@ export function PublicEventAccordion({
 
       {/* Spinner Overlay when re-fetching events */}
       {isAnyLoading && events.length > 0 && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-zinc-950/40 backdrop-blur-[2px] rounded-2xl p-4 transition-all duration-200 animate-in fade-in">
-          <div className="flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800/80 shadow-2xl">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-400 stroke-[2.5]" />
-            <span className="text-xs font-semibold text-zinc-300 font-mono tracking-wide">
-              Memuat dokumentasi event...
-            </span>
-          </div>
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-all duration-200 animate-in fade-in">
+          <Loader2 className="h-7 w-7 animate-spin text-emerald-400 stroke-[2.5]" />
         </div>
       )}
 

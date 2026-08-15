@@ -161,12 +161,12 @@ export default function App() {
                     <Route path="admin/invoice"   element={<InvoicePage />} />
                     <Route path="reports"         element={<ReportsPage />} />
                     <Route path="admin/reports"   element={<ReportsPage />} />
-                    <Route path="reports/berita-acara" element={<BeritaAcaraPage />} />
-                    <Route path="admin/reports/berita-acara" element={<BeritaAcaraPage />} />
                     <Route path="reports/survey"  element={<ReportSurveyPage mode="survey" />} />
                     <Route path="reports/final-survey" element={<ReportSurveyPage mode="final" />} />
+                    <Route path="reports/berita-acara" element={<BeritaAcaraPage />} />
                     <Route path="admin/reports/survey" element={<ReportSurveyPage mode="survey" />} />
                     <Route path="admin/reports/final-survey" element={<ReportSurveyPage mode="final" />} />
+                    <Route path="admin/reports/berita-acara" element={<BeritaAcaraPage />} />
                     <Route path="settings"        element={<SettingsPage />} />
                     <Route path="admin/settings"  element={<SettingsPage />} />
                     <Route path="admin"           element={<Navigate to="/dashboard" replace />} />

@@ -67,7 +67,9 @@ export const initialReport: ReportData = {
       measurementPhotos: ['s06-p03.jpg', 's06-p02.jpg', 's06-p01.jpg', 's06-p04.jpg'],
       solutionTitle: '2. UPS EATON (120 KVA)',
       ets: 'ETS 120 KVA (Three Phase)',
-      covered: 'Perangkat Yang tercover UPS 120 KVA'
+      covered: 'Perangkat Yang tercover UPS 120 KVA',
+      photoLayoutMode: '1row',
+      phaseDisplayMode: 'unified'
     }
   ]
 }

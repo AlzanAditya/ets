@@ -68,7 +68,7 @@ export function AppSidebar({
             <SidebarMenuButton
               asChild
               tooltip={brand.title}
-              className="h-[52px] data-[slot=sidebar-menu-button]:p-1! group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-0!"
+              className="h-[62px] data-[slot=sidebar-menu-button]:p-1! group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-0!"
             >
               <a
                 href={brand.href}
@@ -82,7 +82,7 @@ export function AppSidebar({
                   <SmartImage
                     src={brand.logoSrc}
                     alt={brand.logoAlt ?? brand.title}
-                    className="h-11 w-11 shrink-0 object-contain"
+                    className="h-[55px] w-[55px] shrink-0 object-contain"
                   />
                 ) : null}
                 <span className="flex flex-col text-[0.6rem] font-medium uppercase leading-tight tracking-[0.05em] text-muted-foreground group-data-[collapsible=icon]:hidden">

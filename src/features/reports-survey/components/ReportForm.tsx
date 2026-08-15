@@ -307,14 +307,86 @@ export default function ReportForm({ data, setData, step, setStep }: ReportFormP
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <Field label="Nama perangkat" value={p.name} onChange={(v) => upProd(i, 'name', v)} />
                   <Field label="Brand" value={p.brand} onChange={(v) => upProd(i, 'brand', v)} />
                   <Field label="Kapasitas" value={p.capacity} onChange={(v) => upProd(i, 'capacity', v)} />
+                  <Field label="Voltage" value={p.voltage} onChange={(v) => upProd(i, 'voltage', v)} />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <Field label="Phase R" value={p.phaseR} onChange={(v) => upProd(i, 'phaseR', v)} />
                   <Field label="Phase S" value={p.phaseS} onChange={(v) => upProd(i, 'phaseS', v)} />
                   <Field label="Phase T" value={p.phaseT} onChange={(v) => upProd(i, 'phaseT', v)} />
-                  <Field label="Voltage" value={p.voltage} onChange={(v) => upProd(i, 'voltage', v)} />
+                  <Field label="Phase N-G (Opsional)" value={p.phaseNG || ''} onChange={(v) => upProd(i, 'phaseNG', v)} placeholder="Contoh: 0,3 V" />
+                </div>
+
+                {/* Switch Opsi Layout & Format Phase untuk Halaman Foto (Tanpa Tabel) */}
+                <div className="p-3.5 rounded-lg border border-border bg-muted/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-foreground">Opsi Layout Halaman Foto (Halaman Tanpa Tabel)</h4>
+                    <span className="text-[10px] text-muted-foreground">Khusus halaman produk survey A</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-foreground/80">Format Label Phase</label>
+                      <div className="flex rounded-lg border border-input bg-background p-1 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => upProd(i, 'phaseDisplayMode', 'separated')}
+                          className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-md transition-colors ${
+                            p.phaseDisplayMode !== 'unified'
+                              ? 'bg-primary text-primary-foreground shadow-xs'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Terpisah (3-4 Kotak)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => upProd(i, 'phaseDisplayMode', 'unified')}
+                          className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-md transition-colors ${
+                            p.phaseDisplayMode === 'unified'
+                              ? 'bg-primary text-primary-foreground shadow-xs'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Disatukan (1 Kotak Kuning)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-foreground/80">Susunan Baris Foto</label>
+                      <div className="flex rounded-lg border border-input bg-background p-1 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => upProd(i, 'photoLayoutMode', '2rows')}
+                          className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-md transition-colors ${
+                            p.photoLayoutMode !== '1row'
+                              ? 'bg-primary text-primary-foreground shadow-xs'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          2 Baris (Grid 6 Foto)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => upProd(i, 'photoLayoutMode', '1row')}
+                          className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-md transition-colors ${
+                            p.photoLayoutMode === '1row'
+                              ? 'bg-primary text-primary-foreground shadow-xs'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          1 Baris (4 Foto Sejajar)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <Field label="Grounding" value={p.grounding} onChange={(v) => upProd(i, 'grounding', v)} />
                   <Field label="UPS" value={p.ups} onChange={(v) => upProd(i, 'ups', v)} />
                   <Field label="Stabilizer" value={p.stabilizer} onChange={(v) => upProd(i, 'stabilizer', v)} />

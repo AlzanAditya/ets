@@ -6,6 +6,7 @@ export interface ProductData {
   phaseR: string
   phaseS: string
   phaseT: string
+  phaseNG?: string
   voltage: string
   grounding: string
   ups: string
@@ -19,6 +20,8 @@ export interface ProductData {
   solutionTitle?: string
   ets?: string
   covered?: string
+  photoLayoutMode?: '1row' | '2rows'
+  phaseDisplayMode?: 'separated' | 'unified'
 }
 
 export interface ReportData {

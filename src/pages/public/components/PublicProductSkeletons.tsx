@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
  */
 export function SectionBlurLoader({
   loading,
-  label = "Memuat data...",
   children,
   className,
   spinnerSize = "md",
@@ -26,29 +25,22 @@ export function SectionBlurLoader({
       <div
         className={cn(
           "transition-all duration-300 ease-out",
-          loading && "filter blur-[3px] opacity-40 pointer-events-none select-none"
+          loading && "filter blur-[2px] opacity-40 pointer-events-none select-none"
         )}
       >
         {children}
       </div>
 
       {loading && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-zinc-950/50 backdrop-blur-[2px] rounded-2xl p-4 transition-all duration-200 animate-in fade-in">
-          <div className="flex flex-col items-center justify-center gap-2.5 p-3 sm:p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800/80 shadow-2xl">
-            <Loader2
-              className={cn(
-                "animate-spin text-emerald-400 stroke-[2.5]",
-                spinnerSize === "sm" && "h-4 w-4",
-                spinnerSize === "md" && "h-6 w-6",
-                spinnerSize === "lg" && "h-8 w-8"
-              )}
-            />
-            {label && (
-              <span className="text-xs font-semibold text-zinc-300 font-mono tracking-wide">
-                {label}
-              </span>
+        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none transition-all duration-200 animate-in fade-in">
+          <Loader2
+            className={cn(
+              "animate-spin text-emerald-400 stroke-[2.5]",
+              spinnerSize === "sm" && "h-5 w-5",
+              spinnerSize === "md" && "h-7 w-7",
+              spinnerSize === "lg" && "h-9 w-9"
             )}
-          </div>
+          />
         </div>
       )}
     </div>
@@ -60,7 +52,12 @@ export function SectionBlurLoader({
  */
 export function ProductIdentitySkeleton() {
   return (
-    <div className="rounded-3xl border border-zinc-800 bg-zinc-900/90 p-5 sm:p-6 shadow-xl space-y-6 animate-pulse">
+    <div className="relative rounded-3xl border border-zinc-800 bg-zinc-900/90 p-5 sm:p-6 shadow-xl space-y-6 animate-pulse overflow-hidden">
+      {/* Top-Right Badge Skeleton */}
+      <div className="absolute top-0 right-0 z-10">
+        <Skeleton className="h-6 w-20 rounded-bl-xl bg-zinc-800" />
+      </div>
+
       {/* Top Banner Row */}
       <div className="flex flex-row items-center justify-between gap-4">
         {/* Left Info Skeleton */}
@@ -76,7 +73,6 @@ export function ProductIdentitySkeleton() {
         {/* Right Image Container Skeleton */}
         <div className="flex flex-col items-center justify-center shrink-0 w-32 sm:w-44 md:w-52 py-2">
           <Skeleton className="h-28 sm:h-36 w-24 sm:w-32 rounded-2xl bg-zinc-800" />
-          <Skeleton className="h-6 w-24 rounded-full bg-zinc-800 -mt-3 z-10" />
         </div>
       </div>
 

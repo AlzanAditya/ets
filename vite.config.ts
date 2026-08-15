@@ -55,6 +55,16 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: [
+      "pdfjs-dist",
+      "pdf-lib",
+      "@dnd-kit/core",
+      "@dnd-kit/sortable",
+      "@dnd-kit/utilities",
+      "@dnd-kit/modifiers",
+    ],
+  },
   server: {
     port: 3000,
     host: "0.0.0.0",

@@ -24,7 +24,6 @@ import {
   Image as ImageIcon,
   FileText,
   ExternalLink,
-  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -786,28 +785,36 @@ export default function PublicProductDetail() {
           <EntityProfileBanner
             variant={statusConfig.bannerVariant}
             customFrontLayer={
-              <SectionBlurLoader loading={isProductFetching} label="Memuat Identitas Produk...">
-                <div className="p-5 sm:p-6 space-y-5">
-                  {/* Top Row: Left Text (Identitas Produk) + Right UPS Image with Attached Badge */}
-                  <div className="flex flex-row items-center justify-between gap-4">
+              <SectionBlurLoader loading={isProductFetching}>
+                <div className="p-5 sm:p-6 space-y-5 relative">
+                  {/* Status Badge in Top Right Corner (top-0 right-0) */}
+                  <div className="absolute top-0 right-0 z-20">
+                    <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-bl-xl text-[10px] sm:text-xs font-bold border-b border-l shadow-sm backdrop-blur-md transition-all", statusConfig.badgeBg)}>
+                      <statusConfig.Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                      <span>{statusConfig.label}</span>
+                    </span>
+                  </div>
+
+                  {/* Top Row: Left Text (Identitas Produk) + Right UPS Image */}
+                  <div className="flex flex-row items-center justify-between gap-3 sm:gap-4">
                     {/* Left Text / Info */}
-                    <div className="space-y-2.5 flex-1 min-w-0">
-                      <div className={cn("flex items-center gap-2 text-[9px] sm:text-[10px] font-bold tracking-wider", statusConfig.headerTextColor)}>
+                    <div className="space-y-2.5 flex-1 min-w-0 pr-1 sm:pr-0">
+                      <div className={cn("flex items-center gap-2 text-[12px] sm:text-[13.5px] font-medium tracking-wider", statusConfig.headerTextColor)}>
                         <span>Nama Produk</span>
                       </div>
 
-                      <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-foreground tracking-tight leading-tight truncate">
+                      <h1 className="text-xl sm:text-3xl md:text-[45px] font-extrabold text-foreground tracking-tight leading-tight md:leading-[1.15] break-words">
                         {product.product_name}
                       </h1>
 
                       {/* Dynamic Accent Line */}
                       <div className={cn("h-1 w-16 sm:w-20 bg-gradient-to-r rounded-full my-1", statusConfig.accentGradient)} />
 
-                      {/* Dual-color Serial Number Badge */}
-                      <div className="pt-2.5 sm:pt-4">
+                      {/* Dual-color Serial Number Badge (Desktop View) */}
+                      <div className="hidden sm:block pt-2 sm:pt-3">
                         <div className={cn("inline-flex items-stretch rounded-xl border font-mono text-xs sm:text-sm shadow-inner overflow-hidden bg-zinc-950/90", statusConfig.snBorder)}>
-                          <span className={cn("px-2.5 py-1 sm:py-1.5 flex items-center font-bold text-xs uppercase tracking-wider shrink-0 rounded-r-none", statusConfig.snChipBg)}>
-                            SN:
+                          <span className={cn("pl-2.5 pr-1 py-1 sm:py-1.5 flex items-center font-bold text-xs uppercase tracking-wider shrink-0 rounded-r-none", statusConfig.snChipBg)}>
+                            SN
                           </span>
                           <span className={cn("px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center font-medium tracking-wide font-mono", statusConfig.snTextColor)}>
                             {product.serial_number}
@@ -816,30 +823,34 @@ export default function PublicProductDetail() {
                       </div>
                     </div>
 
-                    {/* Right Image Container with Absolute Status Badge */}
-                    <div className="flex flex-col justify-center items-center relative shrink-0 w-32 sm:w-44 md:w-52 py-2">
+                    {/* Right Image Container (Shifted right on mobile for more text room) */}
+                    <div className="flex flex-col justify-center items-center relative shrink-0 w-28 sm:w-44 md:w-52 py-2 translate-x-3 sm:translate-x-0">
                       {/* Dynamic Ambient Radial Glow */}
                       <div className={cn("absolute inset-0 m-auto w-24 h-24 sm:w-36 sm:h-36 rounded-full blur-2xl pointer-events-none transition-colors duration-300", statusConfig.glowBg)} />
 
-                      {/* UPS Asset Image */}
+                      {/* UPS Asset Image (scale-90 on mobile, scale-110 on desktop) */}
                       <img
                         src="https://cdn.zanxa.studio/ets/UPS-0000.webp"
                         alt={product.product_name}
-                        className="relative z-10 h-32 sm:h-44 md:h-52 w-auto object-contain transition-transform hover:scale-105 duration-300 pointer-events-none select-none pb-2 sm:pb-3"
+                        className="relative z-10 h-32 sm:h-44 md:h-52 w-auto object-contain transition-transform hover:scale-100 sm:hover:scale-115 duration-300 pointer-events-none select-none scale-90 sm:scale-110 translate-y-[7px]"
                       />
-
-                      {/* Absolute Status Badge Attached to Image */}
-                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 shrink-0 whitespace-nowrap">
-                        <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold border shadow-lg backdrop-blur-md transition-all", statusConfig.badgeBg)}>
-                          <statusConfig.Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                          <span>{statusConfig.label}</span>
-                        </span>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Bottom Row: 2-Column Product Information Grid with Dynamic Icon Colors */}
-                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3 pt-1">
+                  {/* Bottom Row: 2-Column Product Information Grid with Dynamic Icon Colors & Absolute Mobile SN Badge */}
+                  <div className="relative grid grid-cols-2 gap-2.5 sm:gap-3">
+                    {/* Dual-color Serial Number Badge (Mobile View: Absolute calculated from bottom/top of grid, strictly single line & overlapping if needed) */}
+                    <div className="sm:hidden absolute -top-[38px] left-0 z-30 pointer-events-none w-max max-w-none whitespace-nowrap">
+                      <div className={cn("inline-flex items-stretch rounded-xl border font-mono text-xs shadow-md overflow-hidden bg-zinc-950/95 pointer-events-auto whitespace-nowrap shrink-0", statusConfig.snBorder)}>
+                        <span className={cn("pl-2.5 pr-1.5 py-1 flex items-center font-bold text-xs uppercase tracking-wider shrink-0 rounded-r-none whitespace-nowrap", statusConfig.snChipBg)}>
+                          SN
+                        </span>
+                        <span className={cn("px-2.5 py-1 flex items-center font-medium tracking-wide font-mono whitespace-nowrap", statusConfig.snTextColor)}>
+                          {product.serial_number}
+                        </span>
+                      </div>
+                    </div>
+
                     <div className="rounded-xl border border-border/80 bg-background/50 dark:bg-zinc-950/60 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 hover:border-border transition-colors">
                       <div className={cn("p-2 rounded-lg shrink-0", statusConfig.detailIconBg)}>
                         <Tag className="h-4 w-4" />
@@ -933,27 +944,31 @@ export default function PublicProductDetail() {
                   {/* Badge & Chevron Controls Box (Placed right before Chevron) */}
                   <div className="flex items-center gap-2 shrink-0">
                     {clientProductsLoading ? (
-                      <div className="px-2.5 py-1.5 rounded-xl border border-zinc-800 text-zinc-400 text-xs font-normal flex items-center gap-1.5">
+                      <div className="hidden sm:flex px-2.5 py-1.5 rounded-xl border border-zinc-800 text-zinc-400 text-xs font-normal items-center gap-1.5">
                         <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />
-                        <span className="hidden sm:inline">Memuat...</span>
+                        <span>Memuat...</span>
                       </div>
                     ) : (
-                      <div className="px-2.5 py-1.5 rounded-xl border border-zinc-800 text-zinc-400 group-hover:text-zinc-100 group-hover:border-zinc-700 transition-all text-xs font-normal flex items-center gap-1">
-                        <span className="hidden sm:inline">
+                      <div className="hidden sm:flex px-2.5 py-1.5 rounded-xl border border-zinc-800 text-zinc-400 group-hover:text-zinc-100 group-hover:border-zinc-700 transition-all text-xs font-normal items-center gap-1">
+                        <span>
                           {otherProductsCount > 0 ? `${otherProductsCount} Produk Lainnya` : "0 Produk Lainnya"}
-                        </span>
-                        <span className="inline-flex sm:hidden items-center gap-1">
-                          <span>{otherProductsCount}</span>
-                          <Package className="h-3.5 w-3.5 text-zinc-400 stroke-[1.5]" />
                         </span>
                       </div>
                     )}
 
-                    <div className="p-2 rounded-xl border border-zinc-800 text-zinc-400 group-hover:text-zinc-100 group-hover:border-zinc-700 transition-all shrink-0">
+                    <div className="p-2 rounded-xl border border-zinc-800 text-zinc-400 group-hover:text-zinc-100 group-hover:border-zinc-700 transition-all shrink-0 flex items-center gap-1.5">
+                      {/* Mobile: Total Product Count right beside Chevron (without package icon) */}
+                      <span className="sm:hidden font-mono text-xs font-bold text-zinc-200">
+                        {clientProductsLoading ? (
+                          <Loader2 className="h-3 w-3 animate-spin text-zinc-400 inline" />
+                        ) : (
+                          clientProducts.length
+                        )}
+                      </span>
                       {isClientExpanded ? (
-                        <ChevronUp className="h-4 w-4" />
+                        <ChevronUp className="h-4 w-4 shrink-0" />
                       ) : (
-                        <ChevronDown className="h-4 w-4" />
+                        <ChevronDown className="h-4 w-4 shrink-0" />
                       )}
                     </div>
                   </div>
