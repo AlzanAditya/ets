@@ -86,6 +86,10 @@ export default function ReportsPage() {
       navigate("/reports/final-survey")
       return
     }
+    if (doc.id === "berita_acara") {
+      navigate("/reports/berita-acara")
+      return
+    }
     toast.info(`Form pembuatan dokumen '${doc.title}' akan segera tersedia.`, {
       description: `Shortcut untuk modul ${doc.title} siap diintegrasikan dengan sistem backend.`,
     })

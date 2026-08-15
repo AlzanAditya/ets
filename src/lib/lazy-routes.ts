@@ -28,6 +28,7 @@ export const TransactionPage = lazyWithPreload(() => import("@/pages/admin/trans
 export const InvoicePage = lazyWithPreload(() => import("@/pages/admin/invoice"))
 export const ReportsPage = lazyWithPreload(() => import("@/pages/admin/reports"))
 export const ReportSurveyPage = lazyWithPreload(() => import("@/pages/admin/reports/ReportSurveyPage"))
+export const BeritaAcaraPage = lazyWithPreload(() => import("@/pages/admin/reports/BeritaAcaraPage"))
 export const SettingsPage = lazyWithPreload(() => import("@/pages/admin/settings"))
 
 // ─── URL to Preloader Registry ──────────────────────────────────────────────
@@ -64,6 +65,8 @@ const routePreloaders: Record<string, () => Promise<any>> = {
   "/reports/final-survey": ReportSurveyPage.preload,
   "/admin/reports/survey": ReportSurveyPage.preload,
   "/admin/reports/final-survey": ReportSurveyPage.preload,
+  "/reports/berita-acara": BeritaAcaraPage.preload,
+  "/admin/reports/berita-acara": BeritaAcaraPage.preload,
   "/settings": SettingsPage.preload,
   "/admin/settings": SettingsPage.preload,
 
@@ -106,6 +109,7 @@ export function preloadAllAdminRoutes() {
     InvoicePage.preload,
     ReportsPage.preload,
     ReportSurveyPage.preload,
+    BeritaAcaraPage.preload,
     SettingsPage.preload,
   ]
 

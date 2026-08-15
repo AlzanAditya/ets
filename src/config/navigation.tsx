@@ -153,6 +153,7 @@ export const appNavigation = {
     clients: "Clients",
     client: "Clients",
     reports: "Reports",
+    "berita-acara": "Berita Acara",
     "ai-agent": "AI Agent",    tax: "Tax",
     workers: "Workers",
     branches: "Workers",
