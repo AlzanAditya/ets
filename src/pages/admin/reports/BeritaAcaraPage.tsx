@@ -12,13 +12,20 @@ export default function BeritaAcaraPage() {
   const {
     images,
     isUploading,
+    isExportingPdf,
+    isInitialized,
     lightboxIndex,
     handleUploadPhotos,
+    handlePickGallery,
+    handlePickPdf,
+    handlePickStorage,
+    handlePickFolder,
     handleDeletePhoto,
     handleClearAll,
     handleDragStart,
     handleDragOver,
     handleDrop,
+    handleExportPdf,
     setLightboxIndex,
   } = useBeritaAcaraPhotos()
 
@@ -45,23 +52,30 @@ export default function BeritaAcaraPage() {
           {images.length > 0 && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 px-3 py-1 rounded-full border border-border">
               <Images className="size-3.5 text-primary" />
-              <span>{images.length} Foto Siap</span>
+              <span>{images.length} Lembar Siap</span>
             </div>
           )}
         </div>
 
-        {/* Photo Gallery Component (Styled exactly like Event Products) */}
+        {/* Photo Gallery Component with modern zero-reload File System Access */}
         <BeritaAcaraPhotoGallery
           images={images}
           isUploading={isUploading}
+          isExportingPdf={isExportingPdf}
+          isInitialized={isInitialized}
           lightboxIndex={lightboxIndex}
           onUpload={handleUploadPhotos}
+          onPickGallery={handlePickGallery}
+          onPickPdf={handlePickPdf}
+          onPickStorage={handlePickStorage}
+          onPickFolder={handlePickFolder}
           onDelete={handleDeletePhoto}
           onClearAll={handleClearAll}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onSetLightboxIndex={setLightboxIndex}
+          onExportPdf={handleExportPdf}
         />
       </div>
     </PageContent>

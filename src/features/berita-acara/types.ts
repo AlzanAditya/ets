@@ -8,6 +8,9 @@ export interface BeritaAcaraImage {
   height: number
   uploadedAt: string
   isLoading: boolean
+  isPdfPage?: boolean
+  pageNumber?: number
+  totalPages?: number
 }
 
 export type UploadState = 'idle' | 'uploading' | 'ready' | 'error'
