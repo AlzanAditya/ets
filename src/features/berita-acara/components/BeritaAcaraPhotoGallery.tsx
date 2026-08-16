@@ -118,7 +118,7 @@ export function BeritaAcaraPhotoGallery({
               </h3>
               <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                 <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />
-                <span>Penyimpanan otomatis aktif. Anti-refresh dengan File System Access Engine.</span>
+                <span>Penyimpanan otomatis aktif. File picker dioptimalkan untuk perangkat mobile.</span>
               </p>
             </div>
           </div>

@@ -57,7 +57,7 @@ export default function BeritaAcaraPage() {
           )}
         </div>
 
-        {/* Photo Gallery Component with modern zero-reload File System Access */}
+        {/* Photo Gallery Component with mobile-safe native file pickers */}
         <BeritaAcaraPhotoGallery
           images={images}
           isUploading={isUploading}

@@ -98,6 +98,14 @@ export function useBeritaAcaraPhotos() {
     }
   }, [])
 
+  // Persist committed gallery state outside the React state updater.
+  // Keeping IndexedDB writes here avoids side effects inside setImages(), which
+  // React may invoke more than once in development/StrictMode.
+  useEffect(() => {
+    if (!isInitialized) return
+    void persistImages(images)
+  }, [images, isInitialized, persistImages])
+
   // Process a list of File objects with PDF extraction and zero main-thread block
   const handleUploadPhotos = useCallback(
     async (files: File[] | FileList) => {
@@ -171,11 +179,7 @@ export function useBeritaAcaraPhotos() {
           return
         }
 
-        setImages((prev) => {
-          const updated = [...prev, ...newItems]
-          persistImages(updated)
-          return updated
-        })
+        setImages((prev) => [...prev, ...newItems])
 
         if (pdfPagesExtracted > 0) {
           toast.success(`Berhasil menambahkan ${newItems.length} foto (${pdfPagesExtracted} halaman PDF diekstrak)`)
@@ -189,10 +193,10 @@ export function useBeritaAcaraPhotos() {
         setIsUploading(false)
       }
     },
-    [persistImages]
+    []
   )
 
-  // Direct modern File System Access pickers (Zero reload, Promise-based)
+  // Mobile-safe native file pickers
   const handlePickGallery = useCallback(async () => {
     try {
       const files = await pickFiles({ acceptType: 'images', multiple: true })
@@ -245,13 +249,11 @@ export function useBeritaAcaraPhotos() {
           URL.revokeObjectURL(target.previewUrl)
           activeUrlsRef.current.delete(target.previewUrl)
         }
-        const updated = prev.filter((img) => img.id !== id)
-        persistImages(updated)
-        return updated
+        return prev.filter((img) => img.id !== id)
       })
       toast.success('Foto berhasil dihapus')
     },
-    [persistImages]
+    []
   )
 
   const handleClearAll = useCallback(async () => {
@@ -283,13 +285,12 @@ export function useBeritaAcaraPhotos() {
         const reordered = [...prev]
         const [moved] = reordered.splice(draggedIndex, 1)
         reordered.splice(dropIndex, 0, moved)
-        persistImages(reordered)
         return reordered
       })
       setDraggedIndex(null)
       toast.success('Urutan foto diperbarui')
     },
-    [draggedIndex, persistImages]
+    [draggedIndex]
   )
 
   // Export to Berita Acara PDF Document

@@ -1,86 +1,75 @@
 /**
- * Global Web Resilience & Anti-Refresh Manager
+ * Global web lifecycle safeguards.
  *
- * This module configures global browser & DOM lifecycle behaviors to ensure:
- * 1. ZERO accidental full-page reloads from unhandled form submits or button clicks anywhere in the app.
- * 2. Back/Forward Cache (BFCache) preservation when switching between apps/dialogs.
- * 3. Page Lifecycle API management (persists navigation state and restores seamlessly if the OS kills the background process).
- * 4. Suppresses unwanted browser-level reload triggers during file selection or background app switching.
+ * This module only protects against browser-level navigation mistakes that a
+ * web page can actually control. It does NOT attempt to block Android/Chrome
+ * from suspending or discarding a background tab; that behavior is controlled
+ * by the browser/OS and cannot be cancelled by JavaScript.
  */
 
-// Key used to remember current route & critical session state across OS memory purges
-const APP_RESTORE_KEY = 'app_global_lifecycle_restore_v1'
+const APP_RESTORE_KEY = 'app_global_lifecycle_restore_v2'
 
 export function initGlobalWebResilience(): void {
   if (typeof window === 'undefined') return
 
-  // 1. Prevent ANY unhandled form submission from triggering a page reload (GET/POST to current URL)
+  // Prevent accidental navigation caused by an unhandled local form submit.
+  // Explicit forms with a real action are left untouched.
   window.addEventListener(
     'submit',
-    (e: Event) => {
-      const form = e.target as HTMLFormElement
-      // If the form does not have an explicit external action, prevent default browser navigation
-      if (!form.getAttribute('action') || form.getAttribute('action') === '#') {
-        e.preventDefault()
+    (event: Event) => {
+      const form = event.target as HTMLFormElement | null
+      if (!form) return
+
+      const action = form.getAttribute('action')
+      if (!action || action === '#') {
+        event.preventDefault()
       }
     },
     { capture: true }
   )
 
-  // 2. Prevent accidental drag-and-drop outside designated zones from navigating to the file URL
+  // Prevent dropped files from navigating the whole page unless they land in
+  // an explicitly declared drop zone.
   window.addEventListener(
     'dragover',
-    (e) => {
-      e.preventDefault()
+    (event) => {
+      event.preventDefault()
     },
     false
   )
+
   window.addEventListener(
     'drop',
-    (e) => {
-      // Check if dropped outside a custom drop target
-      const target = e.target as HTMLElement
-      if (!target.closest('[data-dropzone]') && !target.closest('.dropzone')) {
-        e.preventDefault()
+    (event) => {
+      const target = event.target as HTMLElement | null
+      if (!target?.closest('[data-dropzone], .dropzone')) {
+        event.preventDefault()
       }
     },
     false
   )
 
-  // 3. Handle Page Lifecycle (BFCache / OS Memory Management)
-  // When user opens a native file dialog or switches apps, mobile browsers (Chrome/Safari) may freeze
-  // or discard the tab. We track state before backgrounding.
+  // Keep lightweight lifecycle information for diagnostics/recovery. This
+  // does not attempt to stop pagehide or unload because doing so is impossible
+  // for an OS-discarded mobile tab and can interfere with BFCache.
   window.addEventListener('pagehide', (event: PageTransitionEvent) => {
     try {
-      const currentPath = window.location.pathname + window.location.search + window.location.hash
       sessionStorage.setItem(
         APP_RESTORE_KEY,
         JSON.stringify({
-          path: currentPath,
+          path: window.location.pathname + window.location.search + window.location.hash,
           timestamp: Date.now(),
           persisted: event.persisted,
         })
       )
     } catch {
-      // Ignore storage quota errors
+      // Storage can be unavailable in private/restricted browsing contexts.
     }
   })
 
-  // When returning from background / native file dialog
   window.addEventListener('pageshow', (event: PageTransitionEvent) => {
     if (event.persisted) {
-      // Page was restored directly from Back-Forward Cache (BFCache) - no reload occurred
-      console.log('[Resilience] Restored seamlessly from BFCache')
-    }
-  })
-
-  // 4. Global guard to prevent accidental navigation when an async file operation is active
-  window.addEventListener('beforeunload', (event) => {
-    const isBusy = document.body.getAttribute('data-busy') === 'true'
-    if (isBusy) {
-      event.preventDefault()
-      event.returnValue = 'Operasi sedang berjalan. Apakah Anda yakin ingin meninggalkan halaman?'
-      return event.returnValue
+      console.info('[Lifecycle] Page restored from BFCache')
     }
   })
 }
