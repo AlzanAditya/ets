@@ -127,11 +127,6 @@ export async function* streamPdfToImages(
       // Best-effort cleanup.
     }
     try {
-      await pdfDoc.destroy()
-    } catch {
-      // Best-effort cleanup.
-    }
-    try {
       await loadingTask.destroy()
     } catch {
       // Best-effort cleanup.
