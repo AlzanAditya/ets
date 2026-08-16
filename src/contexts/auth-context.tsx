@@ -184,6 +184,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, fetchProfile])
 
+  // Tracks the currently-known authenticated user id outside of React state so
+  // the onAuthStateChange callback below can tell a silent token refresh for
+  // the same user (which must NOT blank the UI) apart from an actual
+  // sign-in/sign-out/user-switch (which should).
+  const userIdRef = React.useRef<string | null>(null)
+
   React.useEffect(() => {
     let isMounted = true
 
@@ -192,6 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isMounted) return
       setSession(s)
       setUser(s?.user ?? null)
+      userIdRef.current = s?.user?.id ?? null
       if (s?.user) {
         await fetchProfile(s.user.id, s.user.email)
       } else {
@@ -203,13 +210,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (isMounted) setLoading(false)
     })
 
-    // 2. Subscribe to auth changes
+    // 2. Subscribe to auth changes.
+    //
+    // Supabase's client listens for the tab regaining visibility/focus (e.g.
+    // when the user returns from the native Files/Gallery picker on
+    // /reports/berita-acara) and can silently refresh the access token,
+    // which fires this callback with a *new session object for the same
+    // user*. Previously this unconditionally set `loading = true`, which
+    // made RoleGuard/ProtectedRoute swap the whole page for a generic
+    // full-screen skeleton and back — visually indistinguishable from a
+    // page reload even though nothing actually navigated or unmounted.
+    //
+    // Only treat this as a "real" auth transition (and show the loading
+    // skeleton) when the authenticated identity actually changes: sign in,
+    // sign out, or switching to a different user.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, s) => {
         if (!isMounted) return
-        setLoading(true)
+
+        const newUserId = s?.user?.id ?? null
+        const isSameUser = newUserId !== null && newUserId === userIdRef.current
+
         setSession(s)
         setUser(s?.user ?? null)
+        userIdRef.current = newUserId
+
+        if (isSameUser) {
+          // Silent refresh for the same user — update session/user above and
+          // stop. Do not touch `loading`, do not re-render the route guards.
+          return
+        }
+
+        setLoading(true)
         if (s?.user) {
           await fetchProfile(s.user.id, s.user.email)
         } else {

@@ -6,6 +6,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
 import { ThemeProvider } from "next-themes";
 import { initGlobalWebResilience } from "@/lib/global-resilience";
+import { RootErrorBoundary } from "@/components/root-error-boundary";
 import App from "./App";
 import "./index.css";
 
@@ -14,13 +15,15 @@ initGlobalWebResilience();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <App />
-          <Toaster richColors position="top-right" />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <RootErrorBoundary>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <App />
+            <Toaster richColors position="top-right" />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </RootErrorBoundary>
   </React.StrictMode>
 );
