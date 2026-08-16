@@ -7,7 +7,7 @@ import {
   clearPhotosStorage,
   StoredBeritaAcaraPhoto,
 } from '../utils/storage'
-import { convertPdfToImages } from '../utils/pdf-converter'
+import { streamPdfToImages } from '../utils/pdf-converter'
 import { exportBeritaAcaraToPdf } from '../utils/pdf-exporter'
 import { pickFiles, pickDirectoryFiles, isValidAssetFile } from '../utils/file-picker'
 
@@ -125,11 +125,9 @@ export function useBeritaAcaraPhotos() {
             // Process PDF file: convert all pages to high-res images
             try {
               toast.info(`Mengekstrak halaman dari ${file.name}...`)
-              const pdfPages = await convertPdfToImages(file)
-              
-              for (const page of pdfPages) {
+              for await (const page of streamPdfToImages(file)) {
                 activeUrlsRef.current.add(page.previewUrl)
-                newItems.push({
+                const item: BeritaAcaraImage = {
                   id: `pdf-${Date.now()}-${i}-${page.pageNumber}-${Math.random().toString(36).substring(2, 6)}`,
                   file: page.file,
                   previewUrl: page.previewUrl,
@@ -145,8 +143,15 @@ export function useBeritaAcaraPhotos() {
                   isPdfPage: true,
                   pageNumber: page.pageNumber,
                   totalPages: page.totalPages,
-                })
+                }
+                newItems.push(item)
                 pdfPagesExtracted++
+
+                // Commit each rendered page immediately. If mobile Chrome has
+                // to reclaim memory later, already processed pages are still
+                // part of the gallery instead of being held only in a local
+                // array until the entire PDF finishes.
+                setImages((prev) => [...prev, item])
               }
             } catch (pdfErr) {
               console.error('Error extracting PDF pages:', pdfErr)
@@ -179,7 +184,10 @@ export function useBeritaAcaraPhotos() {
           return
         }
 
-        setImages((prev) => [...prev, ...newItems])
+        const nonPdfItems = newItems.filter((item) => !item.isPdfPage)
+        if (nonPdfItems.length > 0) {
+          setImages((prev) => [...prev, ...nonPdfItems])
+        }
 
         if (pdfPagesExtracted > 0) {
           toast.success(`Berhasil menambahkan ${newItems.length} foto (${pdfPagesExtracted} halaman PDF diekstrak)`)
