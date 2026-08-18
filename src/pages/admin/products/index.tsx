@@ -49,6 +49,7 @@ import type {
   ProductInsert,
   ProductRow,
   ProductImageRow,
+  ProductStatus,
 } from "@/types/database";
 import {
   moveDraftToProduct,
@@ -93,6 +94,7 @@ interface ProductDraftFields {
   ground_output: string;
   current_branch_id: string;
   current_client_id: string;
+  status: ProductStatus;
 }
 
 interface ProductDraft {
@@ -138,6 +140,7 @@ function emptyFields(): ProductDraftFields {
     ground_output: "",
     current_branch_id: "",
     current_client_id: "",
+    status: "pending",
   };
 }
 
