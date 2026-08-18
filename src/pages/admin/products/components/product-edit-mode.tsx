@@ -120,9 +120,9 @@ export function ProductEditMode({
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={cn("grid gap-6", editTarget ? "grid-cols-1 lg:grid-cols-3" : "grid-cols-1 max-w-3xl mx-auto")}>
         {/* Main Form Accordion */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className={cn("space-y-4", editTarget ? "lg:col-span-2" : "w-full")}>
           <Accordion
             type="multiple"
             defaultValue={["informasi-dasar", "spesifikasi", "proteksi", "lokasi-status", "catatan"]}
@@ -458,78 +458,86 @@ export function ProductEditMode({
           </Accordion>
         </div>
 
-        {/* Right Column: Photo Gallery Card */}
-        <div className="space-y-6">
-          <div className="bg-card border rounded-2xl p-5 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <ImageIcon className="size-4 text-primary" />
-                Foto Produk ({drawerImages.length})
-              </h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="h-7 gap-1.5 text-xs rounded-lg"
-              >
-                {uploading ? (
-                  <Loader2Icon className="size-3 animate-spin" />
-                ) : (
-                  <PlusIcon className="size-3" />
-                )}
-                Tambah Foto
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="sr-only"
-                onChange={handleFileSelect}
-              />
-            </div>
+        {/* Right Column: Photo Gallery Card (Only shown in Edit mode for legacy/existing product assets) */}
+        {editTarget && (
+          <div className="space-y-6">
+            <div className="bg-card border rounded-2xl p-5 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <ImageIcon className="size-4 text-primary" />
+                  Foto Produk ({drawerImages.length})
+                </h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="h-7 gap-1.5 text-xs rounded-lg"
+                >
+                  {uploading ? (
+                    <Loader2Icon className="size-3 animate-spin" />
+                  ) : (
+                    <PlusIcon className="size-3" />
+                  )}
+                  Tambah Foto
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="sr-only"
+                  onChange={handleFileSelect}
+                />
+              </div>
 
-            {drawerImages.length === 0 ? (
-              <div className="flex h-28 flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-muted-foreground/60 bg-muted/20">
-                <ImageIcon className="size-8 opacity-40" />
-                <span className="text-xs">Belum ada foto</span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {drawerImages.map((img, index) => (
-                  <div
-                    key={img.storagePath || index}
-                    className="group relative aspect-square overflow-hidden rounded-xl border bg-muted"
-                  >
-                    <img
-                      src={(img.previewUrl || img.thumbUrl) || undefined}
-                      alt={`Foto ${index + 1}`}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteImage(index)}
-                      className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
-                      aria-label="Hapus foto"
+              {drawerImages.length === 0 ? (
+                <div className="flex h-28 flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-muted-foreground/60 bg-muted/20">
+                  <ImageIcon className="size-8 opacity-40" />
+                  <span className="text-xs">Belum ada foto</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {drawerImages.map((img, index) => (
+                    <div
+                      key={img.storagePath || index}
+                      className="group relative aspect-square overflow-hidden rounded-xl border bg-muted"
                     >
-                      <Trash2Icon className="size-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                      <img
+                        src={(img.previewUrl || img.thumbUrl) || undefined}
+                        alt={`Foto ${index + 1}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteImage(index)}
+                        className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                        aria-label="Hapus foto"
+                      >
+                        <Trash2Icon className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ── Sticky Action Bar at Bottom of Viewport ── */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-t px-6 py-3.5 shadow-2xl flex items-center justify-end gap-3">
         <div className="max-w-5xl mx-auto w-full flex items-center justify-between">
           <div className="text-xs text-muted-foreground hidden sm:block">
-            Mode Edit: <span className="font-semibold text-foreground">{fields.product_name || "Produk"}</span>
+            {editTarget ? (
+              <>
+                Mode Edit: <span className="font-semibold text-foreground">{fields.product_name || "Produk"}</span>
+              </>
+            ) : (
+              <>Tambah Produk Baru</>
+            )}
           </div>
 
           <div className="flex items-center gap-3 ml-auto">

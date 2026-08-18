@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
+  CalendarCheck2Icon,
   ChevronDownIcon,
   ChevronUpIcon,
   FileChartColumnIcon,
@@ -9,7 +10,6 @@ import {
   LayoutGridIcon,
   PackageIcon,
   PrinterIcon,
-  ScanQrCodeIcon,
   SettingsIcon,
   UsersIcon,
 } from "lucide-react"
@@ -22,9 +22,9 @@ const ROW_H = 48 // px — height of each row
 
 // Top row (collapsible) — exactly 4 items, chevron takes the 5th visual slot
 const TOP_NAV_ITEMS = [
+  { title: "Events", url: "/events", icon: CalendarCheck2Icon },
   { title: "Stickers", url: "/stickers", icon: PrinterIcon },
   { title: "Images", url: "/images", icon: ImageIcon },
-  { title: "QR Statistics", url: "/qr-statistics", icon: ScanQrCodeIcon },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const
 
