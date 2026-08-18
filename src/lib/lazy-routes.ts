@@ -17,6 +17,7 @@ export const WorkerProfile = lazyWithPreload(() => import("@/pages/worker/Profil
 export const AppLayout = lazyWithPreload(() => import("@/components/admin/AppLayout"))
 export const DashboardPage = lazyWithPreload(() => import("@/pages/admin/dashboard"))
 export const ProductsPage = lazyWithPreload(() => import("@/pages/admin/products"))
+export const EventsPage = lazyWithPreload(() => import("@/pages/admin/events"))
 export const StickersPage = lazyWithPreload(() => import("@/pages/admin/stickers"))
 export const ClientPage = lazyWithPreload(() => import("@/pages/admin/client"))
 export const TaxPage = lazyWithPreload(() => import("@/pages/admin/tax"))
@@ -39,6 +40,8 @@ const routePreloaders: Record<string, () => Promise<any>> = {
   "/products": ProductsPage.preload,
   "/products/add": ProductsPage.preload,
   "/admin/products": ProductsPage.preload,
+  "/events": EventsPage.preload,
+  "/admin/events": EventsPage.preload,
   "/stickers": StickersPage.preload,
   "/admin/stickers": StickersPage.preload,
   "/clients": ClientPage.preload,

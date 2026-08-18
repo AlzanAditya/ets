@@ -90,7 +90,52 @@ export type ProductImageInsert = {
 };
 export type ProductImageUpdate = Partial<ProductImageInsert>;
 
-export type ProductStatus = "warranty" | "maintenance";
+export type ProductStatus =
+  | "pending"
+  | "installation"
+  | "warranty"
+  | "maintenance"
+  | "expired";
+
+// ─── Product Warranties ───────────────────────────────────────────────────────
+
+export type WarrantyType = "initial" | "extension" | "renewal" | "claim";
+
+export type ProductWarrantyRow = {
+  warranty_id: string; // UUID PK
+  product_id: string; // FK → products.product_id
+  warranty_type: WarrantyType;
+  start_date: string; // DATE as ISO string (YYYY-MM-DD)
+  end_date: string; // DATE as ISO string (YYYY-MM-DD)
+  duration_months?: number | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type ProductWarrantyInsert = Omit<
+  ProductWarrantyRow,
+  "warranty_id" | "created_at"
+> & {
+  warranty_id?: string;
+  created_at?: string;
+};
+
+export type ProductWarrantyUpdate = Partial<
+  Omit<ProductWarrantyRow, "warranty_id" | "created_at">
+>;
+
+export type ProductCurrentWarrantyRow = {
+  product_id: string;
+  warranty_id: string | null;
+  warranty_type: WarrantyType | string | null;
+  start_date: string | null;
+  end_date: string | null;
+  duration_months: number | null;
+  is_active: boolean;
+  days_remaining?: number | null;
+  notes?: string | null;
+};
 
 export type ProductRow = {
   product_id: string; // UUID — surrogate PK
@@ -205,9 +250,10 @@ export type ClientInsert = Omit<
 >;
 export type ProductInsert = Omit<
   ProductRow,
-  "product_id" | "created_at" | "updated_at"
+  "product_id" | "created_at" | "updated_at" | "status"
 > & {
   product_id?: string;
+  status?: ProductStatus;
 };
 export type TransactionInsert = Omit<
   TransactionRow,
@@ -266,6 +312,163 @@ export type ScanStatsRow = {
   scans_today: number;
   unique_products_scanned: number;
   last_scanned_at: string | null;
+};
+
+// ─── Product Events, Steps & Multi-Product Junction ───────────────────────────
+
+export type ProductEventType = "installation" | "maintenance";
+export type ProductEventStatus =
+  | "scheduled"
+  | "in_progress"
+  | "active"
+  | "completed"
+  | "cancelled";
+export type StepType = "survey" | "delivery" | "installation" | "documentation" | "report";
+export type StepStatus = "pending" | "in_progress" | "completed" | "skipped";
+
+export type ProductEventRow = {
+  event_id: string; // UUID PK
+  event_type: ProductEventType;
+  status: ProductEventStatus;
+  scheduled_date: string | null; // DATE or TIMESTAMPTZ as ISO
+  scheduled_at?: string | null; // Alias/TIMESTAMPTZ as ISO
+  started_at: string | null;
+  completed_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EventProductRow = {
+  id: string; // UUID PK
+  event_id: string; // FK → product_events.event_id
+  product_id: string; // FK → products.product_id
+  created_at: string;
+};
+
+export type ProductEventStepRow = {
+  step_id: string; // UUID PK
+  event_id: string; // FK → product_events.event_id
+  step_type: StepType;
+  title: string;
+  step_order: number;
+  status: StepStatus;
+  started_at: string | null;
+  completed_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProductEventInsert = Omit<
+  ProductEventRow,
+  "event_id" | "created_at" | "updated_at"
+> & { event_id?: string };
+
+export type ProductEventUpdate = Partial<
+  Omit<ProductEventRow, "event_id" | "created_at" | "updated_at">
+>;
+
+export type EventProductInsert = Omit<EventProductRow, "id" | "created_at"> & {
+  id?: string;
+  created_at?: string;
+};
+
+export type ProductEventStepInsert = Omit<
+  ProductEventStepRow,
+  "step_id" | "created_at" | "updated_at"
+> & { step_id?: string };
+
+export type ProductEventStepUpdate = Partial<
+  Omit<ProductEventStepRow, "step_id" | "created_at" | "updated_at">
+>;
+
+// ─── Reports System Types ─────────────────────────────────────────────────────
+
+export type ReportTypeCode =
+  | "survey"
+  | "final_survey"
+  | "material"
+  | "pengiriman_unit"
+  | "instalasi"
+  | "dokumentasi"
+  | "berita_acara"
+  | "serah_terima"
+  | "training";
+
+export type ReportTypeRow = {
+  report_type_id: string; // UUID PK
+  code: string; // UNIQUE
+  name: string;
+  has_data: boolean;
+  has_images: boolean;
+  has_files: boolean;
+  field_schema: Record<string, any> | null; // JSON schema for dynamic form
+  sort_order: number;
+  is_active: boolean;
+};
+
+export type ReportStatus = "draft" | "submitted";
+
+export type ReportRow = {
+  report_id: string; // UUID PK
+  event_id: string; // FK → product_events.event_id
+  report_type_id: string; // FK → report_types.report_type_id
+  data: Record<string, any> | null; // jsonb payload, null if has_data = false
+  status: ReportStatus;
+  created_by: string | null; // UUID
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReportImageRow = {
+  report_image_id: string; // UUID PK
+  report_id: string; // FK → reports.report_id
+  storage_path: string;
+  thumbnail_path: string | null;
+  file_name: string | null;
+  mime_type: string | null;
+  file_size: number | null;
+  sort_order: number;
+  uploaded_at: string;
+};
+
+export type ReportFileRow = {
+  report_file_id: string; // UUID PK
+  report_id: string; // FK → reports.report_id
+  storage_path: string;
+  file_name: string | null;
+  mime_type: string | null;
+  file_size: number | null;
+  uploaded_at: string;
+};
+
+export type ReportTypeInsert = Omit<ReportTypeRow, "report_type_id"> & {
+  report_type_id?: string;
+};
+
+export type ReportInsert = Omit<ReportRow, "report_id" | "created_at" | "updated_at"> & {
+  report_id?: string;
+};
+
+export type ReportUpdate = Partial<
+  Omit<ReportRow, "report_id" | "created_at" | "updated_at">
+>;
+
+export type ReportImageInsert = Omit<
+  ReportImageRow,
+  "report_image_id" | "uploaded_at"
+> & {
+  report_image_id?: string;
+  uploaded_at?: string;
+};
+
+export type ReportFileInsert = Omit<
+  ReportFileRow,
+  "report_file_id" | "uploaded_at"
+> & {
+  report_file_id?: string;
+  uploaded_at?: string;
 };
 
 // ─── Worker Module Types ──────────────────────────────────────────────────────
@@ -359,6 +562,12 @@ export interface Database {
         Update: ProductImageUpdate;
         Relationships: [];
       };
+      product_warranties: {
+        Row: ProductWarrantyRow;
+        Insert: ProductWarrantyInsert;
+        Update: ProductWarrantyUpdate;
+        Relationships: [];
+      };
       transactions: {
         Row: TransactionRow;
         Insert: TransactionInsert;
@@ -381,6 +590,72 @@ export interface Database {
         Row: ScanLogRow;
         Insert: ScanLogInsert;
         Update: Partial<ScanLogRow>; // append-only in practice
+        Relationships: [];
+      };
+      product_events: {
+        Row: ProductEventRow;
+        Insert: ProductEventInsert;
+        Update: ProductEventUpdate;
+        Relationships: [];
+      };
+      event_products: {
+        Row: EventProductRow;
+        Insert: EventProductInsert;
+        Update: Partial<EventProductRow>;
+        Relationships: [];
+      };
+      product_event_steps: {
+        Row: ProductEventStepRow;
+        Insert: ProductEventStepInsert;
+        Update: ProductEventStepUpdate;
+        Relationships: [];
+      };
+      report_types: {
+        Row: ReportTypeRow;
+        Insert: ReportTypeInsert;
+        Update: Partial<ReportTypeRow>;
+        Relationships: [];
+      };
+      reports: {
+        Row: ReportRow;
+        Insert: ReportInsert;
+        Update: ReportUpdate;
+        Relationships: [];
+      };
+      report_images: {
+        Row: ReportImageRow;
+        Insert: ReportImageInsert;
+        Update: Partial<ReportImageRow>;
+        Relationships: [];
+      };
+      report_files: {
+        Row: ReportFileRow;
+        Insert: ReportFileInsert;
+        Update: Partial<ReportFileRow>;
+        Relationships: [];
+      };
+      workers: {
+        Row: WorkerRow;
+        Insert: WorkerInsert;
+        Update: WorkerUpdate;
+        Relationships: [];
+      };
+      worker_assignments: {
+        Row: WorkerAssignmentRow;
+        Insert: WorkerAssignmentInsert;
+        Update: Partial<WorkerAssignmentRow>;
+        Relationships: [];
+      };
+      worker_positions: {
+        Row: WorkerPositionRow;
+        Insert: WorkerPositionInsert;
+        Update: Partial<WorkerPositionRow>;
+        Relationships: [];
+      };
+      worker_roles: {
+        Row: WorkerRoleRow;
+        Insert: WorkerRoleInsert;
+        Update: Partial<WorkerRoleRow>;
         Relationships: [];
       };
     };

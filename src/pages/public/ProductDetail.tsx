@@ -419,6 +419,38 @@ export default function PublicProductDetail() {
   // Determine status & dynamic theme configuration
   const statusConfig = React.useMemo(() => {
     const s = product?.status?.toLowerCase() || "";
+    if (s === "pending") {
+      return {
+        statusKey: "pending",
+        bannerVariant: "white" as const,
+        label: "Pending",
+        Icon: ShieldCheck,
+        headerTextColor: "text-zinc-300 dark:text-zinc-300",
+        accentGradient: "from-zinc-400 via-zinc-500/50 to-zinc-500/0",
+        snChipBg: "bg-zinc-500/20 text-zinc-200 border-r border-zinc-500/30",
+        snTextColor: "text-zinc-200",
+        snBorder: "border-zinc-500/40",
+        glowBg: "bg-zinc-500/15",
+        detailIconBg: "bg-zinc-500/10 text-zinc-300",
+        badgeBg: "bg-zinc-500/20 text-zinc-200 border-zinc-500/50",
+      };
+    }
+    if (s === "expired") {
+      return {
+        statusKey: "expired",
+        bannerVariant: "red" as const,
+        label: "Garansi Berakhir",
+        Icon: AlertTriangle,
+        headerTextColor: "text-red-400 dark:text-red-400",
+        accentGradient: "from-red-400 via-red-500/50 to-red-500/0",
+        snChipBg: "bg-red-500/20 text-red-300 border-r border-red-500/30",
+        snTextColor: "text-red-400",
+        snBorder: "border-red-500/40",
+        glowBg: "bg-red-500/25",
+        detailIconBg: "bg-red-500/10 text-red-400",
+        badgeBg: "bg-red-500/20 text-red-300 border-red-500/50",
+      };
+    }
     if (s === "maintenance") {
       return {
         statusKey: "maintenance",

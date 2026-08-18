@@ -14,10 +14,11 @@ import {
   ImageIcon,
   ArrowLeftIcon,
   CheckIcon,
+  LockIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatSerialNumber } from "@/lib/utils";
+import { cn, formatSerialNumber } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -36,15 +37,13 @@ import {
 } from "@/components/ui/select";
 import type { ProductRow, ClientRow } from "@/types/database";
 
-const STATUS_OPTIONS: ProductRow["status"][] = [
-  "warranty",
-  "maintenance",
-];
-
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_DISPLAY_LABELS: Record<string, string> = {
+  pending: "Pending (Belum Instalasi)",
+  installation: "Proses Instalasi",
   warranty: "Bergaransi",
   garansi: "Bergaransi",
   maintenance: "Maintenance",
+  expired: "Garansi Berakhir",
 };
 
 const NO_SELECTION_VALUE = "__NONE__";
@@ -394,7 +393,7 @@ export function ProductEditMode({
               </AccordionContent>
             </AccordionItem>
 
-            {/* 4. Lokasi & Status */}
+            {/* 4. Lokasi & Klien */}
             <AccordionItem
               value="lokasi-status"
               className="border rounded-2xl px-4 py-1 bg-card shadow-2xs"
@@ -402,38 +401,34 @@ export function ProductEditMode({
               <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
                 <div className="flex items-center gap-2 text-foreground">
                   <MapPinIcon className="size-4 text-primary" />
-                  <span>Lokasi & Status</span>
+                  <span>Lokasi &amp; Klien</span>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pt-2 pb-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="status" className="flex items-center gap-1.5 text-xs font-semibold">
-                      <TagIcon className="size-3.5 text-primary" />
-                      Status Produk
-                    </Label>
-                    <Select
-                      value={fields.status}
-                      onValueChange={(v) => setField("status", v as ProductRow["status"])}
-                    >
-                      <SelectTrigger id="status" className="w-full">
-                        <SelectValue placeholder="Pilih status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          {STATUS_OPTIONS.map((s) => (
-                            <SelectItem key={s} value={s}>
-                              {STATUS_LABELS[s]}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className={cn("grid gap-3", editTarget ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
+                  {editTarget && (
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                        <LockIcon className="size-3.5 text-muted-foreground" />
+                        Status Lifecycle Produk
+                      </Label>
+                      <div className="h-10 px-3 py-2 rounded-xl border border-border/80 bg-muted/40 flex items-center justify-between">
+                        <span className="text-xs font-medium text-foreground">
+                          {STATUS_DISPLAY_LABELS[editTarget.status] || editTarget.status}
+                        </span>
+                        <Badge variant="outline" className="text-[10px] uppercase font-mono tracking-wider">
+                          Otomatis
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Status dikelola otomatis oleh alur event (pending → instalasi → garansi → maintenance).
+                      </p>
+                    </div>
+                  )}
 
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="current_client_id" className="flex items-center gap-1.5 text-xs font-semibold">
-                      <MapPinIcon className="size-3.5 text-primary" />
+                      <Building2Icon className="size-3.5 text-primary" />
                       Klien Pemegang
                     </Label>
                     <Select

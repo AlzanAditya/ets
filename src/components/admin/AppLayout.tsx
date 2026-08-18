@@ -13,7 +13,6 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { useTransactionStats } from "@/hooks/use-transactions"
 import { useRealtimeSync } from "@/hooks/use-realtime-sync"
 import { cn } from "@/lib/utils"
-import { preloadAllAdminRoutes } from "@/lib/lazy-routes"
 import { PageContentSkeleton } from "./PageContentSkeleton"
 
 function AppLayoutContent({
@@ -73,11 +72,18 @@ function AppLayoutContent({
   )
 }
 
-export default function AppLayout() {
+export function AppLayout() {
   useRealtimeSync()
 
   React.useEffect(() => {
-    preloadAllAdminRoutes()
+    // Dynamic import to break circular dependency with lazy-routes chunk
+    import("@/lib/lazy-routes")
+      .then((mod) => {
+        if (typeof mod.preloadAllAdminRoutes === "function") {
+          mod.preloadAllAdminRoutes()
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const location = useLocation()
@@ -161,3 +167,6 @@ export default function AppLayout() {
     </NavModeProvider>
   )
 }
+
+export default AppLayout
+

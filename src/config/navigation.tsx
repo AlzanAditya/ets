@@ -1,4 +1,5 @@
 import {
+  CalendarCheck2Icon,
   FileChartColumnIcon,
   HardHatIcon,
   ImageIcon,
@@ -47,6 +48,12 @@ export const appNavigation = {
       url: "/products",
       plan: plan.free,
       icon: <PackageIcon />,
+    },
+    {
+      title: "Events",
+      url: "/events",
+      plan: plan.free,
+      icon: <CalendarCheck2Icon />,
     },
     {
       title: "Stickers",

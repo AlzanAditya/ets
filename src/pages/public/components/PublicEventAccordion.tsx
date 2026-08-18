@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Wrench,
@@ -6,6 +7,7 @@ import {
   ChevronDown,
   Loader2,
   Download,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,7 @@ import {
   STEP_TYPE_TITLES,
 } from "@/services/product-events.service";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EventReportsSection } from "@/components/reports/event-reports-section";
 
 interface PublicEventAccordionProps {
   productId: string;
@@ -33,6 +36,7 @@ export function PublicEventAccordion({
   serialNumber,
   isProductLoading = false,
 }: PublicEventAccordionProps) {
+  const navigate = useNavigate();
   const [events, setEvents] = React.useState<ProductEventData[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [expandedEvents, setExpandedEvents] = React.useState<Record<string, boolean>>({});
@@ -268,6 +272,10 @@ export function PublicEventAccordion({
         const isEventCompleted = evt.status === "completed";
         const totalPhotos = evt.steps.reduce((acc, s) => acc + s.images.length, 0);
 
+        const otherProducts = (evt.products || []).filter(
+          (p: any) => p && (p.product_id ? p.product_id !== productId : p.serial_number !== serialNumber)
+        );
+
         const eventDateDisplay = isEventCompleted && evt.completed_at
           ? new Date(evt.completed_at).toLocaleDateString("id-ID", {
               day: "2-digit",
@@ -305,10 +313,18 @@ export function PublicEventAccordion({
                   )}
                 </div>
 
-                <div>
-                  <h3 className="text-sm font-bold tracking-wider uppercase text-zinc-100">
-                    {evt.title}
-                  </h3>
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-bold tracking-wider uppercase text-zinc-100">
+                      {evt.title}
+                    </h3>
+                    {otherProducts.length > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                        <Package className="size-3" />
+                        <span>+{otherProducts.length} Produk Lain</span>
+                      </span>
+                    )}
+                  </div>
                   {eventDateDisplay && (
                     <p className="text-xs font-mono font-medium text-zinc-400 mt-0.5">
                       {eventDateDisplay}
@@ -353,7 +369,45 @@ export function PublicEventAccordion({
                   transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                   className="overflow-hidden"
                 >
-                  <div className="p-3 sm:p-4 space-y-3 bg-zinc-950/60">
+                  <div className="p-3 sm:p-4 space-y-4 bg-zinc-950/60">
+                    {/* Shared Event Products Info Banner */}
+                    {otherProducts.length > 0 && (
+                      <div className="p-3 rounded-xl bg-zinc-900/90 border border-zinc-800/90 space-y-2">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300">
+                          <Package className="size-3.5 text-amber-400" />
+                          <span>Shared Event — Produk Terkait Lainnya:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {otherProducts.map((op: any) => (
+                            <button
+                              key={op.product_id || op.serial_number}
+                              type="button"
+                              onClick={() => {
+                                if (op.serial_number) {
+                                  navigate(`/p/${encodeURIComponent(op.serial_number)}`);
+                                }
+                              }}
+                              className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700/90 border border-zinc-700 text-xs text-zinc-200 transition-colors group cursor-pointer shadow-xs"
+                              title={`Buka detail publik produk ${op.product_name || op.serial_number}`}
+                            >
+                              <span className="font-semibold text-white group-hover:text-amber-300 transition-colors">
+                                {op.product_name || "Produk"}
+                              </span>
+                              <span className="font-mono text-[10px] text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-700/60">
+                                SN: {op.serial_number}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Operational Reports Section (Read Only for public) */}
+                    <EventReportsSection
+                      eventId={evt.event_id}
+                      isReadOnly={true}
+                    />
+
                     {evt.steps.map((step, stepIdx) => {
                       const isStepExpanded = !!expandedSteps[step.step_id];
                       const isStepCompleted = step.status === "completed";

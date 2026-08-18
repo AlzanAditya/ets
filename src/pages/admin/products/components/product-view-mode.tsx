@@ -34,6 +34,7 @@ import {
 } from "@/components/entity-profile-banner";
 import { ProductEventAccordion } from "./product-event-accordion";
 import { ProductActivityTimeline } from "./product-activity-timeline";
+import { ProductWarrantyCard } from "@/components/warranties/product-warranty-card";
 import { productsService, type ProductWithRelations } from "@/services/products.service";
 import { productEventsService, type ProductEventData, STEP_TYPE_TITLES } from "@/services/product-events.service";
 import { exportImages } from "@/lib/image-export";
@@ -95,20 +96,33 @@ export function ProductViewMode({
     refreshData();
   }, [refreshData]);
 
-  // Determine status flags
-  const isMaintenance = currentProduct.status === "maintenance";
+  // Determine status flags & styling
+  const prodStatus = currentProduct.status;
+  const isMaintenance = prodStatus === "maintenance";
+  const isPending = prodStatus === "pending";
+  const isInstallation = prodStatus === "installation";
+  const isExpired = prodStatus === "expired";
   const isInstallationActive =
-    !isMaintenance &&
+    isInstallation ||
     events.some((e) => e.event_type === "installation" && e.status === "active");
 
   let statusLabel = "Bergaransi";
-  let statusColor: "emerald" | "amber" = "emerald";
+  let statusColor: "emerald" | "amber" | "blue" | "red" | "zinc" = "emerald";
 
-  if (isMaintenance) {
+  if (isPending) {
+    statusLabel = "Pending (Belum Instalasi)";
+    statusColor = "zinc";
+  } else if (isInstallationActive || isInstallation) {
+    statusLabel = "Proses Instalasi";
+    statusColor = "blue";
+  } else if (isMaintenance) {
     statusLabel = "Maintenance";
     statusColor = "amber";
-  } else if (isInstallationActive) {
-    statusLabel = "Instalasi";
+  } else if (isExpired) {
+    statusLabel = "Garansi Berakhir (Expired)";
+    statusColor = "red";
+  } else {
+    statusLabel = "Bergaransi";
     statusColor = "emerald";
   }
 
@@ -293,7 +307,11 @@ export function ProductViewMode({
       {/* ── Global Entity Profile Banner ── */}
       <EntityProfileBanner
         variant={
-          isMaintenance
+          isPending
+            ? "white"
+            : isExpired
+            ? "red"
+            : isMaintenance
             ? "orange"
             : isInstallationActive
             ? "blue"
@@ -301,9 +319,13 @@ export function ProductViewMode({
         }
         profile={{
           type: "icon",
-          icon: isMaintenance ? Wrench : isInstallationActive ? Wrench : ShieldCheckIcon,
+          icon: isPending ? ShieldCheckIcon : isExpired ? ShieldCheckIcon : isMaintenance ? Wrench : isInstallationActive ? Wrench : ShieldCheckIcon,
           containerClassName: cn(
-            isMaintenance
+            isPending
+              ? "bg-zinc-500/10 text-zinc-700 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700 shadow-xs"
+              : isExpired
+              ? "bg-red-500/10 text-red-500 border border-red-500/30 shadow-md"
+              : isMaintenance
               ? "bg-orange-500/10 text-orange-500 border border-orange-500/20 animate-pulse ring-4 ring-orange-500/40 dark:ring-orange-400/40 shadow-md"
               : isInstallationActive
               ? "bg-blue-500/10 text-blue-500 border border-blue-500/20 animate-pulse ring-4 ring-blue-500/40 dark:ring-blue-400/40 shadow-md"
@@ -330,7 +352,11 @@ export function ProductViewMode({
             <span
               className={cn(
                 "font-bold",
-                isMaintenance
+                isPending
+                  ? "text-zinc-800 dark:text-zinc-200"
+                  : isExpired
+                  ? "text-red-600 dark:text-red-400"
+                  : isMaintenance
                   ? "text-orange-600 dark:text-orange-400"
                   : isInstallationActive
                   ? "text-blue-600 dark:text-blue-400"
@@ -394,6 +420,14 @@ export function ProductViewMode({
         }}
       />
 
+      {/* ── Product Warranty & History ── */}
+      <ProductWarrantyCard
+        productId={currentProduct.product_id}
+        productName={currentProduct.product_name}
+        serialNumber={currentProduct.serial_number}
+        productStatus={currentProduct.status}
+      />
+
       {/* ── Event & Sub Event Accordions ── */}
       <div className="space-y-3 pt-2">
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
@@ -403,6 +437,7 @@ export function ProductViewMode({
 
         <ProductEventAccordion
           productId={currentProduct.product_id}
+          serialNumber={currentProduct.serial_number}
           onEventsUpdated={refreshData}
         />
       </div>

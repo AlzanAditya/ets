@@ -93,7 +93,6 @@ interface ProductDraftFields {
   ground_output: string;
   current_branch_id: string;
   current_client_id: string;
-  status: ProductRow["status"];
 }
 
 interface ProductDraft {
@@ -139,7 +138,6 @@ function emptyFields(): ProductDraftFields {
     ground_output: "",
     current_branch_id: "",
     current_client_id: "",
-    status: "warranty",
   };
 }
 
@@ -634,7 +632,7 @@ export default function ProductsPage() {
         ground_output: fields.ground_output || null,
         current_branch_id: fields.current_branch_id || null,
         current_client_id: fields.current_client_id || null,
-        status: fields.status,
+        ...(editTarget ? { status: editTarget.status } : {}),
       };
 
       if (editTarget) {

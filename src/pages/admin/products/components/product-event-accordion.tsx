@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Wrench,
   Check,
@@ -12,10 +13,12 @@ import {
   Calendar,
   FileCheck2,
   Download,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { exportImages } from "@/lib/image-export";
 import {
   AlertDialog,
@@ -38,18 +41,23 @@ import {
   STEP_TYPE_TITLES,
 } from "@/services/product-events.service";
 import { EventWorkerAssignment } from "./event-worker-assignment";
+import { CreateMultiProductEventDialog } from "@/components/events/create-multi-product-event-dialog";
+import { EventReportsSection } from "@/components/reports/event-reports-section";
 
 interface ProductEventAccordionProps {
   productId: string;
+  serialNumber?: string;
   isProductReadOnly?: boolean;
   onEventsUpdated?: () => void;
 }
 
 export function ProductEventAccordion({
   productId,
+  serialNumber,
   isProductReadOnly = false,
   onEventsUpdated,
 }: ProductEventAccordionProps) {
+  const navigate = useNavigate();
   const { user, role } = useAuth();
   const isAuthenticated = Boolean(user && role !== "guest");
   const canDeletePhotos = isAuthenticated && !isProductReadOnly;
@@ -60,7 +68,7 @@ export function ProductEventAccordion({
   const [expandedSteps, setExpandedSteps] = React.useState<Record<string, boolean>>({});
   const [uploadingStepId, setUploadingStepId] = React.useState<string | null>(null);
   const [actionLoadingStepId, setActionLoadingStepId] = React.useState<string | null>(null);
-  const [creatingMaint, setCreatingMaint] = React.useState(false);
+  const [createMultiEventOpen, setCreateMultiEventOpen] = React.useState(false);
 
   // Photo delete confirmation state
   const [imageToDelete, setImageToDelete] = React.useState<{
@@ -104,8 +112,6 @@ export function ProductEventAccordion({
     eventId: string;
     eventTitle: string;
   } | null>(null);
-
-  const [confirmCreateMaintenanceOpen, setConfirmCreateMaintenanceOpen] = React.useState(false);
 
   const loadEvents = React.useCallback(async () => {
     try {
@@ -187,33 +193,6 @@ export function ProductEventAccordion({
     } finally {
       setActionLoadingStepId(null);
       setMainEventToComplete(null);
-    }
-  };
-
-  // Create new Maintenance Event
-  const executeCreateMaintenance = async () => {
-    setCreatingMaint(true);
-    try {
-      const updated = await productEventsService.createMaintenanceEvent(productId);
-      const sorted = [...updated].sort((a, b) => b.sequence_number - a.sequence_number);
-      setEvents(sorted);
-      toast.success("Event Maintenance baru berhasil dibuat!");
-      onEventsUpdated?.();
-
-      // Auto expand the new maintenance event (which is at the top)
-      const topEvent = sorted[0];
-      if (topEvent) {
-        setExpandedEvents((prev) => ({ ...prev, [topEvent.event_id]: true }));
-        if (topEvent.steps[0]) {
-          setExpandedSteps((prev) => ({ ...prev, [topEvent.steps[0].step_id]: true }));
-        }
-      }
-    } catch (err: any) {
-      console.error("Error creating maintenance event:", err);
-      toast.error(err.message || "Gagal membuat event maintenance");
-    } finally {
-      setCreatingMaint(false);
-      setConfirmCreateMaintenanceOpen(false);
     }
   };
 
@@ -534,6 +513,10 @@ export function ProductEventAccordion({
             })
           : null;
 
+        const otherProducts = (evt.products || []).filter(
+          (p: any) => p && (p.product_id ? p.product_id !== productId : (serialNumber ? p.serial_number !== serialNumber : true))
+        );
+
         return (
           <div
             key={evt.event_id}
@@ -565,9 +548,20 @@ export function ProductEventAccordion({
                 </div>
 
                 <div className="space-y-0.5">
-                  <h3 className="text-sm font-bold tracking-wider uppercase text-zinc-100">
-                    {evt.title}
-                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-bold tracking-wider uppercase text-zinc-100">
+                      {evt.title}
+                    </h3>
+                    {otherProducts.length > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-mono bg-zinc-800 text-amber-300 border border-zinc-700 py-0 px-1.5"
+                      >
+                        <Package className="size-2.5 mr-1" />
+                        +{otherProducts.length} Produk Lain
+                      </Badge>
+                    )}
+                  </div>
                   {/* REQUIREMENT 1: NO "Event Selesai (Read Only)" text! */}
                 </div>
               </div>
@@ -616,7 +610,39 @@ export function ProductEventAccordion({
 
             {/* Level 1 Content: Sub Events / Steps List */}
             {isEventExpanded && (
-              <div className="p-3 sm:p-4 space-y-3 bg-zinc-950/40">
+              <div className="p-3 sm:p-4 space-y-4 bg-zinc-950/40">
+                {/* Linked Products Details if multi-product */}
+                {otherProducts.length > 0 && (
+                  <div className="p-3 rounded-xl border border-zinc-800/80 bg-zinc-900/60 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300">
+                      <Package className="size-3.5 text-amber-400" />
+                      <span>Shared Event — Produk Terkait Lainnya ({otherProducts.length}):</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {otherProducts.map((p: any) => (
+                        <button
+                          key={p.product_id || p.serial_number}
+                          type="button"
+                          onClick={() => {
+                            if (p.serial_number) {
+                              navigate(`/products/${encodeURIComponent(p.serial_number)}`);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700 text-xs text-zinc-200 transition-colors group cursor-pointer shadow-xs"
+                          title={`Buka detail admin produk ${p.product_name || p.serial_number}`}
+                        >
+                          <span className="font-semibold text-white group-hover:text-amber-300">
+                            {p.product_name || "Produk"}
+                          </span>
+                          <span className="font-mono text-[10px] text-zinc-400 bg-zinc-900/80 px-1.5 py-0.5 rounded border border-zinc-700/50">
+                            SN: {p.serial_number || p.product_code || p.product_id.slice(0, 8)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Main Event Worker Assignment */}
                 <EventWorkerAssignment
                   eventId={evt.event_id}
@@ -624,6 +650,12 @@ export function ProductEventAccordion({
                   eventType={evt.event_type}
                   steps={evt.steps}
                   isReadOnly={isEventCompleted}
+                />
+
+                {/* Operational Reports Section */}
+                <EventReportsSection
+                  eventId={evt.event_id}
+                  isReadOnly={isProductReadOnly || isEventCompleted}
                 />
 
                 {evt.steps.map((step, stepIdx) => {
@@ -935,17 +967,28 @@ export function ProductEventAccordion({
       {allMainEventsCompleted && (
         <div className="pt-3 flex justify-end">
           <Button
-            onClick={() => setConfirmCreateMaintenanceOpen(true)}
-            disabled={creatingMaint}
+            onClick={() => setCreateMultiEventOpen(true)}
             variant="outline"
             size="sm"
             className="border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-amber-200 text-xs font-bold gap-1.5 rounded-xl px-4 shadow-sm"
           >
-            {creatingMaint ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
+            <Plus className="size-3.5" />
             <span>Tambah Event Maintenance</span>
           </Button>
         </div>
       )}
+
+      {/* ── Multi-Product Event Creation Dialog ── */}
+      <CreateMultiProductEventDialog
+        open={createMultiEventOpen}
+        onOpenChange={setCreateMultiEventOpen}
+        defaultProductId={productId}
+        defaultEventType="maintenance"
+        onEventCreated={() => {
+          loadEvents();
+          onEventsUpdated?.();
+        }}
+      />
 
       {/* ── Lightbox Modal ── */}
       <ImageLightbox
@@ -1054,30 +1097,6 @@ export function ProductEventAccordion({
               }}
             >
               Ya, Selesaikan Event
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* ── AlertDialog 3C: Confirm Create Maintenance Event ── */}
-      <AlertDialog
-        open={confirmCreateMaintenanceOpen}
-        onOpenChange={setConfirmCreateMaintenanceOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Buat Event Maintenance Baru?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Pastikan seluruh pekerjaan maintenance sebelumnya telah selesai. Event baru akan memulai siklus Maintenance berikutnya dan tidak dapat dihapus setelah dibuat.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-amber-500 text-zinc-950 font-bold hover:bg-amber-400"
-              onClick={executeCreateMaintenance}
-            >
-              Buat Event
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

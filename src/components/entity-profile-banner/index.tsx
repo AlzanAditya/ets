@@ -109,7 +109,9 @@ export type EntityProfileBannerVariant =
   | "rose"
   | "purple"
   | "indigo"
-  | "slate";
+  | "slate"
+  | "white"
+  | "red";
 
 const VARIANT_STYLES: Record<
   EntityProfileBannerVariant,
@@ -127,6 +129,20 @@ const VARIANT_STYLES: Record<
     innerBg: "from-emerald-500/10 via-card/95 to-card dark:from-emerald-950/40 dark:via-zinc-900/95 dark:to-zinc-950",
     detailIconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     detailHoverBorder: "hover:border-emerald-500/40",
+  },
+  white: {
+    outerBorder: "from-zinc-300/80 via-zinc-400/40 to-zinc-300/80 dark:from-zinc-600/70 dark:via-zinc-700/40 dark:to-zinc-600/70",
+    shadow: "shadow-[0_4px_24px_rgba(0,0,0,0.06)]",
+    innerBg: "from-zinc-100/90 via-card/95 to-card dark:from-zinc-900/90 dark:via-zinc-900/95 dark:to-zinc-950",
+    detailIconBg: "bg-zinc-500/10 text-zinc-700 dark:text-zinc-300",
+    detailHoverBorder: "hover:border-zinc-400/50",
+  },
+  red: {
+    outerBorder: "from-red-500/70 via-zinc-800/40 to-red-500/70",
+    shadow: "shadow-[0_4px_24px_rgba(239,68,68,0.12)]",
+    innerBg: "from-red-500/10 via-card/95 to-card dark:from-red-950/50 dark:via-zinc-900/95 dark:to-zinc-950",
+    detailIconBg: "bg-red-500/10 text-red-600 dark:text-red-400",
+    detailHoverBorder: "hover:border-red-500/50",
   },
   amber: {
     outerBorder: "from-amber-400/60 via-zinc-800/40 to-amber-400/60",

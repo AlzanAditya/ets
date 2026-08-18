@@ -76,7 +76,7 @@ async function enrichProductRelations(product: ProductWithRelations): Promise<Pr
 
 /**
  * Safely fetch and attach product_images to a list of product objects.
- * Connects product_images via product_events -> product_event_steps (step_id).
+ * Connects product_images via event_products -> product_events -> product_event_steps (step_id).
  */
 async function attachProductImages(products: ProductWithRelations[]): Promise<ProductWithRelations[]> {
   if (!products || products.length === 0) return [];
@@ -86,55 +86,67 @@ async function attachProductImages(products: ProductWithRelations[]): Promise<Pr
   try {
     const imgMap: Record<string, ProductImageRow[]> = {};
 
-    // Fetch event step images for these products via step_id relation
-    const { data: events, error: evtErr } = await supabase
-      .from("product_events")
-      .select("product_id, product_event_steps(step_id)")
+    // 1. Fetch event_products junction records
+    const { data: juncRows, error: juncErr } = await (supabase as any)
+      .from("event_products")
+      .select("product_id, event_id")
       .in("product_id", productIds);
 
-    if (evtErr) {
-      console.error("[Supabase Error] Table: product_events | Action: SELECT (steps) | Details:", evtErr.message, evtErr);
+    if (juncErr) {
+      console.error("[Supabase Error] Table: event_products | Action: SELECT | Details:", juncErr.message, juncErr);
     }
 
-    if (!evtErr && events && events.length > 0) {
-      const stepToProductMap: Record<string, string> = {};
-      const stepIds: string[] = [];
+    if (juncRows && juncRows.length > 0) {
+      const eventToProductMap: Record<string, string> = {};
+      const eventIds: string[] = [];
 
-      events.forEach((evt: any) => {
-        const pid = evt.product_id;
-        const steps = evt.product_event_steps || (evt as any).steps || [];
-        steps.forEach((st: any) => {
-          if (st.step_id) {
-            stepToProductMap[st.step_id] = pid;
-            stepIds.push(st.step_id);
-          }
-        });
+      juncRows.forEach((r: any) => {
+        if (r.event_id && r.product_id) {
+          eventToProductMap[r.event_id] = r.product_id;
+          eventIds.push(r.event_id);
+        }
       });
 
-      if (stepIds.length > 0) {
-        const { data: stepImages, error: stepImgErr } = await supabase
-          .from("product_images")
-          .select("*")
-          .in("step_id", stepIds)
-          .order("sort_order", { ascending: true });
+      if (eventIds.length > 0) {
+        const { data: steps, error: stepErr } = await supabase
+          .from("product_event_steps")
+          .select("step_id, event_id")
+          .in("event_id", eventIds);
 
-        if (stepImgErr) {
-          console.error("[Supabase Error] Table: product_images | Action: SELECT | Details:", stepImgErr.message, stepImgErr);
-        }
+        if (!stepErr && steps && steps.length > 0) {
+          const stepToProductMap: Record<string, string> = {};
+          const stepIds: string[] = [];
 
-        if (!stepImgErr && stepImages && stepImages.length > 0) {
-          stepImages.forEach((img: any) => {
-            const pid = stepToProductMap[img.step_id];
-            if (pid) {
-              if (!imgMap[pid]) imgMap[pid] = [];
-              const exists = imgMap[pid].some(
-                (e) => (e.image_id && e.image_id === img.image_id) || (e.storage_path && e.storage_path === img.storage_path)
-              );
-              if (!exists) {
-                imgMap[pid].push(img);
-              }
+          steps.forEach((st: any) => {
+            const pid = eventToProductMap[st.event_id];
+            if (pid && st.step_id) {
+              stepToProductMap[st.step_id] = pid;
+              stepIds.push(st.step_id);
             }
           });
+
+          if (stepIds.length > 0) {
+            const { data: stepImages, error: stepImgErr } = await supabase
+              .from("product_images")
+              .select("*")
+              .in("step_id", stepIds)
+              .order("sort_order", { ascending: true });
+
+            if (!stepImgErr && stepImages && stepImages.length > 0) {
+              stepImages.forEach((img: any) => {
+                const pid = stepToProductMap[img.step_id];
+                if (pid) {
+                  if (!imgMap[pid]) imgMap[pid] = [];
+                  const exists = imgMap[pid].some(
+                    (e) => (e.image_id && e.image_id === img.image_id) || (e.storage_path && e.storage_path === img.storage_path)
+                  );
+                  if (!exists) {
+                    imgMap[pid].push(img);
+                  }
+                }
+              });
+            }
+          }
         }
       }
     }
@@ -350,36 +362,49 @@ export const productsService = {
   },
 
   /**
-   * Get breakdown counts for warranty, maintenance, and total.
+   * Get breakdown counts for pending, installation, warranty, maintenance, expired, and total.
    */
-  async getProductStatusSummary(): Promise<{ warranty: number; maintenance: number; total: number }> {
-    const [warrantyRes, maintenanceRes, totalRes] = await Promise.all([
+  async getProductStatusSummary(): Promise<{
+    pending: number;
+    installation: number;
+    warranty: number;
+    maintenance: number;
+    expired: number;
+    total: number;
+  }> {
+    const [pendingRes, instRes, warrantyRes, maintenanceRes, expiredRes, totalRes] = await Promise.all([
+      supabase.from("products").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("products").select("*", { count: "exact", head: true }).eq("status", "installation"),
       supabase.from("products").select("*", { count: "exact", head: true }).or("status.eq.warranty,status.eq.garansi"),
       supabase.from("products").select("*", { count: "exact", head: true }).eq("status", "maintenance"),
+      supabase.from("products").select("*", { count: "exact", head: true }).eq("status", "expired"),
       supabase.from("products").select("*", { count: "exact", head: true }),
     ]);
 
-    if (warrantyRes.error) console.error("Error fetching warranty count:", warrantyRes.error);
-    if (maintenanceRes.error) console.error("Error fetching maintenance count:", maintenanceRes.error);
-    if (totalRes.error) console.error("Error fetching total product count:", totalRes.error);
-
     return {
+      pending: pendingRes.count ?? 0,
+      installation: instRes.count ?? 0,
       warranty: warrantyRes.count ?? 0,
       maintenance: maintenanceRes.count ?? 0,
+      expired: expiredRes.count ?? 0,
       total: totalRes.count ?? 0,
     };
   },
 
   /**
    * Create a new product.
+   * New products explicitly default to status: "pending".
    */
   async createProduct(data: ProductInsert): Promise<ProductRow> {
+    const payload = {
+      ...data,
+      status: data.status || "pending",
+      product_id: data.product_id ?? safeUUID(),
+    };
+
     const { data: created, error } = await supabase
       .from("products")
-      .insert({
-        ...data,
-        product_id: data.product_id ?? safeUUID(),
-      })
+      .insert(payload)
       .select()
       .single();
 
@@ -608,26 +633,35 @@ export const productsService = {
  * to link images when step_id is not directly specified.
  */
 async function resolveStepIdForProduct(productId: string): Promise<string> {
-  const { data: dbEvts } = await (supabase as any)
-    .from("product_events")
-    .select("event_id, steps:product_event_steps(step_id)")
-    .eq("product_id", productId)
-    .order("sequence_number", { ascending: true });
+  const { data: juncRows } = await (supabase as any)
+    .from("event_products")
+    .select("event_id")
+    .eq("product_id", productId);
 
-  if (dbEvts && dbEvts.length > 0) {
-    const firstEvt = dbEvts[0];
-    if (firstEvt.steps && firstEvt.steps.length > 0) {
-      return firstEvt.steps[0].step_id;
+  const eventIds = (juncRows || []).map((j: any) => j.event_id).filter(Boolean);
+
+  if (eventIds.length > 0) {
+    const { data: dbEvts } = await (supabase as any)
+      .from("product_events")
+      .select("event_id, steps:product_event_steps(step_id)")
+      .in("event_id", eventIds)
+      .order("created_at", { ascending: true });
+
+    if (dbEvts && dbEvts.length > 0) {
+      const firstEvt = dbEvts[0];
+      if (firstEvt.steps && firstEvt.steps.length > 0) {
+        return firstEvt.steps[0].step_id;
+      }
+      const stepId = safeUUID();
+      const { error: stepErr } = await (supabase as any).from("product_event_steps").insert({
+        step_id: stepId,
+        event_id: firstEvt.event_id,
+        step_type: "delivery",
+        step_order: 1,
+        status: "active",
+      });
+      if (!stepErr) return stepId;
     }
-    const stepId = safeUUID();
-    const { error: stepErr } = await (supabase as any).from("product_event_steps").insert({
-      step_id: stepId,
-      event_id: firstEvt.event_id,
-      step_type: "delivery",
-      step_order: 1,
-      status: "active",
-    });
-    if (!stepErr) return stepId;
   }
 
   const eventId = safeUUID();
@@ -635,7 +669,6 @@ async function resolveStepIdForProduct(productId: string): Promise<string> {
 
   const { error: evtErr } = await (supabase as any).from("product_events").insert({
     event_id: eventId,
-    product_id: productId,
     event_type: "installation",
     sequence_number: 1,
     status: "active",
@@ -643,17 +676,15 @@ async function resolveStepIdForProduct(productId: string): Promise<string> {
   });
 
   if (evtErr) {
-    const { data: retryEvt } = await (supabase as any)
-      .from("product_events")
-      .select("event_id, steps:product_event_steps(step_id)")
-      .eq("product_id", productId)
-      .maybeSingle();
-
-    if (retryEvt && retryEvt.steps && retryEvt.steps.length > 0) {
-      return retryEvt.steps[0].step_id;
-    }
     throw new Error(`Failed to create default event for product: ${evtErr.message}`);
   }
+
+  await (supabase as any).from("event_products").insert({
+    id: safeUUID(),
+    event_id: eventId,
+    product_id: productId,
+    created_at: new Date().toISOString(),
+  });
 
   const { error: stepErr } = await (supabase as any).from("product_event_steps").insert({
     step_id: stepId,

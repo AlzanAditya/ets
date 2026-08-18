@@ -29,6 +29,7 @@ import {
   AppLayout,
   DashboardPage,
   ProductsPage,
+  EventsPage,
   StickersPage,
   ClientPage,
   TaxPage,
@@ -124,6 +125,8 @@ export default function App() {
                     <Route path="admin/products"     element={<ProductsPage />} />
                     <Route path="admin/products/add" element={<ProductsPage />} />
                     <Route path="admin/products/:id" element={<ProductsPage />} />
+                    <Route path="events"          element={<EventsPage />} />
+                    <Route path="admin/events"    element={<EventsPage />} />
                     <Route path="stickers"        element={<StickersPage />} />
                     <Route path="admin/stickers"  element={<StickersPage />} />
                     <Route path="product"         element={<Navigate to="/products" replace />} />

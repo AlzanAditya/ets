@@ -247,7 +247,9 @@ export function LoginForm({
                   type="button"
                   variant="outline"
                   className="h-10"
-                  onClick={() => navigate("/")}
+                  onClick={() => navigate("/p")}
+                  title="Kembali"
+                  aria-label="Kembali"
                 >
                   <ArrowLeftIcon className="size-4" />
                 </Button>

@@ -107,7 +107,7 @@ export function ActiveIndicatorsCards() {
         workersService.getAllAssignments().catch(() => []),
         clientsService.getClients().catch(() => []),
         productsService.getProducts({ limit: 200 }).catch(() => []),
-        supabase.from("product_events").select("*").then(res => res, () => ({ data: null })),
+        (supabase as any).from("product_events").select("*, event_products(product_id)").then((res: any) => res, () => ({ data: null })),
       ])
 
       const dbEvents = dbEventsRes?.data || []
@@ -151,8 +151,10 @@ export function ActiveIndicatorsCards() {
             let serialNumber = assign.product_serial || ""
 
             // Resolve product details from real database products
+            const eventProdIds = (evtObj?.event_products || []).map((ep: any) => ep.product_id);
             const matchedProd = products.find(
               (p: any) =>
+                (eventProdIds.includes(p.product_id)) ||
                 (evtObj && p.product_id === evtObj.product_id) ||
                 (serialNumber && p.serial_number === serialNumber)
             )
@@ -243,9 +245,10 @@ export function ActiveIndicatorsCards() {
           const prodSerial = prod.serial_number || (prod as any).serialNumber || (prod as any).serial_no || (prod as any).serial || ""
 
           // Find active events for this product from product_events
-          const prodEvents = dbEvents.filter(
-            (e: any) => e.product_id === prod.product_id && (e.status === "active" || !e.completed_at)
-          )
+          const prodEvents = dbEvents.filter((e: any) => {
+            const hasProduct = (e.event_products || []).some((ep: any) => ep.product_id === prod.product_id) || e.product_id === prod.product_id;
+            return hasProduct && (e.status === "active" || !e.completed_at);
+          })
 
           if (prodEvents.length > 0) {
             prodEvents.forEach((evt: any) => {

@@ -1,14 +1,14 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   QrCode,
   Search,
   ShieldCheck,
   Zap,
-  Wrench,
-  FileCheck2,
-  Activity,
+  Camera,
+  FileText,
+  UserRound,
   ArrowRight,
   Package,
   Building2,
@@ -101,7 +101,18 @@ export default function PublicLanding() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
       {/* Public Header */}
-      <PublicHeader />
+      <PublicHeader
+        rightAction={
+          <Link
+            to="/login"
+            className="p-2 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 transition-colors border border-transparent hover:border-zinc-700/60"
+            title="Login"
+            aria-label="Login"
+          >
+            <UserRound className="h-4 w-4 sm:h-5 sm:w-5" />
+          </Link>
+        }
+      />
 
       {/* Main Content */}
       <motion.main
@@ -129,7 +140,8 @@ export default function PublicLanding() {
 
             {/* Main Headline */}
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-              Sekali scan. Akses Semua Informasi.
+              <span className="block sm:inline">Scan Sekali.</span>{" "}
+              <span>Akses Semua Informasi.</span>
             </h1>
 
             {/* Subheadline */}
@@ -171,7 +183,7 @@ export default function PublicLanding() {
           </div>
 
           {/* Benefits Cards Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-10 sm:pt-12 border-t border-zinc-800/80 mt-10 text-left">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-10 sm:pt-12 border-t border-zinc-800/80 mt-10 text-left">
             <div className="p-3.5 rounded-2xl border border-zinc-800 bg-zinc-900/60 space-y-1.5">
               <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl w-fit">
                 <Zap className="h-4 w-4" />
@@ -194,31 +206,21 @@ export default function PublicLanding() {
 
             <div className="p-3.5 rounded-2xl border border-zinc-800 bg-zinc-900/60 space-y-1.5">
               <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl w-fit">
-                <FileCheck2 className="h-4 w-4" />
+                <Camera className="h-4 w-4" />
               </div>
-              <h3 className="text-xs font-bold text-zinc-200">Dokumentasi Instalasi</h3>
+              <h3 className="text-xs font-bold text-zinc-200">Dokumentasi</h3>
               <p className="text-[11px] text-zinc-400 leading-snug">
-                Foto &amp; laporan pengerjaan pemasangan awal resmi.
+                Foto dokumentasi unit, instalasi, &amp; kondisi fisik perangkat.
               </p>
             </div>
 
             <div className="p-3.5 rounded-2xl border border-zinc-800 bg-zinc-900/60 space-y-1.5">
               <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl w-fit">
-                <Wrench className="h-4 w-4" />
+                <FileText className="h-4 w-4" />
               </div>
-              <h3 className="text-xs font-bold text-zinc-200">Dokumentasi Maintenance</h3>
+              <h3 className="text-xs font-bold text-zinc-200">Laporan Produk</h3>
               <p className="text-[11px] text-zinc-400 leading-snug">
-                Riwayat pemeliharaan berkala &amp; servis perangkat.
-              </p>
-            </div>
-
-            <div className="col-span-2 md:col-span-1 p-3.5 rounded-2xl border border-zinc-800 bg-zinc-900/60 space-y-1.5">
-              <div className="p-2 bg-rose-500/10 text-rose-400 rounded-xl w-fit">
-                <Activity className="h-4 w-4" />
-              </div>
-              <h3 className="text-xs font-bold text-zinc-200">Riwayat Event</h3>
-              <p className="text-[11px] text-zinc-400 leading-snug">
-                Log histori aktivitas &amp; timeline terverifikasi.
+                Laporan maintenance, inspeksi berkala, &amp; riwayat servis.
               </p>
             </div>
           </div>
