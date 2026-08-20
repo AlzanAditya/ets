@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import type { HistoryItem } from "../data/mock-worker-data"
 export type { HistoryItem }
 import { cn } from "@/lib/utils"
+import { CLIENT_IDENTITY } from "@/config/client-identity"
 
 export interface HistoryTimelineProps {
   items: HistoryItem[]
@@ -124,7 +125,7 @@ export function HistoryTimeline({ items, className }: HistoryTimelineProps) {
                 <span>{selectedItem.clientName}</span>
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Detail riwayat pekerjaan teknis ETS.
+                Detail riwayat pekerjaan teknis {CLIENT_IDENTITY.shortName}.
               </DialogDescription>
             </DialogHeader>
 

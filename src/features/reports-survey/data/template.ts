@@ -21,9 +21,9 @@ export const initialReport: ReportData = {
     'Diperlukan sebuah sistem Proteksi dari Problem Kelistrikan (Over Voltage & Surge Voltage) yang menyeluruh untuk jalur phase - neutral- grounding yang bekerja secara aktif.',
     'Diperlukan solusi antisipasi untuk grounding yang berpotensi berubah-ubah.',
     'Akibat dari kondisi di atas, perlu disiapkan sistem proteksi terhadap gangguan kelistrikan guna meminimalisir kerusakan terganggunya kinerja perangkat serta usia pakai yang rendah bahkan efek paling parah bisa timbul terjadinya kebakaran.',
-    'Oleh karena itu untuk mengatasi permasalahan di atas, kami menawarkan solusi sistem proteksi dan improvement kelistrikan menggunakan : ETS (Electricity Treatment System).'
+    'Oleh karena itu untuk mengatasi permasalahan di atas, kami menawarkan solusi sistem proteksi dan improvement kelistrikan menggunakan : OPS (Operations Protection System).'
   ],
-  explanation: 'Secara fungsi, sistem proteksi pada ETS akan terlihat seperti berikut ini.',
+  explanation: 'Secara fungsi, sistem proteksi pada OPS akan terlihat seperti berikut ini.',
   products: [
     {
       name: 'UPS EATON (60 KVA)',
@@ -44,7 +44,7 @@ export const initialReport: ReportData = {
       photos: ['s03-p01.jpg', 's03-p02.jpg', 's03-p03.jpg', 's03-p04.jpg', 's03-p05.jpg', 's03-p06.jpg'],
       measurementPhotos: ['s04-p01.jpg', 's04-p03.jpg', 's04-p02.jpg'],
       solutionTitle: '1. UPS EATON (60 KVA)',
-      ets: 'ETS 60 KVA (Three Phase)',
+      ets: 'OPS 60 KVA (Three Phase)',
       covered: 'Perangkat Yang tercover UPS 60 KVA'
     },
     {
@@ -66,7 +66,7 @@ export const initialReport: ReportData = {
       photos: ['s05-p01.jpg', 's05-p02.jpg', 's05-p03.jpg', 's05-p04.jpg'],
       measurementPhotos: ['s06-p03.jpg', 's06-p02.jpg', 's06-p01.jpg', 's06-p04.jpg'],
       solutionTitle: '2. UPS EATON (120 KVA)',
-      ets: 'ETS 120 KVA (Three Phase)',
+      ets: 'OPS 120 KVA (Three Phase)',
       covered: 'Perangkat Yang tercover UPS 120 KVA',
       photoLayoutMode: '1row',
       phaseDisplayMode: 'unified'

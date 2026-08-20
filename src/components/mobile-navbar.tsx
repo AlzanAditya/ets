@@ -2,7 +2,6 @@ import * as React from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   CalendarCheck2Icon,
-  ChevronDownIcon,
   ChevronUpIcon,
   FileChartColumnIcon,
   HardHatIcon,
@@ -17,30 +16,27 @@ import { cn } from "@/lib/utils"
 import { useNavMode } from "@/contexts/nav-mode-context"
 import { useAuth } from "@/contexts/auth-context"
 
-// ── Constants ────────────────────────────────────────────────────────────────
-const ROW_H = 48 // px — height of each row
+// ── Navigation Items Configuration ──────────────────────────────────────────
 
-// Top row (collapsible) — exactly 4 items, chevron takes the 5th visual slot
-const TOP_NAV_ITEMS = [
-  { title: "Events", url: "/events", icon: CalendarCheck2Icon },
-  { title: "Stickers", url: "/stickers", icon: PrinterIcon },
-  { title: "Images", url: "/images", icon: ImageIcon },
-  { title: "Settings", url: "/settings", icon: SettingsIcon },
-] as const
-
-// Bottom row (always visible) — exactly 5 items
-const BOTTOM_NAV_ITEMS = [
+// Primary bottom row (always visible dock) — 4 items (~80% width) + toggle button (~20% width)
+const PRIMARY_NAV_ITEMS = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGridIcon },
   { title: "Products", url: "/products", icon: PackageIcon },
   { title: "Clients", url: "/clients", icon: UsersIcon },
   { title: "Reports", url: "/reports", icon: FileChartColumnIcon },
-  { title: "Workers", url: "/workers", icon: HardHatIcon },
 ] as const
 
-// ── Input Focus hook ────────────────────────────────────────────────────────
-// Detects if user is currently typing in an input or textarea on mobile
-// so we can hide the navbar and prevent it from floating up over inputs.
+// Secondary top row (expandable above) — 5 items (100% full width)
+const SECONDARY_NAV_ITEMS = [
+  { title: "Events", url: "/events", icon: CalendarCheck2Icon },
+  { title: "Stickers", url: "/stickers", icon: PrinterIcon },
+  { title: "Images", url: "/images", icon: ImageIcon },
+  { title: "Workers", url: "/workers", icon: HardHatIcon },
+  { title: "Settings", url: "/settings", icon: SettingsIcon },
+] as const
 
+// ── Input Focus Hook ────────────────────────────────────────────────────────
+// Detects if user is currently typing to prevent mobile keyboard overlaps
 function useIsInputFocused(): boolean {
   const [isFocused, setIsFocused] = React.useState(false)
 
@@ -68,8 +64,7 @@ function useIsInputFocused(): boolean {
   return isFocused
 }
 
-// ── NavItem button ──────────────────────────────────────────────────────────
-
+// ── NavItem Button Component ────────────────────────────────────────────────
 interface NavItemProps {
   title: string
   url: string
@@ -85,20 +80,20 @@ function NavItem({ title, icon: Icon, active, onClick }: NavItemProps) {
       aria-label={title}
       onClick={onClick}
       className={cn(
-        "flex flex-1 flex-col items-center justify-center py-1 transition-colors duration-150",
+        "flex flex-1 flex-col items-center justify-center py-1.5 px-0.5 rounded-[15px] transition-all duration-200 cursor-pointer select-none",
         active
-          ? "text-primary"
-          : "text-muted-foreground hover:text-foreground active:text-primary"
+          ? "text-primary bg-primary/10 font-semibold"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
       )}
     >
       <Icon
-        className={cn("size-[18px] transition-transform duration-150", active && "scale-105")}
+        className={cn("size-[18px] transition-transform duration-200", active && "scale-110")}
         strokeWidth={active ? 2.25 : 1.75}
       />
       <span
         className={cn(
-          "text-[10px] mt-0.5 leading-none transition-all duration-150 select-none",
-          active ? "font-semibold text-primary" : "font-light text-muted-foreground/60"
+          "text-[10px] mt-0.5 leading-none transition-all duration-200 truncate max-w-full px-0.5",
+          active ? "font-semibold text-primary" : "font-normal text-muted-foreground/80"
         )}
       >
         {title}
@@ -107,20 +102,14 @@ function NavItem({ title, icon: Icon, active, onClick }: NavItemProps) {
   )
 }
 
-// ── MobileNavbar ────────────────────────────────────────────────────────────
-
 /**
- * Purpose: mobile-only bottom navigation bar with two rows and collapse animation.
- * Responsibilities:
- *   – Render top row (QR Statistics, Transaction, Images, Invoice) that slides
- *     from behind the bottom row like a card appearing from behind.
- *   – Render bottom row (Dashboard, Products, Clients, Reports, Settings) always
- *     visible.
- *   – Float a ChevronUp/Down pill at a fixed screen position regardless of
- *     top-row state.
- *   – Stay fixed to the actual bottom of the screen even when the virtual
- *     keyboard is open (uses visualViewport API).
- * Usage notes: only visible on mobile (md:hidden); only rendered when navMode === "navbar".
+ * Purpose: Connected Dock Mobile Navbar (V2)
+ * Features:
+ *   - Swapped structure: Persistent primary 80/20 bar is on the BOTTOM; expandable secondary bar expands ABOVE.
+ *   - Unified background styling between top and bottom bars.
+ *   - Dynamic toggle button height: Matches the bottom bar height when collapsed; returns to compact height when expanded to leave a standalone gap.
+ *   - Invert border-radius removed for a crisp, modern border seam.
+ *   - Compatible with light and dark mode CSS variables.
  */
 export function MobileNavbar() {
   const { navbarEnabled, topRowVisible, toggleTopRow } = useNavMode()
@@ -129,15 +118,11 @@ export function MobileNavbar() {
   const location = useLocation()
   const isInputFocused = useIsInputFocused()
 
-  const bottomNavItems = React.useMemo(() => {
+  const secondaryNavItems = React.useMemo(() => {
     if (role === "worker") {
-      return BOTTOM_NAV_ITEMS.filter((item) => {
-        const title = item.title as string
-        const url = item.url as string
-        return title !== "Workers" && url !== "/workers" && title !== "Settings" && url !== "/settings"
-      })
+      return SECONDARY_NAV_ITEMS.filter((item) => item.url !== "/workers")
     }
-    return BOTTOM_NAV_ITEMS
+    return SECONDARY_NAV_ITEMS
   }, [role])
 
   if (!navbarEnabled) {
@@ -153,104 +138,111 @@ export function MobileNavbar() {
     navigate(url)
   }
 
-  // The chevron pill is positioned ABOVE the bottom row at a fixed offset.
-  // `bottom: ROW_H + 6` keeps it visually anchored regardless of top-row state.
-  const chevronBottom = ROW_H + 6
+  const isOpen = topRowVisible
 
   return (
     <div
-      aria-label="Mobile navigation"
+      aria-label="Mobile navigation dock"
       className={cn(
-        "fixed left-0 right-0 bottom-0 z-40 md:hidden select-none transition-all duration-300 ease-in-out",
-        isInputFocused && "translate-y-full opacity-0 pointer-events-none"
+        "fixed left-1/2 -translate-x-1/2 bottom-3.5 z-40 md:hidden select-none",
+        "w-[min(420px,calc(100%-20px))]",
+        "transition-all duration-300 ease-in-out",
+        isInputFocused && "translate-y-28 opacity-0 pointer-events-none"
       )}
     >
-      {/* ── Outer shell (position:relative so absolute children are anchored) */}
-      <div className="relative">
+      <div className="flex flex-col gap-0 w-full relative">
 
-        {/* ── Top row ─────────────────────────────────────────────────────
-            • z-index 10 (below bottom row z-20) so it animates FROM BEHIND.
-            • Starts at bottom=ROW_H (flush above bottom row).
-            • translateY(100%) = slides down behind bottom row (collapsed).
-            • translateY(0)    = slides up to visible position (expanded).
-            • cubic-bezier gives a spring-like "reveal from behind" feel.          */}
+        {/* ── Secondary Level 2 Bar (Expands Above) ────────────────────── */}
         <div
-          aria-hidden={!topRowVisible}
           className={cn(
-            "absolute left-0 right-0 z-10",
-            "flex items-stretch",
-            "bg-background/95 backdrop-blur-md border-t border-border/40",
-            topRowVisible && "shadow-[0_-8px_16px_-2px_rgba(0,0,0,0.25)] dark:shadow-[0_-10px_20px_-2px_rgba(0,0,0,0.45)]",
-            "transition-all duration-300",
+            "grid transition-[grid-template-rows,opacity] duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] relative z-10",
+            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none"
           )}
-          style={{
-            bottom: ROW_H,
-            height: ROW_H,
-            transitionDuration: "320ms",
-            transitionTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
-            transform: topRowVisible ? "translateY(0)" : "translateY(100%)",
-            // Ensure the row can visually overlap behind bottom row
-            willChange: "transform",
-          }}
         >
-          {TOP_NAV_ITEMS.map((item) => (
-            <NavItem
-              key={item.url}
-              title={item.title}
-              url={item.url}
-              icon={item.icon}
-              active={active(item.url)}
-              onClick={() => go(item.url)}
-            />
-          ))}
-          {/* Empty flex slot — lines up with chevron in bottom row area */}
-          <div className="flex-1" />
+          <div className="overflow-hidden">
+            <div
+              className={cn(
+                "w-full h-[62px] p-1.5 grid grid-cols-5 gap-1 items-center",
+                "bg-card/95 backdrop-blur-xl border border-border/80 text-foreground",
+                "shadow-[var(--mobile-nav-shadow)]",
+                "rounded-t-[22px] rounded-br-[22px] rounded-bl-none",
+                // Seam patch at bottom left to seamlessly connect with main bar below
+                "border-b-0"
+              )}
+            >
+              {secondaryNavItems.map((item) => (
+                <NavItem
+                  key={item.url}
+                  title={item.title}
+                  url={item.url}
+                  icon={item.icon}
+                  active={active(item.url)}
+                  onClick={() => go(item.url)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* ── Floating Chevron ────────────────────────────────────────────
-            Always at the same screen position: right edge, just above the
-            bottom row. z-index 30 keeps it above both rows at all times.    */}
-        <button
-          type="button"
-          aria-label={topRowVisible ? "Sembunyikan menu atas" : "Tampilkan menu atas"}
-          onClick={toggleTopRow}
-          className={cn(
-            "absolute right-8 z-30 mb-1",
-            "flex size-7 items-center justify-center rounded-full",
-            "border border-border/85 bg-background shadow-md",
-            "text-muted-foreground transition-colors hover:text-foreground",
-            "hover:border-border active:scale-95 transition-all duration-150"
-          )}
-          style={{ bottom: chevronBottom }}
-        >
-          {topRowVisible
-            ? <ChevronDownIcon className="size-5" strokeWidth={2.5} />
-            : <ChevronUpIcon className="size-5" strokeWidth={2.5} />
-          }
-        </button>
+        {/* ── Primary Level 1 Row (Always Visible at Bottom) ───────────── */}
+        <div className="flex items-end gap-2 w-full relative z-20">
 
-        {/* ── Bottom row ──────────────────────────────────────────────────
-            z-index 20 (above top row z-10) — the top row slides out from
-            BEHIND this row. Always visible.                                 */}
-        <div
-          className={cn(
-            "relative z-20",
-            "flex items-stretch",
-            "bg-background/95 backdrop-blur-md border-t border-border/40 transition-all duration-300",
-            !topRowVisible && "shadow-[0_-8px_16px_-2px_rgba(0,0,0,0.25)] dark:shadow-[0_-10px_20px_-2px_rgba(0,0,0,0.45)]",
-          )}
-          style={{ height: ROW_H }}
-        >
-          {bottomNavItems.map((item) => (
-            <NavItem
-              key={item.url}
-              title={item.title}
-              url={item.url}
-              icon={item.icon}
-              active={active(item.url)}
-              onClick={() => go(item.url)}
-            />
-          ))}
+          {/* Main Bar (78% width) */}
+          <div
+            className={cn(
+              "w-[calc(78%-4px)] min-w-0 h-[62px] p-1.5 grid grid-cols-4 gap-1 items-center",
+              "bg-card/95 backdrop-blur-xl border border-border/80 text-foreground",
+              "shadow-[var(--mobile-nav-shadow)]",
+              "transition-[border-radius,border-color] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+              isOpen
+                ? "rounded-b-[22px] rounded-t-none border-t-0"
+                : "rounded-[22px]"
+            )}
+          >
+            {PRIMARY_NAV_ITEMS.map((item) => (
+              <NavItem
+                key={item.url}
+                title={item.title}
+                url={item.url}
+                icon={item.icon}
+                active={active(item.url)}
+                onClick={() => go(item.url)}
+              />
+            ))}
+          </div>
+
+          {/* Standalone Toggle Bar (22% width) */}
+          <div
+            className={cn(
+              "w-[calc(22%-4px)] shrink-0 flex items-center justify-center p-1.5 self-end",
+              "bg-card/95 backdrop-blur-xl border border-border/80 text-foreground",
+              "shadow-[var(--mobile-nav-shadow)] rounded-[22px]",
+              "transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+              // Collapsed: same height as main bar (62px)
+              // Expanded: normal / compact height (52px) leaving a gap above
+              isOpen ? "h-[52px]" : "h-[62px]"
+            )}
+          >
+            <button
+              type="button"
+              onClick={toggleTopRow}
+              aria-expanded={isOpen}
+              aria-label={isOpen ? "Sembunyikan menu level 2" : "Tampilkan menu level 2"}
+              className={cn(
+                "w-full h-full flex items-center justify-center rounded-[16px]",
+                "bg-muted/40 hover:bg-muted/70 text-foreground transition-all duration-200 active:scale-95 cursor-pointer"
+              )}
+            >
+              <ChevronUpIcon
+                className={cn(
+                  "size-5 transition-transform duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] text-foreground",
+                  isOpen && "rotate-180"
+                )}
+                strokeWidth={2.5}
+              />
+            </button>
+          </div>
+
         </div>
 
       </div>

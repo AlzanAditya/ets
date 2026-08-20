@@ -43,6 +43,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { PublicHeader } from "./components/PublicHeader";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { PublicQrCodeCard } from "./components/PublicQrCodeCard";
 import { EntityProfileBanner } from "@/components/entity-profile-banner";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,7 @@ import { PublicReportCard } from "./components/PublicReportCard";
 import { productsService, type ProductWithRelations } from "@/services/products.service";
 import { productEventsService, type ProductEventData, STEP_TYPE_TITLES } from "@/services/product-events.service";
 import { getClientAvatarUrl } from "@/lib/image-service";
+import { CLIENT_IDENTITY } from "@/config/client-identity";
 import { exportImages } from "@/lib/image-export";
 import { toast } from "sonner";
 
@@ -88,15 +90,15 @@ function SpecDetailItem({
 }) {
   if (value === undefined || value === null || value === "") return null;
   return (
-    <div className="p-2.5 sm:p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-start gap-2.5">
+    <div className="p-2.5 sm:p-3 rounded-xl bg-card dark:bg-zinc-900/60 border border-border flex items-start gap-2.5 shadow-xs">
       {Icon && (
-        <Icon className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+        <Icon className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
       )}
       <div className="flex-1 min-w-0">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 block truncate">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block truncate">
           {label}
         </span>
-        <span className="text-xs sm:text-sm font-semibold text-zinc-100 font-mono break-all block mt-0.5 leading-snug">
+        <span className="text-xs sm:text-sm font-semibold text-foreground font-mono break-all block mt-0.5 leading-snug">
           {String(value)}
         </span>
       </div>
@@ -573,7 +575,7 @@ export default function PublicProductDetail() {
 
     const lines: string[] = [];
     lines.push("=================================================");
-    lines.push("   ELECTRICAL TRACKING SYSTEM (ETS) - INFORMASI PRODUK   ");
+    lines.push(`   ${CLIENT_IDENTITY.fullName.toUpperCase()} (${CLIENT_IDENTITY.shortName}) - INFORMASI PRODUK   `);
     lines.push("=================================================");
     lines.push(`Tanggal Unduh : ${new Date().toLocaleString("id-ID")}`);
     lines.push("");
@@ -645,14 +647,14 @@ export default function PublicProductDetail() {
     }
 
     lines.push("=================================================");
-    lines.push("End of Report - Electrical Tracking System (ETS)");
+    lines.push(`End of Report - ${CLIENT_IDENTITY.fullName} (${CLIENT_IDENTITY.shortName})`);
 
     const fileContent = lines.join("\n");
     const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `ETS_Informasi_Produk_${product.serial_number}.txt`;
+    link.download = `${CLIENT_IDENTITY.shortName}_Informasi_Produk_${product.serial_number}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -669,15 +671,15 @@ export default function PublicProductDetail() {
 
   if (loading && !product) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
-        <PublicHeader navItems={navItems} activeId={activeSection} />
+      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary selection:text-white">
+        <PublicHeader rightAction={<ThemeToggle />} navItems={navItems} activeId={activeSection} />
         <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
           <div className="flex items-center justify-between gap-4 flex-wrap -mt-2 sm:-mt-3 mb-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/p")}
-              className="gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 rounded-xl py-1 h-8"
+              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl py-1 h-8"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Kembali ke Beranda</span>
@@ -691,29 +693,29 @@ export default function PublicProductDetail() {
 
   if (notFound || !product) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
-        <PublicHeader />
+      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+        <PublicHeader rightAction={<ThemeToggle />} />
         <main className="flex-1 max-w-xl mx-auto px-4 py-16 text-center space-y-6">
-          <div className="p-4 bg-amber-500/10 text-amber-400 rounded-3xl w-fit mx-auto border border-amber-500/20">
+          <div className="p-4 bg-amber-500/10 text-amber-500 rounded-3xl w-fit mx-auto border border-amber-500/20">
             <AlertTriangle className="h-10 w-10" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-zinc-100">Produk Tidak Ditemukan</h1>
-            <p className="text-xs text-zinc-400 leading-relaxed max-w-md mx-auto">
-              Nomor seri <span className="font-mono font-bold text-amber-400">{serial_number}</span> tidak terdaftar dalam database resmi Electrical Tracking System.
+            <h1 className="text-2xl font-bold text-foreground">Produk Tidak Ditemukan</h1>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-md mx-auto">
+              Nomor seri <span className="font-mono font-bold text-amber-500">{serial_number}</span> tidak terdaftar dalam database resmi {CLIENT_IDENTITY.fullName}.
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <Button
               onClick={() => setIsScannerOpen(true)}
-              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl py-2.5 px-5"
+              className="w-full sm:w-auto bg-primary hover:bg-emerald-600 text-white font-bold text-xs rounded-xl py-2.5 px-5 shadow-sm"
             >
               Scan QR Code Lain
             </Button>
             <Button
               variant="outline"
               onClick={() => navigate("/p")}
-              className="w-full sm:w-auto border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 text-xs rounded-xl"
+              className="w-full sm:w-auto border-border bg-card text-foreground hover:bg-muted text-xs rounded-xl"
             >
               Kembali ke Beranda
             </Button>
@@ -742,49 +744,56 @@ export default function PublicProductDetail() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-xl border-none bg-transparent text-zinc-300 hover:bg-zinc-800/60 hover:text-white shadow-none transition-all focus-visible:ring-1 focus-visible:ring-zinc-600"
+          className="h-8 w-8 rounded-xl border-none bg-transparent text-muted-foreground hover:bg-slate-200/70 dark:hover:bg-zinc-800/80 hover:text-foreground shadow-none transition-all focus-visible:ring-1 focus-visible:ring-ring"
           title="Opsi Unduhan"
         >
           {isExportingAll ? (
-            <Loader2 className="h-4 w-4 text-zinc-300 animate-spin stroke-[2.5]" />
+            <Loader2 className="h-4 w-4 text-muted-foreground animate-spin stroke-[2.5]" />
           ) : (
-            <Download className="h-4 w-4 text-zinc-300 stroke-[2.5]" />
+            <Download className="h-4 w-4 text-muted-foreground hover:text-foreground stroke-[2.5]" />
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-zinc-800 text-zinc-100 rounded-xl p-1.5 shadow-2xl z-50">
-        <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 px-2.5 py-1">
+      <DropdownMenuContent align="end" className="w-56 bg-popover border-border text-popover-foreground rounded-xl p-1.5 shadow-2xl z-50">
+        <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
           Opsi Unduhan Produk
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-zinc-800 my-1" />
+        <DropdownMenuSeparator className="bg-border my-1" />
         <DropdownMenuItem
           onClick={handleExportAllImages}
           disabled={isExportingAll || totalPhotoCount === 0}
-          className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium rounded-lg cursor-pointer text-zinc-200 focus:bg-zinc-800 focus:text-white"
+          className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium rounded-lg cursor-pointer text-foreground focus:bg-accent focus:text-accent-foreground"
         >
-          <ImageIcon className="h-4 w-4 text-emerald-400 shrink-0" />
+          <ImageIcon className="h-4 w-4 text-primary shrink-0" />
           <div className="flex-1 flex items-center justify-between min-w-0">
             <span className="truncate">Unduh Semua Foto</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 shrink-0">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
               {totalPhotoCount}
             </span>
           </div>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={handleExportProductInfo}
-          className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium rounded-lg cursor-pointer text-zinc-200 focus:bg-zinc-800 focus:text-white"
+          className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium rounded-lg cursor-pointer text-foreground focus:bg-accent focus:text-accent-foreground"
         >
-          <FileText className="h-4 w-4 text-cyan-400 shrink-0" />
+          <FileText className="h-4 w-4 text-cyan-500 dark:text-cyan-400 shrink-0" />
           <span className="truncate">Unduh Informasi</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
+  const headerRightAction = (
+    <div className="flex items-center gap-1 sm:gap-1.5">
+      <ThemeToggle />
+      {headerDownloadDropdown}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary selection:text-white">
       {/* Public Header */}
-      <PublicHeader rightAction={headerDownloadDropdown} navItems={navItems} activeId={activeSection} />
+      <PublicHeader rightAction={headerRightAction} navItems={navItems} activeId={activeSection} />
 
       {/* Main Container */}
       <motion.main
@@ -799,7 +808,7 @@ export default function PublicProductDetail() {
             variant="ghost"
             size="sm"
             onClick={() => navigate("/p")}
-            className="gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 rounded-xl py-1 h-8"
+            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl py-1 h-8"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Kembali ke Beranda</span>
@@ -1093,7 +1102,7 @@ export default function PublicProductDetail() {
           initial={{ opacity: 0, filter: "blur(8px)", y: 12 }}
           animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-          className="rounded-2xl border border-zinc-800 bg-zinc-900/90 p-4 sm:p-5 shadow-xl space-y-4 scroll-mt-16 overflow-hidden"
+          className="rounded-2xl border border-border bg-card dark:bg-zinc-900/90 p-4 sm:p-5 shadow-lg space-y-4 scroll-mt-16 overflow-hidden"
         >
           <SectionBlurLoader loading={isProductFetching} label="Memuat Spesifikasi...">
             <button
@@ -1101,14 +1110,14 @@ export default function PublicProductDetail() {
               onClick={() => setIsSpecExpanded((prev) => !prev)}
               className="w-full flex items-center justify-between text-left focus:outline-none group cursor-pointer select-none py-2 pl-2"
             >
-              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-200 group-hover:text-emerald-400 transition-colors">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-foreground group-hover:text-primary transition-colors">
                 SPESIFIKASI
               </h2>
               <div>
                 {isSpecExpanded ? (
-                  <ChevronUp className="h-4 w-4 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                  <ChevronUp className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 )}
               </div>
             </button>
@@ -1148,7 +1157,7 @@ export default function PublicProductDetail() {
 
         {/* 4. Dokumentasi & Event Section */}
         <div id="dokumentasi" className="space-y-3 pt-2 scroll-mt-16">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
             DOKUMENTASI
           </h2>
 
@@ -1171,9 +1180,9 @@ export default function PublicProductDetail() {
       </motion.main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800 py-6 bg-zinc-950 text-center text-xs text-zinc-500 mt-12">
+      <footer className="border-t border-border py-6 bg-background dark:bg-zinc-950 text-center text-xs text-muted-foreground mt-12">
         <div className="max-w-4xl mx-auto px-4 flex items-center justify-center">
-          <p>&copy; {new Date().getFullYear()} Electrical Tracking System (ETS). All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {CLIENT_IDENTITY.fullName} ({CLIENT_IDENTITY.shortName}). All rights reserved.</p>
         </div>
       </footer>
 

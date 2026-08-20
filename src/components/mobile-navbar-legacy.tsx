@@ -1,0 +1,225 @@
+import * as React from "react"
+import { useLocation, useNavigate } from "react-router-dom"
+import {
+  CalendarCheck2Icon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  FileChartColumnIcon,
+  HardHatIcon,
+  ImageIcon,
+  LayoutGridIcon,
+  PackageIcon,
+  PrinterIcon,
+  SettingsIcon,
+  UsersIcon,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { useNavMode } from "@/contexts/nav-mode-context"
+import { useAuth } from "@/contexts/auth-context"
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const ROW_H = 48 // px — height of each row
+
+// Top row (collapsible) — exactly 4 items, chevron takes the 5th visual slot
+const TOP_NAV_ITEMS = [
+  { title: "Events", url: "/events", icon: CalendarCheck2Icon },
+  { title: "Stickers", url: "/stickers", icon: PrinterIcon },
+  { title: "Images", url: "/images", icon: ImageIcon },
+  { title: "Settings", url: "/settings", icon: SettingsIcon },
+] as const
+
+// Bottom row (always visible) — exactly 5 items
+const BOTTOM_NAV_ITEMS = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutGridIcon },
+  { title: "Products", url: "/products", icon: PackageIcon },
+  { title: "Clients", url: "/clients", icon: UsersIcon },
+  { title: "Reports", url: "/reports", icon: FileChartColumnIcon },
+  { title: "Workers", url: "/workers", icon: HardHatIcon },
+] as const
+
+// ── Input Focus hook ────────────────────────────────────────────────────────
+function useIsInputFocused(): boolean {
+  const [isFocused, setIsFocused] = React.useState(false)
+
+  React.useEffect(() => {
+    function handleFocusChange() {
+      const activeEl = document.activeElement
+      const isInput =
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.tagName === "SELECT" ||
+          activeEl.getAttribute("contenteditable") === "true")
+      setIsFocused(Boolean(isInput))
+    }
+
+    document.addEventListener("focusin", handleFocusChange)
+    document.addEventListener("focusout", handleFocusChange)
+
+    return () => {
+      document.removeEventListener("focusin", handleFocusChange)
+      document.removeEventListener("focusout", handleFocusChange)
+    }
+  }, [])
+
+  return isFocused
+}
+
+// ── NavItem button ──────────────────────────────────────────────────────────
+interface NavItemProps {
+  title: string
+  url: string
+  icon: React.ElementType
+  active: boolean
+  onClick: () => void
+}
+
+function NavItem({ title, icon: Icon, active, onClick }: NavItemProps) {
+  return (
+    <button
+      type="button"
+      aria-label={title}
+      onClick={onClick}
+      className={cn(
+        "flex flex-1 flex-col items-center justify-center py-1 transition-colors duration-150",
+        active
+          ? "text-primary"
+          : "text-muted-foreground hover:text-foreground active:text-primary"
+      )}
+    >
+      <Icon
+        className={cn("size-[18px] transition-transform duration-150", active && "scale-105")}
+        strokeWidth={active ? 2.25 : 1.75}
+      />
+      <span
+        className={cn(
+          "text-[10px] mt-0.5 leading-none transition-all duration-150 select-none",
+          active ? "font-semibold text-primary" : "font-normal text-muted-foreground/75"
+        )}
+      >
+        {title}
+      </span>
+    </button>
+  )
+}
+
+/**
+ * MobileNavbarLegacy (V1):
+ * Original two-row mobile bottom navigation bar with top-row slide from behind.
+ */
+export function MobileNavbarLegacy() {
+  const { navbarEnabled, topRowVisible, toggleTopRow } = useNavMode()
+  const { role } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isInputFocused = useIsInputFocused()
+
+  const bottomNavItems = React.useMemo(() => {
+    if (role === "worker") {
+      return BOTTOM_NAV_ITEMS.filter((item) => {
+        const title = item.title as string
+        const url = item.url as string
+        return title !== "Workers" && url !== "/workers" && title !== "Settings" && url !== "/settings"
+      })
+    }
+    return BOTTOM_NAV_ITEMS
+  }, [role])
+
+  if (!navbarEnabled) {
+    return null
+  }
+
+  const active = (url: string) =>
+    location.pathname === url ||
+    (url === "/dashboard" && location.pathname === "/") ||
+    (url !== "/dashboard" && (location.pathname.startsWith(`${url}/`) || location.pathname.startsWith(`${url}?`)))
+
+  function go(url: string) {
+    navigate(url)
+  }
+
+  const chevronBottom = ROW_H + 6
+
+  return (
+    <div
+      aria-label="Mobile navigation legacy"
+      className={cn(
+        "fixed left-0 right-0 bottom-0 z-40 md:hidden select-none transition-all duration-300 ease-in-out",
+        isInputFocused && "translate-y-full opacity-0 pointer-events-none"
+      )}
+    >
+      <div className="relative">
+        <div
+          aria-hidden={!topRowVisible}
+          className={cn(
+            "absolute left-0 right-0 z-10",
+            "flex items-stretch",
+            "bg-background/95 backdrop-blur-md border-t border-border/40",
+            topRowVisible && "shadow-[var(--mobile-nav-shadow)]",
+            "transition-all duration-300",
+          )}
+          style={{
+            bottom: ROW_H,
+            height: ROW_H,
+            transitionDuration: "320ms",
+            transitionTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
+            transform: topRowVisible ? "translateY(0)" : "translateY(100%)",
+            willChange: "transform",
+          }}
+        >
+          {TOP_NAV_ITEMS.map((item) => (
+            <NavItem
+              key={item.url}
+              title={item.title}
+              url={item.url}
+              icon={item.icon}
+              active={active(item.url)}
+              onClick={() => go(item.url)}
+            />
+          ))}
+          <div className="flex-1" />
+        </div>
+
+        <button
+          type="button"
+          aria-label={topRowVisible ? "Sembunyikan menu atas" : "Tampilkan menu atas"}
+          onClick={toggleTopRow}
+          className={cn(
+            "absolute right-8 z-30 mb-1",
+            "flex size-7 items-center justify-center rounded-full",
+            "border border-border/85 bg-background shadow-md",
+            "text-muted-foreground transition-colors hover:text-foreground",
+            "hover:border-border active:scale-95 transition-all duration-150"
+          )}
+          style={{ bottom: chevronBottom }}
+        >
+          {topRowVisible
+            ? <ChevronDownIcon className="size-5" strokeWidth={2.5} />
+            : <ChevronUpIcon className="size-5" strokeWidth={2.5} />
+          }
+        </button>
+
+        <div
+          className={cn(
+            "relative z-20",
+            "flex items-stretch",
+            "bg-background/95 backdrop-blur-md border-t border-border/40 transition-all duration-300",
+            !topRowVisible && "shadow-[var(--mobile-nav-shadow)]",
+          )}
+          style={{ height: ROW_H }}
+        >
+          {bottomNavItems.map((item) => (
+            <NavItem
+              key={item.url}
+              title={item.title}
+              url={item.url}
+              icon={item.icon}
+              active={active(item.url)}
+              onClick={() => go(item.url)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}

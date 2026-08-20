@@ -40,6 +40,16 @@ export class RootErrorBoundary extends React.Component<
   }
 
   handleRetry = () => {
+    const isChunkError =
+      this.state.error?.message?.includes("Failed to fetch dynamically imported module") ||
+      this.state.error?.message?.includes("Importing a module script failed") ||
+      this.state.error?.message?.includes("error loading dynamically imported module")
+
+    if (isChunkError && typeof window !== "undefined") {
+      window.location.reload()
+      return
+    }
+
     this.setState({ hasError: false, error: null })
   }
 

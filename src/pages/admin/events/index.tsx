@@ -159,18 +159,18 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8 space-y-6">
+    <div className="flex-1 flex flex-col min-h-screen bg-background text-foreground p-4 md:p-8 space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-amber-400 uppercase tracking-widest">
+          <div className="flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-widest">
             <Layers className="size-4" />
             <span>Product Lifecycle & Operations</span>
           </div>
-          <h1 className="text-2xl font-bold text-zinc-100 tracking-tight mt-1">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight mt-1">
             Manajemen Events Produk
           </h1>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Jadwal pengerjaan instalasi dan maintenance unit stabilizer untuk berbagai klien.
           </p>
         </div>
@@ -181,16 +181,16 @@ export default function EventsPage() {
             size="sm"
             onClick={fetchEvents}
             disabled={loading}
-            className="border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 rounded-xl text-xs gap-1.5"
+            className="rounded-xl text-xs gap-1.5"
           >
-            <RefreshCw className={`size-3.5 ${loading ? "animate-spin text-amber-400" : ""}`} />
+            <RefreshCw className={`size-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
             <span>Refresh</span>
           </Button>
 
           <Button
             size="sm"
             onClick={() => setCreateModalOpen(true)}
-            className="bg-amber-500 text-zinc-950 font-bold hover:bg-amber-400 rounded-xl text-xs gap-1.5 shadow-sm"
+            className="rounded-xl text-xs gap-1.5 font-semibold shadow-xs"
           >
             <Plus className="size-4 stroke-[2.5]" />
             <span>Tambah Event (Multi-Produk)</span>
@@ -200,64 +200,64 @@ export default function EventsPage() {
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 flex flex-col justify-between">
+        <div className="p-4 rounded-2xl bg-card border border-border shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-zinc-400">Total Event</span>
-            <Layers className="size-4 text-zinc-500" />
+            <span className="text-xs font-medium text-muted-foreground">Total Event</span>
+            <Layers className="size-4 text-muted-foreground" />
           </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-zinc-100">{summary.total}</div>
-          <span className="text-[11px] text-zinc-500 mt-1">Semua jenis operasional</span>
+          <div className="mt-2 text-2xl font-bold font-mono text-foreground">{summary.total}</div>
+          <span className="text-[11px] text-muted-foreground mt-1">Semua jenis operasional</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-zinc-900/50 border border-blue-500/20 flex flex-col justify-between">
+        <div className="p-4 rounded-2xl bg-card border border-blue-500/20 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-blue-400">Terjadwal</span>
-            <Clock className="size-4 text-blue-400" />
+            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Terjadwal</span>
+            <Clock className="size-4 text-blue-600 dark:text-blue-400" />
           </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-blue-300">{summary.scheduled}</div>
-          <span className="text-[11px] text-blue-500/80 mt-1">Belum dimulai</span>
+          <div className="mt-2 text-2xl font-bold font-mono text-blue-600 dark:text-blue-300">{summary.scheduled}</div>
+          <span className="text-[11px] text-muted-foreground mt-1">Belum dimulai</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-zinc-900/50 border border-amber-500/20 flex flex-col justify-between">
+        <div className="p-4 rounded-2xl bg-card border border-amber-500/20 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-amber-400">Sedang Berjalan</span>
-            <Play className="size-4 text-amber-400 fill-amber-400/20" />
+            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Sedang Berjalan</span>
+            <Play className="size-4 text-amber-600 dark:text-amber-400 fill-amber-500/20" />
           </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-amber-300">{summary.inProgress}</div>
-          <span className="text-[11px] text-amber-500/80 mt-1">Dalam pengerjaan aktif</span>
+          <div className="mt-2 text-2xl font-bold font-mono text-amber-600 dark:text-amber-300">{summary.inProgress}</div>
+          <span className="text-[11px] text-muted-foreground mt-1">Dalam pengerjaan aktif</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-zinc-900/50 border border-emerald-500/20 flex flex-col justify-between">
+        <div className="p-4 rounded-2xl bg-card border border-emerald-500/20 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-emerald-400">Selesai</span>
-            <CheckCircle2 className="size-4 text-emerald-400" />
+            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Selesai</span>
+            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-emerald-300">{summary.completed}</div>
-          <span className="text-[11px] text-emerald-500/80 mt-1">Garansi aktif / terupdate</span>
+          <div className="mt-2 text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-300">{summary.completed}</div>
+          <span className="text-[11px] text-muted-foreground mt-1">Garansi aktif / terupdate</span>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800 space-y-3">
+      <div className="p-4 rounded-2xl bg-card border border-border shadow-xs space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 size-4 text-zinc-500" />
+            <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Cari Event, No Seri, Klien..."
-              className="pl-9 h-9 text-xs bg-zinc-900 border-zinc-800 rounded-xl text-zinc-100"
+              className="pl-9 h-9 text-xs bg-background border-border rounded-xl text-foreground"
             />
           </div>
 
           {/* Client Filter */}
           <div className="relative">
-            <Building2 className="absolute left-3 top-2.5 size-4 text-zinc-500 pointer-events-none" />
+            <Building2 className="absolute left-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
             <select
               value={selectedClient}
               onChange={(e) => setSelectedClient(e.target.value)}
-              className="w-full pl-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 pr-3 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+              className="w-full pl-9 h-9 rounded-xl bg-background border border-border pr-3 text-xs text-foreground focus:outline-none focus:border-primary"
             >
               <option value="all">Semua Perusahaan / Client</option>
               {clients.map((c) => (
@@ -270,11 +270,11 @@ export default function EventsPage() {
 
           {/* Event Type Filter */}
           <div className="relative">
-            <Filter className="absolute left-3 top-2.5 size-4 text-zinc-500 pointer-events-none" />
+            <Filter className="absolute left-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full pl-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 pr-3 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+              className="w-full pl-9 h-9 rounded-xl bg-background border border-border pr-3 text-xs text-foreground focus:outline-none focus:border-primary"
             >
               <option value="all">Semua Jenis Event</option>
               <option value="installation">Instalasi</option>
@@ -284,11 +284,11 @@ export default function EventsPage() {
 
           {/* Status Filter */}
           <div className="relative">
-            <Clock className="absolute left-3 top-2.5 size-4 text-zinc-500 pointer-events-none" />
+            <Clock className="absolute left-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full pl-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 pr-3 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+              className="w-full pl-9 h-9 rounded-xl bg-background border border-border pr-3 text-xs text-foreground focus:outline-none focus:border-primary"
             >
               <option value="all">Semua Status Pelaksanaan</option>
               <option value="scheduled">Terjadwal (Scheduled)</option>
@@ -301,11 +301,11 @@ export default function EventsPage() {
       </div>
 
       {/* Events Data Table */}
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+      <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-zinc-800 bg-zinc-900/60 text-zinc-400 font-mono text-[11px] uppercase tracking-wider">
+              <tr className="border-b border-border bg-muted/40 text-muted-foreground font-mono text-[11px] uppercase tracking-wider">
                 <th className="py-3.5 px-4">Jenis Event</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4">Jadwal / Waktu</th>
@@ -315,21 +315,21 @@ export default function EventsPage() {
                 <th className="py-3.5 px-4 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60">
+            <tbody className="divide-y divide-border/60">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-zinc-500">
+                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
-                      <RefreshCw className="size-4 animate-spin text-amber-400" />
+                      <RefreshCw className="size-4 animate-spin text-primary" />
                       <span>Memuat data event...</span>
                     </div>
                   </td>
                 </tr>
               ) : events.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-zinc-500">
+                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <AlertCircle className="size-6 text-zinc-600" />
+                      <AlertCircle className="size-6 text-muted-foreground/60" />
                       <p>Tidak ada event yang sesuai dengan filter.</p>
                       <Button
                         variant="outline"
@@ -340,7 +340,7 @@ export default function EventsPage() {
                           setSelectedStatus("all");
                           setSelectedClient("all");
                         }}
-                        className="text-xs border-zinc-800 mt-1"
+                        className="text-xs mt-1"
                       >
                         Reset Filter
                       </Button>
@@ -355,22 +355,22 @@ export default function EventsPage() {
                   const productCount = evt.products?.length || 1;
 
                   return (
-                    <tr key={evt.event_id} className="hover:bg-zinc-900/40 transition-colors">
+                    <tr key={evt.event_id} className="hover:bg-muted/40 transition-colors">
                       {/* Jenis Event */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
                           <div
                             className={`p-2 rounded-xl border ${
                               isInst
-                                ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                                : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
+                                : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
                             }`}
                           >
                             {isInst ? <PackageCheck className="size-4" /> : <Wrench className="size-4" />}
                           </div>
                           <div>
-                            <div className="font-bold text-zinc-200">{evt.title}</div>
-                            <span className="text-[10px] uppercase font-mono text-zinc-500">
+                            <div className="font-bold text-foreground">{evt.title}</div>
+                            <span className="text-[10px] uppercase font-mono text-muted-foreground">
                               {evt.event_type}
                             </span>
                           </div>
@@ -382,7 +382,7 @@ export default function EventsPage() {
                         {evt.status === "scheduled" ? (
                           <Badge
                             variant="outline"
-                            className="bg-blue-500/10 text-blue-400 border-blue-500/30 text-[10px] uppercase font-mono px-2 py-0.5 gap-1"
+                            className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 text-[10px] uppercase font-mono px-2 py-0.5 gap-1"
                           >
                             <Clock className="size-3" />
                             <span>Terjadwal</span>
@@ -390,15 +390,15 @@ export default function EventsPage() {
                         ) : evt.status === "active" || evt.status === "in_progress" ? (
                           <Badge
                             variant="outline"
-                            className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-[10px] uppercase font-mono px-2 py-0.5 gap-1"
+                            className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px] uppercase font-mono px-2 py-0.5 gap-1"
                           >
-                            <Play className="size-3 fill-amber-400" />
+                            <Play className="size-3 fill-amber-500" />
                             <span>Sedang Berjalan</span>
                           </Badge>
                         ) : evt.status === "completed" ? (
                           <Badge
                             variant="outline"
-                            className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px] uppercase font-mono px-2 py-0.5 gap-1"
+                            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px] uppercase font-mono px-2 py-0.5 gap-1"
                           >
                             <CheckCircle2 className="size-3" />
                             <span>Selesai</span>
@@ -406,7 +406,7 @@ export default function EventsPage() {
                         ) : (
                           <Badge
                             variant="outline"
-                            className="bg-zinc-800 text-zinc-400 border-zinc-700 text-[10px] uppercase font-mono px-2 py-0.5 gap-1"
+                            className="bg-muted text-muted-foreground border-border text-[10px] uppercase font-mono px-2 py-0.5 gap-1"
                           >
                             <XCircle className="size-3" />
                             <span>Dibatalkan</span>
@@ -415,10 +415,10 @@ export default function EventsPage() {
                       </td>
 
                       {/* Jadwal / Tanggal */}
-                      <td className="py-3.5 px-4 font-mono text-zinc-300">
+                      <td className="py-3.5 px-4 font-mono text-foreground">
                         {evt.scheduled_date ? (
                           <div className="flex items-center gap-1.5 text-[11px]">
-                            <Calendar className="size-3.5 text-zinc-500" />
+                            <Calendar className="size-3.5 text-muted-foreground" />
                             <span>
                               {new Date(evt.scheduled_date).toLocaleDateString("id-ID", {
                                 day: "numeric",
@@ -430,7 +430,7 @@ export default function EventsPage() {
                             </span>
                           </div>
                         ) : evt.started_at ? (
-                          <div className="text-[11px] text-zinc-400">
+                          <div className="text-[11px] text-muted-foreground">
                             Mulai:{" "}
                             {new Date(evt.started_at).toLocaleDateString("id-ID", {
                               day: "numeric",
@@ -439,7 +439,7 @@ export default function EventsPage() {
                             })}
                           </div>
                         ) : (
-                          <span className="text-zinc-600">-</span>
+                          <span className="text-muted-foreground/60">-</span>
                         )}
                       </td>
 
@@ -447,17 +447,17 @@ export default function EventsPage() {
                       <td className="py-3.5 px-4">
                         {evt.client?.client_name ? (
                           <div>
-                            <div className="font-medium text-zinc-200">
+                            <div className="font-medium text-foreground">
                               {evt.client.client_name}
                             </div>
                             {evt.client.client_code && (
-                              <span className="text-[10px] font-mono text-zinc-500">
+                              <span className="text-[10px] font-mono text-muted-foreground">
                                 {evt.client.client_code}
                               </span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-zinc-500 italic">Internal / Umum</span>
+                          <span className="text-muted-foreground italic">Internal / Umum</span>
                         )}
                       </td>
 
@@ -466,12 +466,12 @@ export default function EventsPage() {
                         <div className="flex items-center gap-1.5">
                           <Badge
                             variant="secondary"
-                            className="bg-zinc-800 text-zinc-200 font-mono text-xs px-2 py-0.5 rounded-lg border border-zinc-700"
+                            className="font-mono text-xs px-2 py-0.5 rounded-lg border border-border"
                           >
                             {productCount} Produk
                           </Badge>
                           {evt.products && evt.products.length > 0 && (
-                            <span className="text-[11px] text-zinc-400 font-mono truncate max-w-[150px]">
+                            <span className="text-[11px] text-muted-foreground font-mono truncate max-w-[150px]">
                               {evt.products.map((p) => p.serial_number || p.product_code).join(", ")}
                             </span>
                           )}
@@ -482,14 +482,14 @@ export default function EventsPage() {
                       <td className="py-3.5 px-4">
                         <div className="space-y-1.5 min-w-[120px]">
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-zinc-400 font-mono">
+                            <span className="text-muted-foreground font-mono">
                               {completedSteps}/{totalSteps} Step
                             </span>
-                            <span className="text-zinc-500 font-mono">
+                            <span className="text-muted-foreground/70 font-mono">
                               {totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0}%
                             </span>
                           </div>
-                          <div className="w-full h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                          <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
                             <div
                               className={`h-full transition-all duration-300 ${
                                 completedSteps === totalSteps
@@ -511,34 +511,34 @@ export default function EventsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-xl"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground rounded-xl"
                             >
                               <MoreHorizontal className="size-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            className="bg-zinc-900 border-zinc-800 text-zinc-100 min-w-[190px]"
+                            className="min-w-[190px] rounded-xl"
                           >
-                            <DropdownMenuLabel className="text-xs text-zinc-400 font-mono">
+                            <DropdownMenuLabel className="text-xs text-muted-foreground font-mono">
                               Tindakan Event
                             </DropdownMenuLabel>
-                            <DropdownMenuSeparator className="bg-zinc-800" />
+                            <DropdownMenuSeparator />
 
                             <DropdownMenuItem
                               onClick={() => setSelectedEventForDetail(evt)}
-                              className="text-xs cursor-pointer gap-2 hover:bg-zinc-800"
+                              className="text-xs cursor-pointer gap-2"
                             >
-                              <Eye className="size-3.5 text-zinc-400" />
+                              <Eye className="size-3.5 text-muted-foreground" />
                               <span>Lihat Detail & Steps</span>
                             </DropdownMenuItem>
 
                             {evt.status === "scheduled" && (
                               <DropdownMenuItem
                                 onClick={() => handleStartScheduledEvent(evt.event_id, evt.title)}
-                                className="text-xs cursor-pointer gap-2 text-amber-400 hover:bg-amber-500/10 focus:bg-amber-500/10 font-medium"
+                                className="text-xs cursor-pointer gap-2 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 focus:bg-amber-500/10 font-medium"
                               >
-                                <Play className="size-3.5 fill-amber-400" />
+                                <Play className="size-3.5 fill-amber-500" />
                                 <span>Mulai Event Sekarang</span>
                               </DropdownMenuItem>
                             )}
@@ -546,7 +546,7 @@ export default function EventsPage() {
                             {(evt.status === "active" || evt.status === "in_progress") && (
                               <DropdownMenuItem
                                 onClick={() => handleOpenCompleteDialog(evt)}
-                                className="text-xs cursor-pointer gap-2 text-emerald-400 hover:bg-emerald-500/10 focus:bg-emerald-500/10 font-medium"
+                                className="text-xs cursor-pointer gap-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 focus:bg-emerald-500/10 font-medium"
                               >
                                 <CheckCircle2 className="size-3.5" />
                                 <span>Selesaikan Event</span>
@@ -555,10 +555,10 @@ export default function EventsPage() {
 
                             {evt.status !== "completed" && evt.status !== "cancelled" && (
                               <>
-                                <DropdownMenuSeparator className="bg-zinc-800" />
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => handleCancelEvent(evt.event_id, evt.title)}
-                                  className="text-xs cursor-pointer gap-2 text-rose-400 hover:bg-rose-500/10 focus:bg-rose-500/10"
+                                  className="text-xs cursor-pointer gap-2 text-destructive hover:bg-destructive/10 focus:bg-destructive/10"
                                 >
                                   <XCircle className="size-3.5" />
                                   <span>Batalkan Event</span>
@@ -608,28 +608,28 @@ export default function EventsPage() {
             if (!open) setSelectedEventForDetail(null);
           }}
         >
-          <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-zinc-100 p-0 overflow-hidden flex flex-col max-h-[90vh]">
-            <DialogHeader className="p-6 pb-4 border-b border-zinc-800/80 bg-zinc-900/40">
-              <div className="flex items-center gap-2 text-amber-400 font-mono text-xs uppercase tracking-wider">
+          <DialogContent className="max-w-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
+            <DialogHeader className="p-6 pb-4 border-b border-border bg-muted/30">
+              <div className="flex items-center gap-2 text-primary font-mono text-xs uppercase tracking-wider">
                 <Layers className="size-4" />
                 <span>Detail Event Operasional</span>
               </div>
-              <DialogTitle className="text-lg font-bold text-zinc-100 flex items-center justify-between">
+              <DialogTitle className="text-lg font-bold text-foreground flex items-center justify-between">
                 <span>{selectedEventForDetail.title}</span>
                 <Badge
                   variant="outline"
                   className={`text-[10px] uppercase font-mono px-2 py-0.5 ${
                     selectedEventForDetail.status === "completed"
-                      ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
+                      ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
                       : selectedEventForDetail.status === "scheduled"
-                      ? "border-blue-500/30 text-blue-400 bg-blue-500/10"
-                      : "border-amber-500/30 text-amber-400 bg-amber-500/10"
+                      ? "border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10"
+                      : "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10"
                   }`}
                 >
                   {selectedEventForDetail.status}
                 </Badge>
               </DialogTitle>
-              <DialogDescription className="text-xs text-zinc-400">
+              <DialogDescription className="text-xs text-muted-foreground">
                 {selectedEventForDetail.client?.client_name
                   ? `Klien: ${selectedEventForDetail.client.client_name}`
                   : "Internal Event"}{" "}
@@ -641,24 +641,24 @@ export default function EventsPage() {
             <div className="p-6 space-y-5 overflow-y-auto flex-1">
               {/* Linked Products Section */}
               <div className="space-y-2">
-                <div className="text-xs font-semibold text-zinc-300">
+                <div className="text-xs font-semibold text-foreground">
                   Produk Terhubung ({selectedEventForDetail.products?.length || 1})
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {(selectedEventForDetail.products || []).map((p: any) => (
                     <div
                       key={p.product_id}
-                      className="p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between"
+                      className="p-2.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between"
                     >
                       <div>
-                        <div className="text-xs font-mono font-bold text-zinc-200">
+                        <div className="text-xs font-mono font-bold text-foreground">
                           {p.serial_number || p.product_code || "Unit Stabilizer"}
                         </div>
-                        <div className="text-[11px] text-zinc-400">{p.product_name}</div>
+                        <div className="text-[11px] text-muted-foreground">{p.product_name}</div>
                       </div>
                       <Badge
                         variant="outline"
-                        className="text-[10px] uppercase font-mono px-1.5 py-0 border-zinc-700 text-zinc-300"
+                        className="text-[10px] uppercase font-mono px-1.5 py-0 border-border text-muted-foreground"
                       >
                         {p.status}
                       </Badge>
@@ -669,29 +669,29 @@ export default function EventsPage() {
 
               {/* Progress Steps List */}
               <div className="space-y-2.5">
-                <div className="text-xs font-semibold text-zinc-300">Tahapan Pengerjaan (Steps)</div>
-                <div className="divide-y divide-zinc-800/80 rounded-xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+                <div className="text-xs font-semibold text-foreground">Tahapan Pengerjaan (Steps)</div>
+                <div className="divide-y divide-border rounded-xl border border-border bg-muted/20 overflow-hidden">
                   {selectedEventForDetail.steps.map((st, idx) => (
                     <div
                       key={st.step_id || idx}
-                      className="p-3 flex items-center justify-between hover:bg-zinc-900/50 transition-colors"
+                      className="p-3 flex items-center justify-between hover:bg-muted/40 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <div
                           className={`size-6 rounded-lg flex items-center justify-center text-xs font-mono font-bold ${
                             st.status === "completed"
-                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                              ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                               : st.status === "active"
-                              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                              : "bg-zinc-800 text-zinc-500 border border-zinc-700"
+                              ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                              : "bg-muted text-muted-foreground border border-border"
                           }`}
                         >
                           {idx + 1}
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-zinc-200">{st.title}</div>
+                          <div className="text-xs font-bold text-foreground">{st.title}</div>
                           {st.completed_at && (
-                            <div className="text-[10px] text-zinc-500 font-mono">
+                            <div className="text-[10px] text-muted-foreground font-mono">
                               Selesai:{" "}
                               {new Date(st.completed_at).toLocaleDateString("id-ID", {
                                 day: "numeric",
@@ -708,10 +708,10 @@ export default function EventsPage() {
                         variant="outline"
                         className={`text-[10px] uppercase font-mono px-2 py-0.5 ${
                           st.status === "completed"
-                            ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
+                            ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
                             : st.status === "active"
-                            ? "border-amber-500/30 text-amber-400 bg-amber-500/10"
-                            : "border-zinc-700 text-zinc-500 bg-zinc-800/40"
+                            ? "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10"
+                            : "border-border text-muted-foreground bg-muted/40"
                         }`}
                       >
                         {st.status}
@@ -724,8 +724,8 @@ export default function EventsPage() {
               {/* Notes */}
               {selectedEventForDetail.notes && (
                 <div className="space-y-1">
-                  <div className="text-xs font-semibold text-zinc-400">Catatan Pengerjaan:</div>
-                  <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 whitespace-pre-wrap">
+                  <div className="text-xs font-semibold text-muted-foreground">Catatan Pengerjaan:</div>
+                  <div className="p-3 rounded-xl bg-muted/40 border border-border text-xs text-foreground whitespace-pre-wrap">
                     {selectedEventForDetail.notes}
                   </div>
                 </div>

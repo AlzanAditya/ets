@@ -61,7 +61,7 @@ function AppLayoutContent({
           onNavigate={handleNavigate}
           actions={<NotificationBell onNavigate={handleNavigate} />}
         />
-        <div className={cn("flex min-w-0 flex-1 flex-col", navbarEnabled && "max-md:pb-24")}>
+        <div className={cn("flex min-w-0 flex-1 flex-col", navbarEnabled && "max-md:pb-32")}>
           <React.Suspense fallback={<PageContentSkeleton />}>
             <Outlet />
           </React.Suspense>

@@ -22,6 +22,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
+import { CLIENT_IDENTITY } from "@/config/client-identity"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -596,7 +597,7 @@ export function CurrentJobCard({
               <span>Detail Pekerjaan - {job.clientName}</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Informasi teknis dan lokasi pengerjaan ETS.
+              Informasi teknis dan lokasi pengerjaan {CLIENT_IDENTITY.shortName}.
             </DialogDescription>
           </DialogHeader>
 

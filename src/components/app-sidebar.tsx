@@ -85,7 +85,7 @@ export function AppSidebar({
                     className="h-[55px] w-[55px] shrink-0 object-contain"
                   />
                 ) : null}
-                <span className="flex flex-col text-[0.6rem] font-medium uppercase leading-tight tracking-[0.05em] text-muted-foreground group-data-[collapsible=icon]:hidden">
+                <span className="flex flex-col text-[0.6rem] font-medium uppercase leading-tight tracking-[0.05em] text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
                   {(brand.tagline ?? [brand.title]).map((line) => (
                     <span key={line}>{line}</span>
                   ))}

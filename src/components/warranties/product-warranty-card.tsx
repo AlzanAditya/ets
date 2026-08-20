@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { productWarrantiesService } from "@/services/product-warranties.service";
 import type { ProductCurrentWarrantyRow, ProductWarrantyRow } from "@/types/database";
 import { WarrantyExtensionDialog } from "./warranty-extension-dialog";
+import { CLIENT_IDENTITY } from "@/config/client-identity";
 
 interface ProductWarrantyCardProps {
   productId: string;
@@ -93,7 +94,7 @@ export function ProductWarrantyCard({
             </div>
             <p className="text-xs text-zinc-400 mt-0.5">
               {hasWarranty
-                ? `Masa perlindungan resmi unit produk dari PT ETS.`
+                ? `Masa perlindungan resmi unit produk dari ${CLIENT_IDENTITY.shortName}.`
                 : productStatus === "pending"
                 ? "Produk masih dalam status pending (menunggu instalasi pertama)."
                 : "Belum ada data riwayat garansi tercatat."}

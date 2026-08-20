@@ -1,4 +1,5 @@
 import { PDFDocument } from 'pdf-lib'
+import { CLIENT_IDENTITY } from '@/config/client-identity'
 
 export interface ExportResult {
   blob: Blob
@@ -39,8 +40,8 @@ export async function exportReorderedPdf(
   const newDoc = await PDFDocument.create()
 
   // Set standard metadata
-  newDoc.setProducer('ETS Berita Acara PDF Organizer')
-  newDoc.setCreator('ETS Operations Platform')
+  newDoc.setProducer(`${CLIENT_IDENTITY.shortName} Berita Acara PDF Organizer`)
+  newDoc.setCreator(`${CLIENT_IDENTITY.shortName} Operations Platform`)
   newDoc.setModificationDate(new Date())
 
   onProgress?.(55, `Menyalin ${pageIndices.length} halaman asli secara lossless...`)

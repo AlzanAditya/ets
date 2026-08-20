@@ -15,6 +15,7 @@ import {
   Wallet2Icon,
 } from "lucide-react"
 import type { AppNavigationConfig, Plan } from "@/types/navigation"
+import { CLIENT_IDENTITY } from "@/config/client-identity"
 
 const plan = {
   free: "free",
@@ -26,15 +27,15 @@ export const appNavigation = {
   brand: {
     title: "Dashboard",
     href: "/dashboard",
-    logoSrc: "/ets-logo.png",
-    logoAlt: "ETS",
-    tagline: ["Protecting & Improving", "Electricity"],
+    logoSrc: CLIENT_IDENTITY.logo.src,
+    logoAlt: CLIENT_IDENTITY.logo.alt || CLIENT_IDENTITY.shortName,
+    tagline: CLIENT_IDENTITY.tagline,
   },
   user: {
-    name: "Admin ETS",
+    name: `Admin ${CLIENT_IDENTITY.shortName}`,
     email: "admin@ets.co.id",
     avatar: "/avatars/shadcn.jpg",
-    fallback: "AE",
+    fallback: CLIENT_IDENTITY.shortName.slice(0, 2).toUpperCase(),
   },
   mainItems: [
     {

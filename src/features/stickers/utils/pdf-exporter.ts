@@ -1,4 +1,5 @@
 import { exportDocumentPagesToPdf, exportDocumentPagesToPptx, exportDocumentPagesToNativePrint } from '@/lib/document-exporter'
+import { CLIENT_IDENTITY } from '@/config/client-identity'
 
 export async function exportA4PagesToPDF(
   containerElement: HTMLElement,
@@ -13,8 +14,8 @@ export async function exportA4PagesToPDF(
 
   const pageElements = Array.from(pageNodes)
   const selectedScale = parseInt(String(pdfScale), 10) || 3
-  const safeName = (fileNamePrefix || 'ETS_Sticker').replace(/[^a-zA-Z0-9]/g, '_')
-  const fileName = `ETS_Stickers_${safeName}_${copiesCount}pcs.pdf`
+  const safeName = (fileNamePrefix || `${CLIENT_IDENTITY.shortName}_Sticker`).replace(/[^a-zA-Z0-9]/g, '_')
+  const fileName = `${CLIENT_IDENTITY.shortName}_Stickers_${safeName}_${copiesCount}pcs.pdf`
 
   await exportDocumentPagesToPdf(pageElements, {
     orientation: 'portrait',
@@ -38,8 +39,8 @@ export async function exportA4PagesToNativePrint(
   }
 
   const pageElements = Array.from(pageNodes)
-  const safeName = (fileNamePrefix || 'ETS_Sticker').replace(/[^a-zA-Z0-9]/g, '_')
-  const fileName = `ETS_Stickers_${safeName}_${copiesCount}pcs.pdf`
+  const safeName = (fileNamePrefix || `${CLIENT_IDENTITY.shortName}_Sticker`).replace(/[^a-zA-Z0-9]/g, '_')
+  const fileName = `${CLIENT_IDENTITY.shortName}_Stickers_${safeName}_${copiesCount}pcs.pdf`
 
   await exportDocumentPagesToNativePrint(pageElements, {
     orientation: 'portrait',
@@ -62,8 +63,8 @@ export async function exportA4PagesToPPTX(
 
   const pageElements = Array.from(pageNodes)
   const selectedScale = parseInt(String(pdfScale), 10) || 3
-  const safeName = (fileNamePrefix || 'ETS_Sticker').replace(/[^a-zA-Z0-9]/g, '_')
-  const fileName = `ETS_Stickers_${safeName}_${copiesCount}pcs.pptx`
+  const safeName = (fileNamePrefix || `${CLIENT_IDENTITY.shortName}_Sticker`).replace(/[^a-zA-Z0-9]/g, '_')
+  const fileName = `${CLIENT_IDENTITY.shortName}_Stickers_${safeName}_${copiesCount}pcs.pptx`
 
   await exportDocumentPagesToPptx(pageElements, {
     orientation: 'portrait',
@@ -71,7 +72,7 @@ export async function exportA4PagesToPPTX(
     heightPx: 1123,
     scale: selectedScale,
     filename: fileName,
-    author: 'ETS Sticker Builder',
-    title: `ETS Stickers - ${fileNamePrefix}`,
+    author: `${CLIENT_IDENTITY.shortName} Sticker Builder`,
+    title: `${CLIENT_IDENTITY.shortName} Stickers - ${fileNamePrefix}`,
   })
 }

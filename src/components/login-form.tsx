@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import { useLocation, useNavigate } from "react-router-dom";
 import { clearStoredReturnUrl, getSafeReturnUrl, getStoredReturnUrl } from "@/lib/auth-utils";
+import { CLIENT_IDENTITY } from "@/config/client-identity";
 import {
   AlertCircleIcon,
   EyeIcon,
@@ -128,7 +129,7 @@ export function LoginForm({
                     Selamat Datang
                   </h1>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Masuk ke Dashboard ETS Tracking
+                    Masuk ke Dashboard {CLIENT_IDENTITY.shortName} Tracking
                   </p>
                 </div>
               </div>
@@ -280,15 +281,17 @@ export function LoginForm({
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-transparent" />
             <div className="relative z-10 flex flex-col items-center gap-5 text-center">
               <SmartImage
-                src="/ets-logo.png"
-                alt="ETS Logo"
+                src={CLIENT_IDENTITY.logo.src}
+                alt={CLIENT_IDENTITY.logo.alt || CLIENT_IDENTITY.shortName}
                 className="h-16 w-16 object-contain"
               />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40 mb-1">
-                  Protecting &amp; Improving
+                  {CLIENT_IDENTITY.tagline[0] || CLIENT_IDENTITY.shortName}
                 </p>
-                <p className="text-lg font-bold text-white/90">Electricity</p>
+                <p className="text-lg font-bold text-white/90">
+                  {CLIENT_IDENTITY.tagline.slice(1).join(" ") || CLIENT_IDENTITY.fullName}
+                </p>
               </div>
               <div className="mt-4 grid gap-2 w-full">
                 {[
@@ -311,7 +314,7 @@ export function LoginForm({
       </Card>
 
       <FieldDescription className="px-6 text-center text-xs text-muted-foreground">
-        Copyright © 2026 ETS
+        Copyright © {new Date().getFullYear()} {CLIENT_IDENTITY.shortName}
       </FieldDescription>
     </div>
   );

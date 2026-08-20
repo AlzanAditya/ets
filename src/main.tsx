@@ -6,9 +6,13 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/query-client";
 import { ThemeProvider } from "next-themes";
 import { initGlobalWebResilience } from "@/lib/global-resilience";
+import { applyClientIdentityToDocument } from "@/config/client-identity";
 import { RootErrorBoundary } from "@/components/root-error-boundary";
 import App from "./App";
 import "./index.css";
+
+// Apply client identity (document title, theme-color meta, favicon)
+applyClientIdentityToDocument();
 
 // Initialize global web-level resilience against accidental reloads, form drops, and tab freezing
 initGlobalWebResilience();

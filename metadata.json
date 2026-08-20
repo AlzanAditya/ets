@@ -1,5 +1,5 @@
 {
-  "name": "ETS Web Internal",
+  "name": "OPS Web Internal",
   "description": "System Tracking & Verification Application with Admin Dashboard, Worker Interface, and Public Verification Pages",
   "requestFramePermissions": [
     "camera"

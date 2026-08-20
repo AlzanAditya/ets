@@ -1,12 +1,15 @@
-import { LogOut } from "lucide-react"
+import { LogOut, SunMedium, Moon, Monitor, Palette } from "lucide-react"
+import { useTheme } from "next-themes"
 import { useAuth } from "@/contexts/auth-context"
 import { useWorkerData } from "@/hooks/use-worker-data"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 
 export default function WorkerProfile() {
   const { logout } = useAuth()
   const { workerProfile, loading } = useWorkerData()
+  const { theme, setTheme } = useTheme()
 
   const name = workerProfile.name || "Dika Pratama"
   const position = workerProfile.position || "Teknisi Instalasi"
@@ -25,6 +28,12 @@ export default function WorkerProfile() {
     { label: "Tanggal Bergabung", value: workerProfile.joinDate },
     { label: "Role", value: "Worker" },
   ]
+
+  const themes = [
+    { id: "light", label: "Terang", icon: SunMedium },
+    { id: "dark", label: "Gelap", icon: Moon },
+    { id: "system", label: "Sistem", icon: Monitor },
+  ] as const
 
   return (
     <div className="space-y-6 animate-fade-in pt-2">
@@ -68,13 +77,42 @@ export default function WorkerProfile() {
         ))}
       </div>
 
+      {/* Appearance / Theme Settings */}
+      <div className="space-y-2.5 pt-1">
+        <div className="flex items-center gap-2 px-1">
+          <Palette className="size-3.5 text-primary" />
+          <Label className="text-xs font-semibold text-foreground">Tema Tampilan</Label>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {themes.map((t) => {
+            const Icon = t.icon
+            const isSelected = theme === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTheme(t.id)}
+                className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-medium transition-all ${
+                  isSelected
+                    ? "border-primary bg-primary/10 text-primary shadow-xs"
+                    : "border-border text-muted-foreground hover:border-border/80 hover:bg-muted/50"
+                }`}
+              >
+                <Icon className={`size-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                <span>{t.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Logout Button */}
       <div className="pt-2">
         <Button
           type="button"
           variant="outline"
           onClick={() => logout()}
-          className="w-full h-11 rounded-2xl font-bold gap-2 shadow-xs transition-all active:scale-[0.99] border-rose-500/30 text-rose-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-300"
+          className="w-full h-11 rounded-2xl font-bold gap-2 shadow-xs transition-all active:scale-[0.99] border-rose-500/30 text-rose-500 dark:text-rose-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-300"
         >
           <LogOut className="size-4" />
           <span>Keluar</span>

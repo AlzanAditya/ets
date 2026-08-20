@@ -38,6 +38,7 @@ import { ReportData, ProductData } from '../types'
 import { ASSET } from '../data/template'
 import { SmartImage } from '@/components/ui/smart-image'
 import { exportDocumentPagesToPdf, exportDocumentPagesToPptx, exportDocumentPagesToNativePrint } from '@/lib/document-exporter'
+import { CLIENT_IDENTITY } from '@/config/client-identity'
 
 const A = ASSET
 const BG1 = `${A}bg-01.png`
@@ -550,7 +551,7 @@ function LockedPage({
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
         <Text left="calc(-3.28% + 100px)" top="calc(10.26% + 15px)" width="56.7%" height="11.0%" className="benefits-title">
-          Manfaat  ETS :
+          Manfaat  OPS :
         </Text>
         <div className="benefits-layout-3col">
           {/* Kolom 1 (Kiri): Auto Overload Protection, Stabilizing, Auto Cut-off Protection - Teks Right Align, Icon setelah Teks */}
@@ -558,7 +559,7 @@ function LockedPage({
             <div className="benefit-item benefit-item-right">
               <div className="benefit-text-block text-right">
                 <h3 className="benefit-heading">Auto Overload Protection</h3>
-                <p className="benefit-desc">Output ETS akan di shutdown ketika ETS mendeteksi adanya beban berlebih</p>
+                <p className="benefit-desc">Output OPS akan di shutdown ketika OPS mendeteksi adanya beban berlebih</p>
               </div>
               <div className="benefit-icon-badge">
                 <Weight className="w-8 h-8 text-black" strokeWidth={2.2} />
@@ -568,7 +569,7 @@ function LockedPage({
             <div className="benefit-item benefit-item-right">
               <div className="benefit-text-block text-right">
                 <h3 className="benefit-heading">Stabilizing</h3>
-                <p className="benefit-desc">ETS akan menstabilkan tegangan yang tidak normal dengan range yang lebar ( 150 V s/d 250 V )</p>
+                <p className="benefit-desc">OPS akan menstabilkan tegangan yang tidak normal dengan range yang lebar ( 150 V s/d 250 V )</p>
               </div>
               <div className="benefit-icon-badge">
                 <Activity className="w-8 h-8 text-black" strokeWidth={2.2} />
@@ -578,7 +579,7 @@ function LockedPage({
             <div className="benefit-item benefit-item-right">
               <div className="benefit-text-block text-right">
                 <h3 className="benefit-heading">Auto Cut-off Protection</h3>
-                <p className="benefit-desc">ETS akan memutus input aliran listrik ketika mendeteksi adanya tegangan extreme/surge</p>
+                <p className="benefit-desc">OPS akan memutus input aliran listrik ketika mendeteksi adanya tegangan extreme/surge</p>
               </div>
               <div className="benefit-icon-badge">
                 <Power className="w-8 h-8 text-black" strokeWidth={2.2} />
@@ -586,12 +587,12 @@ function LockedPage({
             </div>
           </div>
 
-          {/* Kolom 2 (Tengah): Hanya Logo ETS saja tanpa lingkaran kuning atau teks */}
+          {/* Kolom 2 (Tengah): Hanya Logo saja */}
           <div className="benefit-center-col">
             <div className="benefit-center-emblem">
               <SmartImage
-                src="/ets-logo.png"
-                alt="ETS Logo"
+                src={CLIENT_IDENTITY.logo.src}
+                alt={CLIENT_IDENTITY.logo.alt}
                 className="w-full h-auto max-h-[180px] object-contain"
               />
             </div>
@@ -605,7 +606,7 @@ function LockedPage({
               </div>
               <div className="benefit-text-block text-left">
                 <h3 className="benefit-heading">Filtering</h3>
-                <p className="benefit-desc">ETS akan menyaring / filter input listrik dari noise ( harmonic, transient, flicker )</p>
+                <p className="benefit-desc">OPS akan menyaring / filter input listrik dari noise ( harmonic, transient, flicker )</p>
               </div>
             </div>
 
@@ -615,7 +616,7 @@ function LockedPage({
               </div>
               <div className="benefit-text-block text-left">
                 <h3 className="benefit-heading">Zero Ground Processing</h3>
-                <p className="benefit-desc">ETS akan memperbaiki kualitas ground hingga mendekati “nol” atau di bawah “1” Volt</p>
+                <p className="benefit-desc">OPS akan memperbaiki kualitas ground hingga mendekati “nol” atau di bawah “1” Volt</p>
               </div>
             </div>
 
@@ -646,7 +647,7 @@ function LockedPage({
         : type === 'personalised2'
         ? `2.  ${p.name || 'UPS EATON (120 KVA)'}`
         : '3.  UPS EATON (60 KVA & 120 KVA)'
-    const ets = type === 'centralised' ? 'ETS 200 KVA' : `ETS ${p.capacity || (index === 0 ? '60 KVA' : '120 KVA')}`
+    const ets = type === 'centralised' ? 'OPS 200 KVA' : `OPS ${p.capacity || (index === 0 ? '60 KVA' : '120 KVA')}`
     const ups =
       type === 'centralised'
         ? 'UPS 60 KVA & 120 KVA'
@@ -746,7 +747,7 @@ function LockedPage({
     return (
       <Page number={number} total={total} locked onVisible={onVisible} onOpen={onOpen}>
         <Text left="10.675%" top="19.5%" width="78.64%" className="summary-title">
-          SUMMARY KEBUTUHAN ETS DI {data.clientName.replace(/^PT\s+/i, 'PT ')}
+          SUMMARY KEBUTUHAN OPS DI {data.clientName.replace(/^PT\s+/i, 'PT ')}
         </Text>
         <table className="summary-table" style={{ left: '10.675%', top: '25.5%', width: '78.64%' }}>
           <thead>
@@ -775,7 +776,7 @@ function LockedPage({
                 <tr className="item-detail-row">
                   <td></td>
                   <td className="area-cell">
-                    <span>ETS {p.capacity} (Three Phase)</span>
+                    <span>OPS {p.capacity} (Three Phase)</span>
                   </td>
                   <td>1</td>
                   <td>Personalised</td>
@@ -793,7 +794,7 @@ function LockedPage({
             <tr className="item-detail-row">
               <td></td>
               <td className="area-cell">
-                <span>ETS 200 KVA (Three Phase)</span>
+                <span>OPS 200 KVA (Three Phase)</span>
               </td>
               <td>1</td>
               <td>Centralised</td>
@@ -964,12 +965,12 @@ function RenderSinglePage({
           <br />
           <br />
           Bila terjadi power extreme karena efek sambaran petir yang dibuang oleh penangkal petir outdoor kemudian
-          masuk melalui grounding elektronik, maka ETS akan melakukan proteksi dengan cara memutus aliran listrik yang
+          masuk melalui grounding elektronik, maka OPS akan melakukan proteksi dengan cara memutus aliran listrik yang
           masuk ke dalam jaringan.
           <br />
           <br />
           Bila terjadi power extreme karena efek sambaran petir yang masuk melalui jalur jala-jala listrik (phasa dan
-          netral), maka ETS akan melakukan proteksi juga.
+          netral), maka OPS akan melakukan proteksi juga.
         </Text>
       </Page>
     )
@@ -1254,7 +1255,7 @@ export default function ReportPreview({ data }: { data: ReportData }) {
     if (button) button.textContent = 'Membuat PDF…'
 
     try {
-      const filename = `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pdf`
+      const filename = `${data.clientName || 'OPS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pdf`
       await exportDocumentPagesToPdf(pages, {
         orientation: 'landscape',
         widthPx: 1600,
@@ -1283,7 +1284,7 @@ export default function ReportPreview({ data }: { data: ReportData }) {
 
     setIsExporting(true)
     try {
-      const filename = `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pdf`
+      const filename = `${data.clientName || 'OPS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pdf`
       await exportDocumentPagesToNativePrint(pages, {
         orientation: 'landscape',
         widthPx: 1600,
@@ -1311,17 +1312,18 @@ export default function ReportPreview({ data }: { data: ReportData }) {
     if (pptxButton) pptxButton.textContent = 'Membuat PPTX…'
 
     try {
-      const filename = `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pptx`
+      const defaultClient = CLIENT_IDENTITY.shortName
+      const filename = `${data.clientName || defaultClient} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}.pptx`
       await exportDocumentPagesToPptx(pages, {
         orientation: 'landscape',
         widthPx: 1600,
         heightPx: 900,
         scale: normalizedRenderScale,
         filename,
-        author: 'ETS Report Builder',
+        author: `${CLIENT_IDENTITY.shortName} Report Builder`,
         subject: data.reportType === 'final' ? 'Final Survey' : 'Survey',
-        title: `${data.clientName || 'ETS'} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}`,
-        company: 'ETS',
+        title: `${data.clientName || defaultClient} - ${data.reportType === 'final' ? 'Final Survey' : 'Survey'}`,
+        company: CLIENT_IDENTITY.shortName,
       })
     } catch (error) {
       console.error('PPTX export failed:', error)

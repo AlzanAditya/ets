@@ -200,16 +200,16 @@ export function CreateMultiProductEventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-zinc-100 p-0 overflow-hidden flex flex-col max-h-[92vh]">
-        <DialogHeader className="p-6 pb-4 border-b border-zinc-800/80 bg-zinc-900/40">
-          <div className="flex items-center gap-2 text-amber-400 font-mono text-xs uppercase tracking-wider">
+      <DialogContent className="max-w-2xl p-0 overflow-hidden flex flex-col max-h-[92vh]">
+        <DialogHeader className="p-6 pb-4 border-b border-border bg-muted/30">
+          <div className="flex items-center gap-2 text-primary font-mono text-xs uppercase tracking-wider">
             <Layers className="size-4" />
             <span>Event Management</span>
           </div>
-          <DialogTitle className="text-lg font-bold text-zinc-100">
+          <DialogTitle className="text-lg font-bold text-foreground">
             Buat Event Baru (Multi-Produk)
           </DialogTitle>
-          <DialogDescription className="text-xs text-zinc-400">
+          <DialogDescription className="text-xs text-muted-foreground">
             Kelompokkan satu atau lebih produk dengan lifecycle yang sesuai ke dalam event kerja.
           </DialogDescription>
         </DialogHeader>
@@ -218,18 +218,18 @@ export function CreateMultiProductEventDialog({
           {/* Event Configuration: Type & Title */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-300 font-semibold flex items-center gap-1.5">
+              <Label className="text-xs text-foreground font-semibold flex items-center gap-1.5">
                 {eventType === "installation" ? (
-                  <PackageCheck className="size-3.5 text-blue-400" />
+                  <PackageCheck className="size-3.5 text-blue-600 dark:text-blue-400" />
                 ) : (
-                  <Wrench className="size-3.5 text-amber-400" />
+                  <Wrench className="size-3.5 text-amber-600 dark:text-amber-400" />
                 )}
                 <span>Jenis Event</span>
               </Label>
               <select
                 value={eventType}
                 onChange={(e) => handleEventTypeChange(e.target.value as EventType)}
-                className="w-full h-9 rounded-xl bg-zinc-900 border border-zinc-800 px-3 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                className="w-full h-9 rounded-xl bg-background border border-border px-3 text-xs text-foreground focus:outline-none focus:border-primary"
               >
                 <option value="installation">Instalasi (Hanya Produk Pending)</option>
                 <option value="maintenance">Maintenance (Hanya Produk Warranty)</option>
@@ -237,38 +237,38 @@ export function CreateMultiProductEventDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-zinc-300 font-semibold">Judul / Kode Event</Label>
+              <Label className="text-xs text-foreground font-semibold">Judul / Kode Event</Label>
               <Input
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
                 placeholder="Contoh: INSTALASI BATCH 1 atau MAINTENANCE Q3"
-                className="h-9 text-xs bg-zinc-900 border-zinc-800 text-zinc-100 rounded-xl"
+                className="h-9 text-xs bg-background border-border text-foreground rounded-xl"
                 required
               />
             </div>
           </div>
 
           {/* Scheduling Configuration */}
-          <div className="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900/40 space-y-3">
+          <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Calendar className="size-4 text-amber-400" />
+                <Calendar className="size-4 text-primary" />
                 <div>
-                  <div className="text-xs font-semibold text-zinc-200">Mode Penjadwalan</div>
-                  <div className="text-[11px] text-zinc-400">
+                  <div className="text-xs font-semibold text-foreground">Mode Penjadwalan</div>
+                  <div className="text-[11px] text-muted-foreground">
                     Jadwalkan terlebih dahulu atau mulai pengerjaan saat ini juga
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border">
                 <button
                   type="button"
                   onClick={() => setIsScheduled(false)}
                   className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-colors ${
                     !isScheduled
-                      ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
-                      : "text-zinc-400 hover:text-zinc-200"
+                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   Mulai Langsung
@@ -278,8 +278,8 @@ export function CreateMultiProductEventDialog({
                   onClick={() => setIsScheduled(true)}
                   className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-colors ${
                     isScheduled
-                      ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
-                      : "text-zinc-400 hover:text-zinc-200"
+                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   Jadwalkan Nanti
@@ -288,23 +288,23 @@ export function CreateMultiProductEventDialog({
             </div>
 
             {isScheduled && (
-              <div className="pt-2 border-t border-zinc-800/80 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex-1 space-y-1">
-                  <Label className="text-[11px] text-zinc-300 flex items-center gap-1">
-                    <Clock className="size-3 text-amber-400" />
+                  <Label className="text-[11px] text-foreground flex items-center gap-1">
+                    <Clock className="size-3 text-primary" />
                     <span>Waktu / Tanggal Pengerjaan (Scheduled Date)</span>
                   </Label>
                   <Input
                     type="datetime-local"
                     value={scheduledDate}
                     onChange={(e) => setScheduledDate(e.target.value)}
-                    className="h-8 text-xs bg-zinc-900 border-zinc-800 rounded-lg text-zinc-100"
+                    className="h-8 text-xs bg-background border-border rounded-lg text-foreground"
                     required={isScheduled}
                   />
                 </div>
-                <div className="text-[11px] text-zinc-400 bg-zinc-950/60 p-2 rounded-lg border border-zinc-800/60 flex-1">
+                <div className="text-[11px] text-muted-foreground bg-background/80 p-2 rounded-lg border border-border flex-1">
                   Status produk tetap{" "}
-                  <strong className="text-amber-300 uppercase">{eligibleStatus}</strong> sampai
+                  <strong className="text-amber-600 dark:text-amber-400 uppercase">{eligibleStatus}</strong> sampai
                   event resmi dijalankan.
                 </div>
               </div>
@@ -313,23 +313,23 @@ export function CreateMultiProductEventDialog({
 
           {/* Optional Event Notes */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-300 font-semibold">Catatan Event (Opsional)</Label>
+            <Label className="text-xs text-foreground font-semibold">Catatan Event (Opsional)</Label>
             <Input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Catatan teknis pengerjaan, lokasi, atau instruksi khusus..."
-              className="h-9 text-xs bg-zinc-900 border-zinc-800 text-zinc-100 rounded-xl"
+              className="h-9 text-xs bg-background border-border text-foreground rounded-xl"
             />
           </div>
 
           {/* Selected Products Chips */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-zinc-300 font-semibold flex items-center gap-2">
+              <Label className="text-xs text-foreground font-semibold flex items-center gap-2">
                 <span>Produk Terpilih ({selectedProductIds.length})</span>
                 <Badge
                   variant="outline"
-                  className="text-[10px] uppercase font-mono px-2 py-0 border-amber-500/30 text-amber-400 bg-amber-500/10"
+                  className="text-[10px] uppercase font-mono px-2 py-0 border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10"
                 >
                   Syarat: {eligibleStatus}
                 </Badge>
@@ -338,7 +338,7 @@ export function CreateMultiProductEventDialog({
                 <button
                   type="button"
                   onClick={() => setSelectedProductIds([])}
-                  className="text-[11px] text-zinc-400 hover:text-rose-400 transition-colors"
+                  className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
                 >
                   Reset Pilihan
                 </button>
@@ -346,27 +346,27 @@ export function CreateMultiProductEventDialog({
             </div>
 
             {selectedProductIds.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 max-h-24 overflow-y-auto">
+              <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl bg-muted/30 border border-border max-h-24 overflow-y-auto">
                 {selectedProductIds.map((pId) => {
                   const p = products.find((prod) => prod.product_id === pId);
                   return (
                     <Badge
                       key={pId}
                       variant="secondary"
-                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs py-0.5 px-2 gap-1.5 rounded-lg"
+                      className="text-foreground border border-border text-xs py-0.5 px-2 gap-1.5 rounded-lg"
                     >
                       <span className="font-mono font-medium">
                         {p?.serial_number || p?.product_code || pId.slice(0, 8)}
                       </span>
                       {p?.client?.client_name && (
-                        <span className="text-[10px] text-zinc-400">
+                        <span className="text-[10px] text-muted-foreground">
                           ({p.client.client_name})
                         </span>
                       )}
                       <button
                         type="button"
                         onClick={() => toggleSelectProduct(pId)}
-                        className="hover:text-rose-400 transition-colors ml-0.5"
+                        className="hover:text-destructive transition-colors ml-0.5"
                       >
                         <X className="size-3" />
                       </button>
@@ -375,11 +375,11 @@ export function CreateMultiProductEventDialog({
                 })}
               </div>
             ) : (
-              <div className="p-3 rounded-xl border border-dashed border-zinc-800 text-center text-xs text-zinc-500 flex items-center justify-center gap-1.5">
-                <AlertCircle className="size-3.5 text-zinc-500" />
+              <div className="p-3 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                <AlertCircle className="size-3.5 text-muted-foreground" />
                 <span>
                   Belum ada produk dipilih. Centang produk berstatus{" "}
-                  <strong className="text-zinc-300 uppercase">{eligibleStatus}</strong> di bawah.
+                  <strong className="text-foreground uppercase">{eligibleStatus}</strong> di bawah.
                 </span>
               </div>
             )}
@@ -388,7 +388,7 @@ export function CreateMultiProductEventDialog({
           {/* Product Filter & Picker */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between gap-2">
-              <Label className="text-xs text-zinc-300 font-semibold">
+              <Label className="text-xs text-foreground font-semibold">
                 Daftar Produk ({filteredProducts.length} memenuhi syarat)
               </Label>
               {filteredProducts.length > 0 && (
@@ -397,11 +397,11 @@ export function CreateMultiProductEventDialog({
                   variant="ghost"
                   size="sm"
                   onClick={handleSelectAllVisible}
-                  className="h-6 text-[11px] px-2 text-zinc-400 hover:text-zinc-200 gap-1"
+                  className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground gap-1"
                 >
                   {filteredProducts.every((p) => selectedProductIds.includes(p.product_id)) ? (
                     <>
-                      <CheckSquare className="size-3 text-amber-400" />
+                      <CheckSquare className="size-3 text-primary" />
                       <span>Batal Pilih Semua</span>
                     </>
                   ) : (
@@ -417,21 +417,21 @@ export function CreateMultiProductEventDialog({
             {/* Filter row: Search & Client dropdown */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 size-3.5 text-zinc-500" />
+                <Search className="absolute left-3 top-2.5 size-3.5 text-muted-foreground" />
                 <Input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Cari No. Seri / Nama / Kode..."
-                  className="pl-8 h-8 text-xs bg-zinc-900 border-zinc-800 rounded-xl text-zinc-100"
+                  className="pl-8 h-8 text-xs bg-background border-border rounded-xl text-foreground"
                 />
               </div>
 
               <div className="relative">
-                <Building2 className="absolute left-3 top-2.5 size-3.5 text-zinc-500" />
+                <Building2 className="absolute left-3 top-2.5 size-3.5 text-muted-foreground" />
                 <select
                   value={clientFilter}
                   onChange={(e) => setClientFilter(e.target.value)}
-                  className="w-full pl-8 h-8 rounded-xl bg-zinc-900 border border-zinc-800 pr-3 text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                  className="w-full pl-8 h-8 rounded-xl bg-background border border-border pr-3 text-xs text-foreground focus:outline-none focus:border-primary"
                 >
                   <option value="all">Semua Perusahaan / Client</option>
                   {uniqueClients.map((c) => (
@@ -444,16 +444,16 @@ export function CreateMultiProductEventDialog({
             </div>
 
             {/* Product Items List */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 overflow-hidden divide-y divide-zinc-800/60 max-h-56 overflow-y-auto">
+            <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border/60 max-h-56 overflow-y-auto">
               {loading ? (
-                <div className="p-6 flex items-center justify-center gap-2 text-xs text-zinc-500">
-                  <Loader2 className="size-4 animate-spin text-amber-400" />
+                <div className="p-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin text-primary" />
                   <span>Memuat daftar produk...</span>
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="p-6 text-center text-xs text-zinc-500">
+                <div className="p-6 text-center text-xs text-muted-foreground">
                   Tidak ada produk berstatus{" "}
-                  <strong className="text-zinc-400 uppercase">{eligibleStatus}</strong> yang cocok.
+                  <strong className="text-foreground uppercase">{eligibleStatus}</strong> yang cocok.
                 </div>
               ) : (
                 filteredProducts.map((p) => {
@@ -463,27 +463,26 @@ export function CreateMultiProductEventDialog({
                       key={p.product_id}
                       onClick={() => toggleSelectProduct(p.product_id)}
                       className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer select-none transition-colors ${
-                        isChecked ? "bg-amber-500/10 hover:bg-amber-500/15" : "hover:bg-zinc-800/40"
+                        isChecked ? "bg-primary/10 hover:bg-primary/15" : "hover:bg-muted/40"
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <Checkbox
                           checked={isChecked}
                           onCheckedChange={() => toggleSelectProduct(p.product_id)}
-                          className="border-zinc-700 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold text-zinc-200 truncate">
+                            <span className="text-xs font-mono font-bold text-foreground truncate">
                               {p.serial_number || p.product_code || "Tanpa Serial"}
                             </span>
                             {p.product_code && p.serial_number && (
-                              <span className="text-[10px] font-mono text-zinc-500 truncate">
+                              <span className="text-[10px] font-mono text-muted-foreground truncate">
                                 ({p.product_code})
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-zinc-400 truncate">
+                          <p className="text-[11px] text-muted-foreground truncate">
                             {p.product_name || "Produk Tanpa Nama"}
                             {p.client?.client_name ? ` • ${p.client.client_name}` : ""}
                           </p>
@@ -494,10 +493,10 @@ export function CreateMultiProductEventDialog({
                         variant="outline"
                         className={`text-[10px] uppercase font-mono px-1.5 py-0.5 border ${
                           p.status === "pending"
-                            ? "border-amber-500/30 text-amber-400 bg-amber-500/10"
+                            ? "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10"
                             : p.status === "warranty"
-                            ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
-                            : "border-zinc-700 text-zinc-400 bg-zinc-800/40"
+                            ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+                            : "border-border text-muted-foreground bg-muted/40"
                         }`}
                       >
                         {p.status}
@@ -510,9 +509,9 @@ export function CreateMultiProductEventDialog({
           </div>
         </form>
 
-        <DialogFooter className="p-4 border-t border-zinc-800/80 bg-zinc-900/40 flex items-center justify-between sm:justify-between">
-          <span className="text-xs text-zinc-400">
-            Total <strong className="text-zinc-200 font-mono">{selectedProductIds.length}</strong>{" "}
+        <DialogFooter className="p-4 border-t border-border bg-muted/30 flex items-center justify-between sm:justify-between">
+          <span className="text-xs text-muted-foreground">
+            Total <strong className="text-foreground font-mono">{selectedProductIds.length}</strong>{" "}
             produk dipilih
           </span>
           <div className="flex items-center gap-2">
@@ -522,7 +521,7 @@ export function CreateMultiProductEventDialog({
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={submitting}
-              className="border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 rounded-xl text-xs"
+              className="rounded-xl text-xs"
             >
               Batal
             </Button>
@@ -531,7 +530,7 @@ export function CreateMultiProductEventDialog({
               size="sm"
               onClick={handleSubmit}
               disabled={submitting || selectedProductIds.length === 0}
-              className="bg-amber-500 text-zinc-950 font-bold hover:bg-amber-400 rounded-xl text-xs gap-1.5 shadow-sm"
+              className="rounded-xl text-xs gap-1.5 font-semibold shadow-xs"
             >
               {submitting ? (
                 <Loader2 className="size-3.5 animate-spin" />

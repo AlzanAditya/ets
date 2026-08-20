@@ -1,5 +1,6 @@
 import { renderPageElementToCanvas } from './pdf-exporter'
 import { ExportPptxOptions } from './types'
+import { CLIENT_IDENTITY } from '@/config/client-identity'
 
 export { renderPageElementToCanvas }
 
@@ -26,10 +27,10 @@ export async function exportDocumentBitmapsToPptx(
     pptx.layout = 'LAYOUT_WIDE'
   }
 
-  pptx.author = options.author || 'ETS Report Builder'
+  pptx.author = options.author || `${CLIENT_IDENTITY.shortName} Report Builder`
   pptx.subject = options.subject || 'Document'
   pptx.title = options.title || 'Document'
-  pptx.company = options.company || 'ETS'
+  pptx.company = options.company || CLIENT_IDENTITY.shortName
 
   const slideWidth = options.slideWidthInches || (orientation === 'landscape' ? 13.333333 : 7.5)
   const slideHeight = options.slideHeightInches || (orientation === 'landscape' ? 7.5 : 10)
